@@ -2,147 +2,47 @@
 
 ## 1. Project boundary
 
-JobSubmit is a standalone product for Capt. Bob Cedi's Artworks. It has an independent source tree and Git history. Future environments, databases, object storage, deployments, credentials, and external services must also be independent. Nothing in this project may silently couple to Footwear Empire, Vault Commerce, CIV, Kobby's Kitchen, or another client project.
+JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 1 contains presentation and engineering foundations only. It deliberately contains no database, ORM, authentication, accounts, jobs, queues, uploads, notifications, payments, or business workflows.
+Brick 2 establishes data architecture and integrity only. It does not add authentication, authorization middleware, product screens, forms, upload endpoints, live queue behavior, delivery mechanisms, or other Brick 3+ workflows.
 
 ## 2. Application shape
 
 - Next.js App Router is the routing and rendering foundation.
-- React Server Components are the default. A component becomes a Client Component only when browser state, effects, or event-driven interactivity requires it.
-- `src/app` owns routes, layouts, metadata, and route-level composition.
-- `src/components/ui` contains small presentation primitives with no business knowledge.
-- `src/components/layout` contains reusable shell and layout elements.
-- `src/config` contains factual application configuration.
-- `src/lib` contains framework-agnostic utilities.
-- A dedicated server-only area, domain types, and constants will be introduced when a real later-brick requirement exists. Privileged code must never be imported into a client boundary.
+- React Server Components are the default; Client Components require an actual browser-side need.
+- `src/app` owns routes and route-level composition.
+- `src/components/ui` and `src/components/layout` remain presentation-only.
+- `src/domain` contains pure, framework-independent rules.
+- `src/server` is an explicit server-only boundary. Database access imports `server-only` and must never enter a client bundle.
+- `prisma` owns the persistence model, migrations, and development seed.
 
-The initial product roles to implement later are:
+The product roles are `CUSTOMER`, `WORKER`, `ADMIN`, and `OWNER`. Roles are persisted through business membership, but authentication and authorization enforcement are intentionally deferred. Future authorization must use server-authoritative membership data, never client claims.
 
-- `CUSTOMER`
-- `WORKER`
-- `ADMIN`
-- `OWNER`
+## 3. Database decision
 
-These names are documentation only in Brick 1; there is no authorization model yet.
+PostgreSQL is the authoritative datastore and Prisma is the ORM/migration tool. Operational records are scoped through a `Business` root instead of a global singleton, without positioning the product as a public multi-tenant SaaS. Runtime code uses a pooled `DATABASE_URL`; migrations use `DIRECT_DATABASE_URL` when supplied.
 
-## 3. Visual system
+The initial migration combines Prisma-generated DDL with explicit PostgreSQL checks, partial indexes, and triggers for rules Prisma cannot express. See [DATABASE.md](DATABASE.md) for the complete model and transaction decisions.
 
-The brand palette begins with black (`#111111`), white (`#FFFFFF`), gold (`#D4AF37`), and goldenrod (`#DAA520`). Raw palette values are defined once in global CSS. Components use semantic tokens:
+## 4. Visual system
 
-- background and foreground
-- surface and muted surface
-- border and muted text
-- primary and primary foreground
-- accent and accent foreground
-- destructive and destructive foreground
-- focus/ring
-
-Light and dark sets exist now. The operating-system preference selects the initial appearance, and the token selectors can support a future explicit preference without redesigning components. Theme controls are intentionally deferred:
-
-- Customers may access theme switching from desktop navigation or the mobile menu.
-- Workers will manage theme through User Settings rather than a permanent navbar toggle.
-
-Typography uses Geist Sans for interface text and Geist Mono sparingly for precise labels. Fonts are loaded through `next/font` and bundled with the application.
-
-## 4. Known future domains
-
-The following domains are known but are not implemented in Brick 1:
-
-- Services
-- Jobs
-- Job attachments
-- Job assignments
-- Job messages
-- Job status history
-- Queue and FIFO rules
-- Regular versus Express/Urgent handling
-- Notifications
-- Proof approval
-- Pickup verification
-- Worker workload and capacity
-- Stars and leaderboard
-- Audit and activity
-
-Domain boundaries and persistence models must be designed in the brick that implements them, based on the full requirements then available.
+Black (`#111111`) and white (`#FFFFFF`) carry the interface; gold (`#D4AF37`) and goldenrod (`#DAA520`) are deliberate accents. Components consume semantic light/dark tokens. Customers may eventually switch theme from desktop navigation or the mobile menu; workers will manage theme in User Settings rather than through a permanent navbar toggle.
 
 ## 5. Permanent lifecycle principle
 
-If an authorized user can create or add a persistent business entity, its lifecycle must include an appropriate safe remove, archive, or deactivate path.
+If an authorized user can create a persistent business entity, the product must provide an appropriate safe remove, archive, or deactivate path. Historical, commercial, and audit records must not be destructively deleted where that would damage traceability, reporting, reconciliation, or accountability.
 
-Historical, commercial, and audit records must not be destructively deleted when deletion would damage business history, traceability, reporting, reconciliation, or accountability. Lifecycle operations should be explicit, authorized, and auditable.
+Services and team memberships are deactivated; jobs are archived; attachments and messages are tombstoned where appropriate; confirmed pricing is immutable; status history, stars, and audit logs are append-only. Corrections use new records or compensating entries.
 
-## 6. Future business requirements
+## 6. Security and delivery baseline
 
-Everything in this section is a documented future requirement, not Brick 1 behavior.
+- TypeScript is strict, and lint warnings fail CI-style checks.
+- Secrets belong only in ignored environment files or deployment configuration.
+- Private file storage will require server authorization; permanent public object URLs are not part of this design.
+- Pickup codes will be stored as secure hashes, not plaintext.
+- Sensitive actions must combine state change, history/audit, and related notifications atomically in future service code.
+- Production builds use Next.js’s webpack backend because the managed environment blocks Turbopack’s internal localhost binding.
 
-### Priority and pricing
+## 7. Deferred implementation
 
-- Priority values will include `REGULAR` and `EXPRESS` / `URGENT`.
-- Express is 40% above the confirmed normal or base price.
-- The surcharge must be calculated by authoritative server-side logic.
-- Express means priority handling; it does not guarantee instant completion.
-
-### Job lifecycle
-
-The high-level lifecycle is:
-
-```text
-Submitted
-→ Under Review
-→ Accepted
-→ Queued
-→ Processing
-→ Preparing for Pickup
-→ Ready for Pickup
-→ Picked Up
-```
-
-Side states and workflows will include:
-
-- Waiting for Customer
-- Awaiting Customer Approval
-- Declined
-- Cancelled
-
-State transitions must eventually be authorized, validated by server logic, and preserved in status history.
-
-### Queue
-
-- FIFO ordering must be enforced by authoritative server logic.
-- Express work will have explicit priority rules.
-- Administrative queue overrides must require a reason and produce an audit trail.
-
-### Attachments
-
-- Original customer files must be preserved at original quality.
-- Private files must require authorization.
-- Replacement must create a version rather than silently overwriting history.
-
-### Pickup
-
-- Jobs marked ready will receive secure, one-time pickup verification codes.
-- Code generation, storage, disclosure, expiry, attempt handling, and redemption rules must be designed as a security-sensitive server workflow.
-
-### Stars and leaderboard
-
-- `SIMPLE` work awards 1 star.
-- `MEDIUM` work awards 2 stars.
-- `COMPLEX` work awards 3 stars.
-- Stars are awarded only at verified completion or pickup, not when a worker accepts a job.
-- Star changes must use an auditable ledger rather than relying on a mutable total alone.
-
-## 7. Security and delivery baseline
-
-- TypeScript remains strict.
-- Production builds currently use Next.js's supported webpack backend because Turbopack's PostCSS worker cannot bind its internal localhost port in the managed build environment. This can be revisited when that environment restriction changes.
-- Secrets live only in ignored environment files or the deployment platform; `.env.example` contains names and safe guidance only.
-- Server-only data and privileged operations must not cross into client bundles.
-- Dependencies are added for an immediate requirement, not anticipated convenience.
-- Accessible HTML, visible keyboard focus, responsive behavior, and truthful metadata are baseline requirements.
-- Administrative or owner authority must eventually be checked server-side; hiding controls in the UI will never count as authorization.
-- Production changes must pass lint, type checking, and a production build before release.
-
-## 8. Deferred decisions
-
-Database vendor and schema, ORM, authentication, authorization mechanics, file storage, messaging transport, notification delivery, payment integration, hosting, and deployment topology are deliberately undecided in Brick 1. They require separate design and implementation work and must not be inferred from placeholder foundation code.
+Auth.js, login UI, route authorization, dashboards, job submission, queue claim logic, messaging UI/transport, object storage, notification delivery, secure pickup-code generation, payments, and ecommerce remain deliberately deferred.

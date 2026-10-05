@@ -1,0 +1,727 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MembershipRole {
+  CUSTOMER
+  WORKER
+  ADMIN
+  OWNER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum JobSource {
+  CUSTOMER_PORTAL
+  ADMIN_CREATED
+  WALK_IN
+}
+
+enum JobPriority {
+  REGULAR
+  EXPRESS
+}
+
+enum JobComplexity {
+  SIMPLE
+  MEDIUM
+  COMPLEX
+}
+
+enum WorkloadClass {
+  QUICK
+  STANDARD
+  FOCUS
+}
+
+enum JobStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  QUEUED
+  PROCESSING
+  WAITING_FOR_CUSTOMER
+  AWAITING_CUSTOMER_APPROVAL
+  PREPARING_FOR_PICKUP
+  READY_FOR_PICKUP
+  PICKED_UP
+  DECLINED
+  CANCELLED
+}
+
+enum JobPricingStatus {
+  DRAFT
+  CONFIRMED
+}
+
+enum QueueOverrideDirection {
+  PROMOTE
+  DEMOTE
+}
+
+enum JobAssignmentKind {
+  WORKER_CLAIM
+  STAFF_ASSIGNED
+  CONTRIBUTOR
+}
+
+enum JobAttachmentPurpose {
+  CUSTOMER_ORIGINAL
+  CUSTOMER_REPLACEMENT
+  WORKER_PROOF
+  FINAL_PRODUCTION
+  JOB_DOCUMENT
+  MESSAGE_ATTACHMENT
+}
+
+enum JobMessageSenderKind {
+  CUSTOMER
+  STAFF
+  SYSTEM
+}
+
+enum StaffConversationKind {
+  DIRECT
+}
+
+enum StaffMessageKind {
+  TEXT
+  AUDIO
+  FILE
+}
+
+enum StaffAttachmentKind {
+  AUDIO
+  FILE
+}
+
+enum NotificationType {
+  JOB_SUBMITTED
+  JOB_ACCEPTED
+  JOB_DECLINED
+  CLARIFICATION_REQUESTED
+  CUSTOMER_RESPONDED
+  WORKER_ASSIGNED
+  WORKER_CLAIMED
+  JOB_PROCESSING
+  PROOF_READY
+  PROOF_RESPONSE
+  PREPARING_FOR_PICKUP
+  READY_FOR_PICKUP
+  PICKUP_CODE_ISSUED
+  PICKUP_VERIFIED
+  STAR_BONUS
+  STAR_CORRECTION
+  NEW_STAFF_MESSAGE
+}
+
+enum PickupCodeStatus {
+  ACTIVE
+  CONSUMED
+  REVOKED
+  EXPIRED
+}
+
+enum StarLedgerType {
+  COMPLETION_AWARD
+  OWNER_BONUS
+  CORRECTION
+  REVERSAL
+}
+
+model Business {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String    @db.VarChar(160)
+  slug            String    @unique @db.VarChar(100)
+  defaultCurrency String    @db.Char(3)
+  isActive        Boolean   @default(true)
+  archivedAt      DateTime? @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+
+  memberships         BusinessMembership[]
+  services            Service[]
+  workerProfiles      WorkerProfile[]
+  workerServiceSkills WorkerServiceSkill[]
+  jobs                Job[]
+  jobCustomers        JobCustomer[]
+  jobStatusHistory    JobStatusHistory[]
+  jobPricing          JobPricing[]
+  jobQueueOverrides   JobQueueOverride[]
+  jobAssignments      JobAssignment[]
+  jobAttachments      JobAttachment[]
+  jobMessages         JobMessage[]
+  jobNotes            JobNote[]
+  staffConversations  StaffConversation[]
+  staffParticipants   StaffConversationParticipant[]
+  staffMessages       StaffMessage[]
+  staffAttachments    StaffMessageAttachment[]
+  notifications       Notification[]
+  pickupVerifications PickupVerification[]
+  starLedger          StarLedger[]
+  auditLogs           AuditLog[]
+
+  @@index([isActive, archivedAt])
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String?   @unique @db.VarChar(320)
+  displayName   String?   @db.VarChar(160)
+  deactivatedAt DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+
+  memberships            BusinessMembership[]
+  jobCustomerSnapshots   JobCustomer[]
+  statusChanges          JobStatusHistory[]
+  uploadedJobAttachments JobAttachment[]
+  sentJobMessages        JobMessage[]
+  auditLogs              AuditLog[]
+}
+
+model BusinessMembership {
+  id            String           @id @default(uuid()) @db.Uuid
+  businessId    String           @db.Uuid
+  userId        String           @db.Uuid
+  role          MembershipRole
+  status        MembershipStatus @default(ACTIVE)
+  joinedAt      DateTime         @default(now()) @db.Timestamptz(3)
+  deactivatedAt DateTime?        @db.Timestamptz(3)
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  workerProfile                WorkerProfile?
+  reviewedJobs                 Job[]                          @relation("JobReviewedBy")
+  acceptedJobs                 Job[]                          @relation("JobAcceptedBy")
+  archivedJobs                 Job[]                          @relation("JobArchivedBy")
+  jobStatusChanges             JobStatusHistory[]             @relation("StatusChangedByMembership")
+  confirmedPricing             JobPricing[]                   @relation("PricingConfirmedBy")
+  queueOverridesCreated        JobQueueOverride[]             @relation("QueueOverrideCreatedBy")
+  queueOverridesRevoked        JobQueueOverride[]             @relation("QueueOverrideRevokedBy")
+  workerAssignments            JobAssignment[]                @relation("AssignedWorker")
+  assignmentsCreated           JobAssignment[]                @relation("AssignmentCreatedBy")
+  assignmentsReleased          JobAssignment[]                @relation("AssignmentReleasedBy")
+  jobAttachmentsRemoved        JobAttachment[]                @relation("JobAttachmentRemovedBy")
+  staffJobMessages             JobMessage[]                   @relation("JobMessageStaffSender")
+  jobMessagesRemoved           JobMessage[]                   @relation("JobMessageRemovedBy")
+  notifications                Notification[]
+  jobNotesAuthored             JobNote[]                      @relation("JobNoteAuthor")
+  jobNotesArchived             JobNote[]                      @relation("JobNoteArchivedBy")
+  staffConversationsCreated    StaffConversation[]            @relation("StaffConversationCreatedBy")
+  staffConversationMemberships StaffConversationParticipant[]
+  staffMessagesSent            StaffMessage[]                 @relation("StaffMessageSender")
+  staffMessagesRemoved         StaffMessage[]                 @relation("StaffMessageRemovedBy")
+  staffAttachmentsUploaded     StaffMessageAttachment[]       @relation("StaffAttachmentUploadedBy")
+  pickupsVerified              PickupVerification[]           @relation("PickupVerifiedBy")
+  pickupOverrides              PickupVerification[]           @relation("PickupOverriddenBy")
+  starsEarned                  StarLedger[]                   @relation("StarWorker")
+  starEntriesRecorded          StarLedger[]                   @relation("StarActor")
+  auditLogs                    AuditLog[]                     @relation("AuditMembershipActor")
+
+  @@unique([businessId, userId])
+  @@unique([businessId, id])
+  @@index([businessId, role, status])
+  @@index([userId, status])
+}
+
+model WorkerProfile {
+  id                  String    @id @default(uuid()) @db.Uuid
+  businessId          String    @db.Uuid
+  membershipId        String    @unique @db.Uuid
+  isActive            Boolean   @default(true)
+  canTakeFocus        Boolean   @default(false)
+  maxQuickWorkload    Int       @default(0)
+  maxStandardWorkload Int       @default(0)
+  archivedAt          DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(3)
+
+  business   Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  membership BusinessMembership   @relation(fields: [businessId, membershipId], references: [businessId, id], onDelete: Restrict)
+  skills     WorkerServiceSkill[]
+
+  @@unique([businessId, id])
+  @@unique([businessId, membershipId])
+  @@index([businessId, isActive, archivedAt])
+}
+
+model Service {
+  id                      String         @id @default(uuid()) @db.Uuid
+  businessId              String         @db.Uuid
+  name                    String         @db.VarChar(160)
+  slug                    String         @db.VarChar(100)
+  description             String?
+  isActive                Boolean        @default(true)
+  onlineSubmissionEnabled Boolean        @default(false)
+  sortOrder               Int            @default(0)
+  defaultComplexity       JobComplexity?
+  defaultWorkloadClass    WorkloadClass?
+  proofRequiredByDefault  Boolean?
+  archivedAt              DateTime?      @db.Timestamptz(3)
+  createdAt               DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime       @updatedAt @db.Timestamptz(3)
+
+  business     Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  jobs         Job[]
+  workerSkills WorkerServiceSkill[]
+
+  @@unique([businessId, slug])
+  @@unique([businessId, id])
+  @@index([businessId, isActive, sortOrder])
+  @@index([businessId, onlineSubmissionEnabled, isActive])
+}
+
+model WorkerServiceSkill {
+  id              String    @id @default(uuid()) @db.Uuid
+  businessId      String    @db.Uuid
+  workerProfileId String    @db.Uuid
+  serviceId       String    @db.Uuid
+  isActive        Boolean   @default(true)
+  deactivatedAt   DateTime? @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
+
+  business      Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  workerProfile WorkerProfile @relation(fields: [businessId, workerProfileId], references: [businessId, id], onDelete: Restrict)
+  service       Service       @relation(fields: [businessId, serviceId], references: [businessId, id], onDelete: Restrict)
+
+  @@unique([workerProfileId, serviceId])
+  @@index([businessId, serviceId, isActive])
+}
+
+model Job {
+  id                     String        @id @default(uuid()) @db.Uuid
+  businessId             String        @db.Uuid
+  publicReference        String        @unique @db.VarChar(32)
+  serviceId              String        @db.Uuid
+  title                  String        @db.VarChar(200)
+  instructions           String
+  quantity               Int?
+  requestedByAt          DateTime?     @db.Timestamptz(3)
+  promisedReadyAt        DateTime?     @db.Timestamptz(3)
+  source                 JobSource
+  priority               JobPriority   @default(REGULAR)
+  complexity             JobComplexity
+  workloadClass          WorkloadClass
+  currentStatus          JobStatus     @default(SUBMITTED)
+  queueEnteredAt         DateTime?     @db.Timestamptz(3)
+  reviewedAt             DateTime?     @db.Timestamptz(3)
+  reviewedByMembershipId String?       @db.Uuid
+  acceptedAt             DateTime?     @db.Timestamptz(3)
+  acceptedByMembershipId String?       @db.Uuid
+  archivedAt             DateTime?     @db.Timestamptz(3)
+  archivedByMembershipId String?       @db.Uuid
+  archiveReason          String?
+  version                Int           @default(1)
+  createdAt              DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime      @updatedAt @db.Timestamptz(3)
+
+  business   Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  service    Service             @relation(fields: [businessId, serviceId], references: [businessId, id], onDelete: Restrict)
+  reviewedBy BusinessMembership? @relation("JobReviewedBy", fields: [businessId, reviewedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  acceptedBy BusinessMembership? @relation("JobAcceptedBy", fields: [businessId, acceptedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  archivedBy BusinessMembership? @relation("JobArchivedBy", fields: [businessId, archivedByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  customer            JobCustomer?
+  statusHistory       JobStatusHistory[]
+  pricing             JobPricing[]
+  queueOverrides      JobQueueOverride[]
+  assignments         JobAssignment[]
+  attachments         JobAttachment[]
+  messages            JobMessage[]
+  notes               JobNote[]
+  pickupVerifications PickupVerification[]
+  starLedger          StarLedger[]
+
+  @@unique([businessId, id])
+  @@index([businessId, currentStatus, priority, queueEnteredAt])
+  @@index([businessId, serviceId, currentStatus])
+  @@index([businessId, createdAt])
+  @@index([archivedAt])
+}
+
+model JobCustomer {
+  id          String   @id @default(uuid()) @db.Uuid
+  businessId  String   @db.Uuid
+  jobId       String   @unique @db.Uuid
+  userId      String?  @db.Uuid
+  displayName String?  @db.VarChar(160)
+  email       String?  @db.VarChar(320)
+  phone       String?  @db.VarChar(40)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job      Job      @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, jobId])
+  @@index([businessId, userId])
+  @@index([email])
+  @@index([phone])
+}
+
+model JobStatusHistory {
+  id                String     @id @default(uuid()) @db.Uuid
+  businessId        String     @db.Uuid
+  jobId             String     @db.Uuid
+  fromStatus        JobStatus?
+  toStatus          JobStatus
+  actorUserId       String?    @db.Uuid
+  actorMembershipId String?    @db.Uuid
+  reason            String?
+  createdAt         DateTime   @default(now()) @db.Timestamptz(3)
+
+  business        Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job             Job                 @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  actorUser       User?               @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorMembership BusinessMembership? @relation("StatusChangedByMembership", fields: [businessId, actorMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, jobId, createdAt])
+  @@index([businessId, toStatus, createdAt])
+}
+
+model JobPricing {
+  id                          String           @id @default(uuid()) @db.Uuid
+  businessId                  String           @db.Uuid
+  jobId                       String           @db.Uuid
+  revision                    Int
+  status                      JobPricingStatus @default(DRAFT)
+  priority                    JobPriority
+  basePriceMinor              BigInt?
+  expressSurchargeBasisPoints Int              @default(0)
+  expressSurchargeMinor       BigInt?
+  confirmedTotalMinor         BigInt?
+  currency                    String           @db.Char(3)
+  confirmedByMembershipId     String?          @db.Uuid
+  confirmedAt                 DateTime?        @db.Timestamptz(3)
+  note                        String?
+  createdAt                   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt                   DateTime         @updatedAt @db.Timestamptz(3)
+
+  business    Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job         Job                 @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  confirmedBy BusinessMembership? @relation("PricingConfirmedBy", fields: [businessId, confirmedByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@unique([jobId, revision])
+  @@index([businessId, jobId, status, revision])
+  @@index([businessId, confirmedAt])
+}
+
+model JobQueueOverride {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  businessId            String                 @db.Uuid
+  jobId                 String                 @db.Uuid
+  direction             QueueOverrideDirection
+  reason                String
+  createdByMembershipId String                 @db.Uuid
+  createdAt             DateTime               @default(now()) @db.Timestamptz(3)
+  revokedAt             DateTime?              @db.Timestamptz(3)
+  revokedByMembershipId String?                @db.Uuid
+  revocationReason      String?
+
+  business  Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job       Job                 @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  createdBy BusinessMembership  @relation("QueueOverrideCreatedBy", fields: [businessId, createdByMembershipId], references: [businessId, id], onDelete: Restrict)
+  revokedBy BusinessMembership? @relation("QueueOverrideRevokedBy", fields: [businessId, revokedByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, jobId, revokedAt])
+  @@index([businessId, createdAt])
+}
+
+model JobAssignment {
+  id                     String            @id @default(uuid()) @db.Uuid
+  businessId             String            @db.Uuid
+  jobId                  String            @db.Uuid
+  workerMembershipId     String            @db.Uuid
+  kind                   JobAssignmentKind
+  isPrimary              Boolean           @default(true)
+  assignedByMembershipId String?           @db.Uuid
+  assignmentReason       String?
+  assignedAt             DateTime          @default(now()) @db.Timestamptz(3)
+  releasedAt             DateTime?         @db.Timestamptz(3)
+  releasedByMembershipId String?           @db.Uuid
+  releaseReason          String?
+  completedAt            DateTime?         @db.Timestamptz(3)
+
+  business   Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job        Job                 @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  worker     BusinessMembership  @relation("AssignedWorker", fields: [businessId, workerMembershipId], references: [businessId, id], onDelete: Restrict)
+  assignedBy BusinessMembership? @relation("AssignmentCreatedBy", fields: [businessId, assignedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  releasedBy BusinessMembership? @relation("AssignmentReleasedBy", fields: [businessId, releasedByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, jobId, releasedAt])
+  @@index([businessId, workerMembershipId, releasedAt])
+  @@index([businessId, assignedAt])
+}
+
+model JobAttachment {
+  id                    String               @id @default(uuid()) @db.Uuid
+  businessId            String               @db.Uuid
+  jobId                 String               @db.Uuid
+  uploaderUserId        String?              @db.Uuid
+  purpose               JobAttachmentPurpose
+  storageKey            String               @db.VarChar(500)
+  originalFilename      String               @db.VarChar(255)
+  mimeType              String               @db.VarChar(160)
+  byteSize              BigInt
+  durationMs            Int?
+  version               Int                  @default(1)
+  replacesAttachmentId  String?              @unique @db.Uuid
+  createdAt             DateTime             @default(now()) @db.Timestamptz(3)
+  removedAt             DateTime?            @db.Timestamptz(3)
+  removedByMembershipId String?              @db.Uuid
+  removalReason         String?
+
+  business     Business               @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job          Job                    @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  uploader     User?                  @relation(fields: [uploaderUserId], references: [id], onDelete: Restrict)
+  removedBy    BusinessMembership?    @relation("JobAttachmentRemovedBy", fields: [businessId, removedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  replaces     JobAttachment?         @relation("JobAttachmentVersions", fields: [replacesAttachmentId], references: [id], onDelete: Restrict)
+  replacement  JobAttachment?         @relation("JobAttachmentVersions")
+  messageLinks JobMessageAttachment[]
+
+  @@unique([businessId, storageKey])
+  @@index([businessId, jobId, purpose, createdAt])
+  @@index([uploaderUserId, createdAt])
+  @@index([removedAt])
+}
+
+model JobMessage {
+  id                    String               @id @default(uuid()) @db.Uuid
+  businessId            String               @db.Uuid
+  jobId                 String               @db.Uuid
+  senderKind            JobMessageSenderKind
+  senderUserId          String?              @db.Uuid
+  senderMembershipId    String?              @db.Uuid
+  body                  String?
+  createdAt             DateTime             @default(now()) @db.Timestamptz(3)
+  removedAt             DateTime?            @db.Timestamptz(3)
+  removedByMembershipId String?              @db.Uuid
+  removalReason         String?
+
+  business         Business               @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job              Job                    @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  senderUser       User?                  @relation(fields: [senderUserId], references: [id], onDelete: Restrict)
+  senderMembership BusinessMembership?    @relation("JobMessageStaffSender", fields: [businessId, senderMembershipId], references: [businessId, id], onDelete: Restrict)
+  removedBy        BusinessMembership?    @relation("JobMessageRemovedBy", fields: [businessId, removedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  attachments      JobMessageAttachment[]
+
+  @@unique([businessId, id])
+  @@index([businessId, jobId, createdAt])
+  @@index([senderUserId, createdAt])
+}
+
+model JobMessageAttachment {
+  messageId    String   @db.Uuid
+  attachmentId String   @db.Uuid
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  message    JobMessage    @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  attachment JobAttachment @relation(fields: [attachmentId], references: [id], onDelete: Restrict)
+
+  @@id([messageId, attachmentId])
+  @@index([attachmentId])
+}
+
+model JobNote {
+  id                     String    @id @default(uuid()) @db.Uuid
+  businessId             String    @db.Uuid
+  jobId                  String    @db.Uuid
+  authorMembershipId     String    @db.Uuid
+  body                   String
+  createdAt              DateTime  @default(now()) @db.Timestamptz(3)
+  archivedAt             DateTime? @db.Timestamptz(3)
+  archivedByMembershipId String?   @db.Uuid
+  archiveReason          String?
+
+  business   Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job        Job                 @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  author     BusinessMembership  @relation("JobNoteAuthor", fields: [businessId, authorMembershipId], references: [businessId, id], onDelete: Restrict)
+  archivedBy BusinessMembership? @relation("JobNoteArchivedBy", fields: [businessId, archivedByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, jobId, createdAt])
+  @@index([businessId, archivedAt])
+}
+
+model StaffConversation {
+  id                    String                @id @default(uuid()) @db.Uuid
+  businessId            String                @db.Uuid
+  kind                  StaffConversationKind @default(DIRECT)
+  directKey             String?               @db.VarChar(80)
+  createdByMembershipId String                @db.Uuid
+  createdAt             DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime              @updatedAt @db.Timestamptz(3)
+  lastMessageAt         DateTime?             @db.Timestamptz(3)
+
+  business     Business                       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  createdBy    BusinessMembership             @relation("StaffConversationCreatedBy", fields: [businessId, createdByMembershipId], references: [businessId, id], onDelete: Restrict)
+  participants StaffConversationParticipant[]
+  messages     StaffMessage[]
+
+  @@unique([businessId, directKey])
+  @@unique([businessId, id])
+  @@index([businessId, lastMessageAt])
+}
+
+model StaffConversationParticipant {
+  businessId     String    @db.Uuid
+  conversationId String    @db.Uuid
+  membershipId   String    @db.Uuid
+  joinedAt       DateTime  @default(now()) @db.Timestamptz(3)
+  leftAt         DateTime? @db.Timestamptz(3)
+  archivedAt     DateTime? @db.Timestamptz(3)
+  lastReadAt     DateTime? @db.Timestamptz(3)
+
+  business     Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  conversation StaffConversation  @relation(fields: [businessId, conversationId], references: [businessId, id], onDelete: Restrict)
+  membership   BusinessMembership @relation(fields: [businessId, membershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@id([conversationId, membershipId])
+  @@index([businessId, membershipId, archivedAt])
+  @@index([conversationId, lastReadAt])
+}
+
+model StaffMessage {
+  id                    String           @id @default(uuid()) @db.Uuid
+  businessId            String           @db.Uuid
+  conversationId        String           @db.Uuid
+  senderMembershipId    String           @db.Uuid
+  kind                  StaffMessageKind @default(TEXT)
+  body                  String?
+  createdAt             DateTime         @default(now()) @db.Timestamptz(3)
+  editedAt              DateTime?        @db.Timestamptz(3)
+  removedAt             DateTime?        @db.Timestamptz(3)
+  removedByMembershipId String?          @db.Uuid
+  removalReason         String?
+
+  business     Business                 @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  conversation StaffConversation        @relation(fields: [businessId, conversationId], references: [businessId, id], onDelete: Restrict)
+  sender       BusinessMembership       @relation("StaffMessageSender", fields: [businessId, senderMembershipId], references: [businessId, id], onDelete: Restrict)
+  removedBy    BusinessMembership?      @relation("StaffMessageRemovedBy", fields: [businessId, removedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  attachments  StaffMessageAttachment[]
+
+  @@unique([businessId, id])
+  @@index([businessId, conversationId, createdAt])
+  @@index([businessId, senderMembershipId, createdAt])
+}
+
+model StaffMessageAttachment {
+  id                     String              @id @default(uuid()) @db.Uuid
+  businessId             String              @db.Uuid
+  messageId              String              @db.Uuid
+  uploadedByMembershipId String              @db.Uuid
+  kind                   StaffAttachmentKind
+  storageKey             String              @db.VarChar(500)
+  originalFilename       String              @db.VarChar(255)
+  mimeType               String              @db.VarChar(160)
+  byteSize               BigInt
+  durationMs             Int?
+  createdAt              DateTime            @default(now()) @db.Timestamptz(3)
+
+  business   Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  message    StaffMessage       @relation(fields: [businessId, messageId], references: [businessId, id], onDelete: Restrict)
+  uploadedBy BusinessMembership @relation("StaffAttachmentUploadedBy", fields: [businessId, uploadedByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@unique([businessId, storageKey])
+  @@index([businessId, messageId])
+}
+
+model Notification {
+  id              String           @id @default(uuid()) @db.Uuid
+  businessId      String           @db.Uuid
+  recipientUserId String           @db.Uuid
+  type            NotificationType
+  title           String           @db.VarChar(180)
+  body            String?
+  payload         Json?
+  targetType      String?          @db.VarChar(80)
+  targetId        String?          @db.VarChar(100)
+  href            String?          @db.VarChar(500)
+  readAt          DateTime?        @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+
+  business  Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  recipient BusinessMembership @relation(fields: [businessId, recipientUserId], references: [businessId, userId], onDelete: Restrict)
+
+  @@index([businessId, recipientUserId, readAt, createdAt])
+  @@index([businessId, type, createdAt])
+  @@index([targetType, targetId])
+}
+
+model PickupVerification {
+  id                       String           @id @default(uuid()) @db.Uuid
+  businessId               String           @db.Uuid
+  jobId                    String           @db.Uuid
+  codeHash                 String           @unique @db.VarChar(255)
+  codeHint                 String?          @db.VarChar(16)
+  status                   PickupCodeStatus @default(ACTIVE)
+  issuedAt                 DateTime         @default(now()) @db.Timestamptz(3)
+  expiresAt                DateTime?        @db.Timestamptz(3)
+  consumedAt               DateTime?        @db.Timestamptz(3)
+  verifiedByMembershipId   String?          @db.Uuid
+  overriddenAt             DateTime?        @db.Timestamptz(3)
+  overriddenByMembershipId String?          @db.Uuid
+  overrideReason           String?
+
+  business     Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job          Job                 @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  verifiedBy   BusinessMembership? @relation("PickupVerifiedBy", fields: [businessId, verifiedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  overriddenBy BusinessMembership? @relation("PickupOverriddenBy", fields: [businessId, overriddenByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, jobId, issuedAt])
+  @@index([businessId, status, expiresAt])
+}
+
+model StarLedger {
+  id                 String         @id @default(uuid()) @db.Uuid
+  businessId         String         @db.Uuid
+  workerMembershipId String         @db.Uuid
+  jobId              String?        @db.Uuid
+  type               StarLedgerType
+  delta              Int
+  reason             String
+  actorMembershipId  String?        @db.Uuid
+  createdAt          DateTime       @default(now()) @db.Timestamptz(3)
+
+  business Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  worker   BusinessMembership  @relation("StarWorker", fields: [businessId, workerMembershipId], references: [businessId, id], onDelete: Restrict)
+  job      Job?                @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  actor    BusinessMembership? @relation("StarActor", fields: [businessId, actorMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, workerMembershipId, createdAt])
+  @@index([businessId, jobId])
+  @@index([businessId, type, createdAt])
+}
+
+model AuditLog {
+  id                String   @id @default(uuid()) @db.Uuid
+  businessId        String   @db.Uuid
+  actorUserId       String?  @db.Uuid
+  actorMembershipId String?  @db.Uuid
+  action            String   @db.VarChar(120)
+  targetType        String   @db.VarChar(80)
+  targetId          String   @db.VarChar(100)
+  metadata          Json?
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+
+  business        Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  actorUser       User?               @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorMembership BusinessMembership? @relation("AuditMembershipActor", fields: [businessId, actorMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@index([businessId, createdAt])
+  @@index([businessId, actorMembershipId, createdAt])
+  @@index([businessId, targetType, targetId, createdAt])
+  @@index([businessId, action, createdAt])
+}

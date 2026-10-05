@@ -1,66 +1,92 @@
 # JobSubmit
 
-JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi's Artworks**. This repository is a new, independent production project with its own source tree, Git history, environment, and future infrastructure.
+JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Brick 1 scope
+## Current scope: Brick 2
 
-Brick 1 establishes foundation only:
+The project now contains the database and core-domain foundation:
 
-- Next.js App Router with React and strict TypeScript
-- Tailwind CSS and semantic light/dark design tokens
-- a responsive, accessible root application shell
-- four small internal UI primitives: `Button`, `Container`, `Card`, and `Badge`
-- ESLint, metadata, environment hygiene, and architecture documentation
+- Next.js App Router, React, strict TypeScript, Tailwind CSS, and ESLint
+- semantic light/dark visual tokens and a restrained placeholder shell
+- PostgreSQL modeled with Prisma
+- business-scoped users, memberships, workers, services, jobs, queue metadata, assignments, attachments, communication, notifications, pickup verification, stars, and audit records
+- PostgreSQL checks, partial unique indexes, and triggers for critical integrity rules
+- pure integer-minor-unit pricing and complexity/star rules with focused tests
+- an idempotent seed for the real business name and known service definitions only
 
-Database access, Prisma, authentication, user accounts, jobs, queues, worker/admin/owner interfaces, notifications, uploads, storage, payments, pickup codes, stars, and all business workflows are intentionally deferred to later bricks.
+Brick 2 does **not** implement authentication, authorization middleware, application dashboards, submission or upload endpoints, queue claiming, live messaging, notifications delivery, pickup-code generation, payments, or other business workflows. Those remain later-brick work.
 
 ## Requirements
 
 - Node.js 20.9 or newer (development currently uses Node.js 22)
 - npm 10 or newer
+- a dedicated PostgreSQL database when applying migrations or running the seed
 
 ## Local development
 
 ```bash
 npm install
+cp .env.example .env
+npm run db:generate
+npm run db:migrate:dev
+npm run db:seed
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Set both URLs in the untracked `.env` file:
+
+- `DATABASE_URL`: pooled/runtime JobSubmit PostgreSQL connection
+- `DIRECT_DATABASE_URL`: direct migration connection; for a local PostgreSQL instance this may equal `DATABASE_URL`
+
+Never point either value at another project’s database. No database credentials are committed.
 
 Quality commands:
 
 ```bash
+npm run db:format
+npm run db:validate
+npm run db:generate
 npm run lint
 npm run typecheck
+npm test
 npm run build
 npm audit
+npm audit --omit=dev
 ```
 
-No environment variables are required in Brick 1. `.env.example` records that fact; real `.env*` files remain ignored.
+Production/preview migration command:
+
+```bash
+npm run db:migrate:deploy
+```
 
 ## Project structure
 
 ```text
+prisma/
+  migrations/            Versioned PostgreSQL DDL and integrity rules
+  schema.prisma          Core persistence model
+  seed.ts                Minimal idempotent business/service seed
 src/
-  app/                  App Router shell, metadata, page, and global tokens
+  app/                   App Router shell, metadata, page, and global tokens
   components/
-    layout/             Structural presentation components
-    ui/                 Small reusable UI primitives
-  config/               Factual product and site configuration
-  lib/                  Framework-agnostic utilities
+    layout/              Structural presentation components
+    ui/                  Small reusable UI primitives
+  config/                Factual product and site configuration
+  domain/                Pure domain constants, calculations, and tests
+  lib/                   Framework-agnostic utilities
+  server/                Server-only infrastructure, including Prisma access
 docs/
-  ARCHITECTURE.md       Boundaries, decisions, and documented future rules
+  ARCHITECTURE.md         Application boundaries and project decisions
+  DATABASE.md             Domain model, integrity, lifecycle, and transactions
 ```
 
-Server-only modules, domain types, and domain constants will be added only when a later brick introduces a real server or domain requirement. This avoids empty speculative structure. Server Components remain the default under `src/app`; future privileged modules will live behind an explicit server-only boundary.
+The generated Prisma client lives under `src/generated/prisma` and is intentionally ignored because it is reproducibly generated during install/build workflows.
 
 ## Visual and theme direction
 
-The visual foundation is premium, modern, clean, and restrained. Black and white carry the interface; gold (`#D4AF37`) and goldenrod (`#DAA520`) are deliberate accents. Components consume semantic tokens such as background, surface, border, muted text, primary, accent, destructive, and ring rather than embedding brand colors.
-
-Light and dark token sets respond to the operating-system preference and already support a future explicit `data-theme` selection. Final theme controls are not part of Brick 1. Future access rules are documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The visual foundation remains premium, modern, clean, and restrained. Black and white carry the interface; gold (`#D4AF37`) and goldenrod (`#DAA520`) are deliberate accents. Components consume semantic tokens rather than scattering raw brand colors. Final role-specific theme controls remain deferred.
 
 ## Project separation
 
-This repository is not part of Footwear Empire, Vault Commerce, CIV, Kobby's Kitchen, or any other existing client system. It must receive its own database, storage, environment configuration, deployment, and remote repository when those are introduced. No existing project's code, data, credentials, or infrastructure should be connected to JobSubmit.
+This repository is not part of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, or any other client system. JobSubmit must use its own database, storage, credentials, deployment, and remote repository. No other project’s code, data, credentials, or infrastructure may be connected to it.
