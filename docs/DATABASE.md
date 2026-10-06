@@ -101,7 +101,7 @@ Client-provided roles, prices, queue positions, star values, and pickup results 
 
 ## Migration and seed operations
 
-The initial migration is committed at `prisma/migrations/20261005220000_core_domain`. It is prepared and schema-validated without connecting to any existing database. Apply it only after provisioning an isolated JobSubmit PostgreSQL database and checking both URLs:
+The initial migration is committed at `prisma/migrations/20261005220000_core_domain` and has been verified against the dedicated JobSubmit Neon PostgreSQL database. Apply future committed migrations only after checking that both URLs target the intended JobSubmit environment:
 
 ```bash
 npm run db:migrate:deploy

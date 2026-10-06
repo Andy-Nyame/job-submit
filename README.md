@@ -8,7 +8,7 @@ The project now contains the database and core-domain foundation:
 
 - Next.js App Router, React, strict TypeScript, Tailwind CSS, and ESLint
 - semantic light/dark visual tokens and a restrained placeholder shell
-- PostgreSQL modeled with Prisma
+- Neon PostgreSQL modeled with Prisma
 - business-scoped users, memberships, workers, services, jobs, queue metadata, assignments, attachments, communication, notifications, pickup verification, stars, and audit records
 - PostgreSQL checks, partial unique indexes, and triggers for critical integrity rules
 - pure integer-minor-unit pricing and complexity/star rules with focused tests
@@ -20,25 +20,33 @@ Brick 2 does **not** implement authentication, authorization middleware, applica
 
 - Node.js 20.9 or newer (development currently uses Node.js 22)
 - npm 10 or newer
-- a dedicated PostgreSQL database when applying migrations or running the seed
+- access to the dedicated JobSubmit Neon PostgreSQL database when applying migrations or running the seed
 
 ## Local development
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env.local
 npm run db:generate
 npm run db:migrate:dev
 npm run db:seed
 npm run dev
 ```
 
-Set both URLs in the untracked `.env` file:
+Set the required values in the ignored `.env.local` file. Prisma tooling loads
+`.env.local` first and falls back to `.env`:
 
-- `DATABASE_URL`: pooled/runtime JobSubmit PostgreSQL connection
-- `DIRECT_DATABASE_URL`: direct migration connection; for a local PostgreSQL instance this may equal `DATABASE_URL`
+- `DATABASE_URL`: pooled/runtime connection to the dedicated JobSubmit Neon database
+- `DIRECT_DATABASE_URL`: direct Neon connection for migrations and administrative checks
+- `NEXT_PUBLIC_SUPABASE_URL`: dedicated Supabase project URL for future authentication
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: public Supabase anon/publishable key
+- `BLOB_READ_WRITE_TOKEN`: server-only Vercel Blob credential
 
-Never point either value at another project’s database. No database credentials are committed.
+Supabase owns authentication identity only; Neon remains authoritative for
+JobSubmit application data. Vercel Blob will hold file/media objects, but future
+application routes must authorize every private job or staff file access. Never
+point these values at another project’s infrastructure. No credentials are
+committed.
 
 Quality commands:
 
@@ -54,7 +62,7 @@ npm audit
 npm audit --omit=dev
 ```
 
-Production/preview migration command:
+Production migration command:
 
 ```bash
 npm run db:migrate:deploy
@@ -90,3 +98,6 @@ The visual foundation remains premium, modern, clean, and restrained. Black and 
 ## Project separation
 
 This repository is not part of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, or any other client system. JobSubmit must use its own database, storage, credentials, deployment, and remote repository. No other project’s code, data, credentials, or infrastructure may be connected to it.
+
+Production transactional email and custom SMTP are deferred until a proper
+sending domain is available.
