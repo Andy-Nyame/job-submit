@@ -173,12 +173,13 @@ model Business {
 }
 
 model User {
-  id            String    @id @default(uuid()) @db.Uuid
-  email         String?   @unique @db.VarChar(320)
-  displayName   String?   @db.VarChar(160)
-  deactivatedAt DateTime? @db.Timestamptz(3)
-  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  id                 String    @id @default(uuid()) @db.Uuid
+  supabaseAuthUserId String?   @unique @db.Uuid
+  email              String?   @unique @db.VarChar(320)
+  displayName        String?   @db.VarChar(160)
+  deactivatedAt      DateTime? @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
 
   memberships            BusinessMembership[]
   jobCustomerSnapshots   JobCustomer[]

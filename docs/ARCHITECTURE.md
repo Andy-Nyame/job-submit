@@ -4,7 +4,10 @@
 
 JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 2 establishes data architecture and integrity only. It does not add authentication, authorization middleware, product screens, forms, upload endpoints, live queue behavior, delivery mechanisms, or other Brick 3+ workflows.
+Brick 3 adds authentication and application identity only. It does not add real
+role dashboards, team management, service administration, job submission,
+upload endpoints, live queue behavior, delivery mechanisms, or later business
+workflows.
 
 ## 2. Application shape
 
@@ -26,14 +29,34 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
 
 ## 4. Authentication and infrastructure decision
 
-- Supabase Auth owns authentication identity and sessions; it does not own JobSubmit domain data.
-- Google OAuth will be configured through Supabase and must use the Supabase Auth callback, not an Auth.js callback.
-- A successful Supabase login never grants `WORKER`, `ADMIN`, or `OWNER` authority by itself.
-- Public signup will create or resolve `CUSTOMER` access only. Staff privileges require authorized application-side membership or invitation flows.
-- Neon membership and role records remain authoritative for application authorization.
+- Supabase Auth owns authentication identities, credentials, and cookie-backed
+  sessions; it does not own JobSubmit domain data or roles.
+- Google OAuth uses Supabase PKCE with `/auth/callback`. Email confirmation uses
+  `/auth/confirm` when the hosted template is configured for token hashes.
+- Every sensitive request verifies Supabase claims, fetches the current
+  authoritative Supabase user when email state matters, and resolves the stable
+  Supabase subject to one Neon `User` plus the Capt. Bob business membership.
+- `proxy.ts` refreshes session cookies and may perform an optimistic protected
+  route redirect. Pages, Server Actions, and Route Handlers still enforce the
+  server-side Neon authorization boundary.
+- Public provisioning creates `CUSTOMER` only. Existing legitimate staff roles
+  are preserved. Future staff authority requires authorized application-side
+  invitation/management flows.
+- Two verified emails are the only initial bootstrap policy:
+  `bobcedisartworks@gmail.com` maps to `OWNER`, and
+  `nyameandy8@gmail.com` maps to `ADMIN`. The policy is server-only,
+  idempotent, never trusts metadata, never downgrades stronger access, never
+  reactivates blocked records, and writes an audit entry only when privileged
+  authority is first established or elevated.
+- Disabled users, inactive memberships, and inactive/archived business records
+  remain denied after successful Supabase authentication.
+- Explicit role guards are used instead of a numeric hierarchy assumption.
 - Vercel hosts the application at `https://capt-bob-cedis-artworks.vercel.app`.
 - Vercel Blob is the object-storage provider. Job artwork, proofs, documents, staff attachments, and voice notes require server-authorized access; possession of a Blob URL is not authorization.
-- Production transactional email/custom SMTP remains deferred until a proper sending domain exists.
+- Production transactional email/custom SMTP remains deferred until a proper
+  sending domain exists. Public email signup stays gated through
+  `EMAIL_PASSWORD_SIGNUP_ENABLED=false`; password login remains available for
+  existing accounts and Google remains the usable public path.
 
 ## 5. Visual system
 

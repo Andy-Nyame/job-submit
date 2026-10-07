@@ -4,7 +4,22 @@
 
 Every operational record is rooted in a `Business`. Composite foreign keys carry `businessId` through relationships where cross-business linkage would be dangerous. The first seed creates only **Capt. Bob Cedi’s Artworks**, with `GHS` as its default currency, plus the six supplied service concepts. It invents no contact details, people, jobs, prices, or statistics.
 
-`User` is global identity groundwork. `BusinessMembership` supplies one business-specific role: `CUSTOMER`, `WORKER`, `ADMIN`, or `OWNER`. Membership/profile deactivation preserves history. `WorkerProfile` holds operational capacity (`QUICK`, `STANDARD`, and `FOCUS` eligibility), while `WorkerServiceSkill` keeps service eligibility manageable without HR/payroll modeling.
+`User` is the global application identity. Its nullable, unique
+`supabaseAuthUserId` stores the stable Supabase user UUID; email remains a
+normalized contact/claim attribute and is not a foreign key. No access,
+refresh, Google, or password credentials are stored in Neon.
+
+First authenticated access resolves by Supabase subject. A confirmed exact
+normalized-email match may safely claim a pre-created unbound `User`; an
+existing different binding fails closed. Provisioning and membership creation
+run in a serializable transaction and rely on unique constraints plus bounded
+retry to handle concurrent first requests without duplicates.
+
+`BusinessMembership` supplies one business-specific role: `CUSTOMER`, `WORKER`,
+`ADMIN`, or `OWNER`. Membership/profile deactivation preserves history and auth
+resolution never reactivates it. `WorkerProfile` holds operational capacity
+(`QUICK`, `STANDARD`, and `FOCUS` eligibility), while `WorkerServiceSkill` keeps
+service eligibility manageable without HR/payroll modeling.
 
 ## Services
 

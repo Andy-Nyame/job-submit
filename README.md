@@ -2,9 +2,10 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 2
+## Current scope: Brick 3
 
-The project now contains the database and core-domain foundation:
+The project now contains the database, core-domain, authentication, and
+application-authorization foundation:
 
 - Next.js App Router, React, strict TypeScript, Tailwind CSS, and ESLint
 - semantic light/dark visual tokens and a restrained placeholder shell
@@ -13,8 +14,20 @@ The project now contains the database and core-domain foundation:
 - PostgreSQL checks, partial unique indexes, and triggers for critical integrity rules
 - pure integer-minor-unit pricing and complexity/star rules with focused tests
 - an idempotent seed for the real business name and known service definitions only
+- Supabase Auth with cookie-based SSR sessions, Google OAuth, email/password
+  login, PKCE callback/confirmation handling, local-session logout, and a
+  Next.js 16 `proxy.ts` refresh boundary
+- a unique Supabase subject-to-Neon User binding and server-authoritative
+  Capt. Bob business membership resolution
+- public `CUSTOMER` onboarding, locked verified-email bootstrap for the initial
+  `ADMIN` and `OWNER`, blocked-account enforcement, and reusable role guards
+- `/login`, `/signup`, `/access-denied`, and a minimal protected `/app`
+  verification screen
 
-Brick 2 does **not** implement authentication, authorization middleware, application dashboards, submission or upload endpoints, queue claiming, live messaging, notifications delivery, pickup-code generation, payments, or other business workflows. Those remain later-brick work.
+Brick 3 does **not** implement role dashboards, team/worker management, service
+administration, job submission, upload endpoints, queue claiming, live
+messaging, notification delivery, pickup-code generation, payments, stars, or
+other business workflows. Those remain later-brick work.
 
 ## Requirements
 
@@ -40,6 +53,8 @@ Set the required values in the ignored `.env.local` file. Prisma tooling loads
 - `DIRECT_DATABASE_URL`: direct Neon connection for migrations and administrative checks
 - `NEXT_PUBLIC_SUPABASE_URL`: dedicated Supabase project URL for future authentication
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: public Supabase anon/publishable key
+- `EMAIL_PASSWORD_SIGNUP_ENABLED`: keep `false` until production custom SMTP and
+  the SSR confirmation template are configured
 - `BLOB_READ_WRITE_TOKEN`: server-only Vercel Blob credential
 
 Supabase owns authentication identity only; Neon remains authoritative for
@@ -83,9 +98,10 @@ src/
   config/                Factual product and site configuration
   domain/                Pure domain constants, calculations, and tests
   lib/                   Framework-agnostic utilities
-  server/                Server-only infrastructure, including Prisma access
+  server/                Server-only auth/authorization and Prisma access
 docs/
   ARCHITECTURE.md         Application boundaries and project decisions
+  AUTHENTICATION.md       Auth flows, locked bootstrap, and manual configuration
   DATABASE.md             Domain model, integrity, lifecycle, and transactions
 ```
 
