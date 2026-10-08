@@ -4,7 +4,8 @@
 
 JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 4 adds the team/worker access and capacity foundation. It does not add
+Brick 4.5 adds the production public welcome experience on top of the existing
+team/worker access and capacity foundation. It does not add
 service administration, job submission, upload endpoints, job claiming,
 assignment enforcement, live messaging, delivery mechanisms, or later business
 workflows.
@@ -18,6 +19,10 @@ workflows.
 - `src/domain` contains pure, framework-independent rules.
 - `src/server` is an explicit server-only boundary. Database access imports `server-only` and must never enter a client bundle.
 - `prisma` owns the persistence model, migrations, and development seed.
+- The public homepage remains a Server Component. Its catalogue query selects
+  only active, non-archived services for the active Capt. Bob business and
+  exposes no membership, customer, worker, job, or infrastructure data. A small
+  Client Component owns only the mobile navigation interaction.
 
 The product roles are `CUSTOMER`, `WORKER`, `ADMIN`, and `OWNER`. Roles are persisted through business membership, but authentication and authorization enforcement are intentionally deferred. Authorization must use server-authoritative JobSubmit membership data, never client claims or identity-provider metadata alone.
 
@@ -73,6 +78,11 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
 ## 5. Visual system
 
 Black (`#111111`) and white (`#FFFFFF`) carry the interface; gold (`#D4AF37`) and goldenrod (`#DAA520`) are deliberate accents. Components consume semantic light/dark tokens. Customers may eventually switch theme from desktop navigation or the mobile menu; workers will manage theme in User Settings rather than through a permanent navbar toggle.
+
+The public welcome page uses the same semantic tokens in both system light and
+dark modes. Its abstract print-production artwork is implemented with HTML,
+CSS, and accessible text rather than an invented company logo or unverified
+stock imagery.
 
 ## 6. Permanent lifecycle principle
 

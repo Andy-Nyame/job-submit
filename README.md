@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 4
+## Current scope: Brick 4.5
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -29,8 +29,13 @@ and team/worker foundation:
 - OWNER/ADMIN worker management for active state, display name, six seeded
   service skills, QUICK/STANDARD limits, and FOCUS eligibility
 - a read-only worker profile/status page without queue or job-board behavior
+- a polished public welcome page that explains the business, active service
+  catalogue, planned JobSubmit customer journey, current account access, and
+  the distinction between live and upcoming capabilities
+- a safe server-only public service query that returns only active,
+  non-archived service presentation fields for the active Capt. Bob business
 
-Brick 4 does **not** implement full role dashboards, service administration,
+Brick 4.5 does **not** implement full role dashboards, service administration,
 job submission, upload endpoints, queue claiming or assignment enforcement,
 live messaging, notification delivery, pickup-code generation, payments,
 stars, or other business workflows. Those remain later-brick work.
