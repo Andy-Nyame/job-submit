@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/layout/container";
-import { LogoutButton } from "@/components/auth/logout-button";
 import {
   ApplicationAccessDeniedError,
   AuthenticationRequiredError,
@@ -33,7 +32,7 @@ export default async function ApplicationPage() {
   return (
     <main id="main-content" className="min-h-dvh py-10 sm:py-16">
       <Container className="max-w-3xl">
-        <header className="mb-8 flex flex-wrap items-start justify-between gap-5">
+        <header className="mb-8">
           <div>
             <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-muted">
               Capt. Bob Cedi&apos;s Artworks
@@ -42,7 +41,6 @@ export default async function ApplicationPage() {
               JobSubmit workspace
             </h1>
           </div>
-          <LogoutButton />
         </header>
 
         <Card>

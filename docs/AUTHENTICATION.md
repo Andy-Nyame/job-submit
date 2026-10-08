@@ -38,6 +38,19 @@ the locked initial bootstrap policy.
   on repeated login.
 - A privileged establishment/elevation appends an `AuditLog` row.
 
+## Worker invitation authorization
+
+Public auth still provisions only `CUSTOMER`. An active `OWNER` or `ADMIN` may
+create a worker invitation for one normalized email. Redeeming it requires a
+valid Supabase session, that exact confirmed Supabase email, the same business,
+an active application account, and a live single-use token. The transaction may
+promote `CUSTOMER` to `WORKER`; it cannot overwrite `ADMIN` or `OWNER`.
+
+No Supabase metadata, hidden form role, URL role, or client value is trusted.
+Workers cannot manage workers. Every Server Action repeats authentication,
+active-membership authorization, business scoping, validation, and optimistic
+state checks.
+
 ## Production email limitation
 
 `EMAIL_PASSWORD_SIGNUP_ENABLED` must remain `false` until Capt. Bob has a custom

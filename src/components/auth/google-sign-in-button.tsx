@@ -7,14 +7,19 @@ import { safeInternalRedirect } from "@/domain/auth-policy";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 interface GoogleSignInButtonProps {
+  beforeSignIn?: () => void;
   nextPath?: string;
 }
 
-export function GoogleSignInButton({ nextPath }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({
+  beforeSignIn,
+  nextPath,
+}: GoogleSignInButtonProps) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isPending, setIsPending] = useState(false);
 
   async function continueWithGoogle() {
+    beforeSignIn?.();
     setErrorMessage("");
     setIsPending(true);
 

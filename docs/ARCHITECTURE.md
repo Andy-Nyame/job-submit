@@ -4,9 +4,9 @@
 
 JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 3 adds authentication and application identity only. It does not add real
-role dashboards, team management, service administration, job submission,
-upload endpoints, live queue behavior, delivery mechanisms, or later business
+Brick 4 adds the team/worker access and capacity foundation. It does not add
+service administration, job submission, upload endpoints, job claiming,
+assignment enforcement, live messaging, delivery mechanisms, or later business
 workflows.
 
 ## 2. Application shape
@@ -51,6 +51,18 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
 - Disabled users, inactive memberships, and inactive/archived business records
   remain denied after successful Supabase authentication.
 - Explicit role guards are used instead of a numeric hierarchy assumption.
+- Team management is restricted to active `OWNER` and `ADMIN` principals.
+  Mutations re-authorize independently, scope every target to the actor's
+  business, and never accept a client-selected staff role. `ADMIN` has no route
+  for granting `ADMIN`/`OWNER`, removing owner authority, or changing bootstrap
+  policy.
+- Worker access begins with a server-created invitation. The raw 256-bit token
+  is carried in a URL fragment, retained only temporarily in the browser during
+  authentication, submitted over the Server Action request, and never stored
+  or audited. PostgreSQL stores only its unique SHA-256 hash. Redemption
+  requires the exact verified Supabase email and atomically consumes the token,
+  promotes only `CUSTOMER` to `WORKER`, creates the profile, and appends audit
+  history.
 - Vercel hosts the application at `https://capt-bob-cedis-artworks.vercel.app`.
 - Vercel Blob is the object-storage provider. Job artwork, proofs, documents, staff attachments, and voice notes require server-authorized access; possession of a Blob URL is not authorization.
 - Production transactional email/custom SMTP remains deferred until a proper
@@ -79,4 +91,7 @@ Services and team memberships are deactivated; jobs are archived; attachments an
 
 ## 8. Deferred implementation
 
-Supabase Auth integration, login/signup UI, Google OAuth wiring, route authorization, dashboards, job submission, queue claim logic, messaging UI/transport, Blob upload/download flows, notification delivery, transactional email, secure pickup-code generation, payments, and ecommerce remain deliberately deferred.
+Full dashboards, service administration, job submission, queue/assignment
+claiming, messaging UI/transport, Blob upload/download flows, notification
+delivery, transactional email, secure pickup-code generation, payments, stars,
+and ecommerce remain deliberately deferred.

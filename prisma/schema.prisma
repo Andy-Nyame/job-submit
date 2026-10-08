@@ -19,6 +19,13 @@ enum MembershipStatus {
   INACTIVE
 }
 
+enum WorkerInvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 enum JobSource {
   CUSTOMER_PORTAL
   ADMIN_CREATED
@@ -151,6 +158,7 @@ model Business {
   services            Service[]
   workerProfiles      WorkerProfile[]
   workerServiceSkills WorkerServiceSkill[]
+  workerInvitations   WorkerInvitation[]
   jobs                Job[]
   jobCustomers        JobCustomer[]
   jobStatusHistory    JobStatusHistory[]
@@ -197,6 +205,7 @@ model BusinessMembership {
   status        MembershipStatus @default(ACTIVE)
   joinedAt      DateTime         @default(now()) @db.Timestamptz(3)
   deactivatedAt DateTime?        @db.Timestamptz(3)
+  version       Int              @default(1)
   createdAt     DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime         @updatedAt @db.Timestamptz(3)
 
@@ -230,6 +239,9 @@ model BusinessMembership {
   starsEarned                  StarLedger[]                   @relation("StarWorker")
   starEntriesRecorded          StarLedger[]                   @relation("StarActor")
   auditLogs                    AuditLog[]                     @relation("AuditMembershipActor")
+  workerInvitationsCreated     WorkerInvitation[]             @relation("WorkerInvitationCreatedBy")
+  workerInvitationsAccepted    WorkerInvitation[]             @relation("WorkerInvitationAcceptedBy")
+  workerInvitationsRevoked     WorkerInvitation[]             @relation("WorkerInvitationRevokedBy")
 
   @@unique([businessId, userId])
   @@unique([businessId, id])
@@ -246,6 +258,7 @@ model WorkerProfile {
   maxQuickWorkload    Int       @default(0)
   maxStandardWorkload Int       @default(0)
   archivedAt          DateTime? @db.Timestamptz(3)
+  version             Int       @default(1)
   createdAt           DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime  @updatedAt @db.Timestamptz(3)
 
@@ -300,6 +313,36 @@ model WorkerServiceSkill {
 
   @@unique([workerProfileId, serviceId])
   @@index([businessId, serviceId, isActive])
+}
+
+model WorkerInvitation {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  businessId             String                 @db.Uuid
+  email                  String                 @db.VarChar(320)
+  tokenHash              String                 @unique @db.Char(64)
+  status                 WorkerInvitationStatus @default(PENDING)
+  expiresAt              DateTime               @db.Timestamptz(3)
+  acceptedAt             DateTime?              @db.Timestamptz(3)
+  acceptedByMembershipId String?                @db.Uuid
+  revokedAt              DateTime?              @db.Timestamptz(3)
+  revokedByMembershipId  String?                @db.Uuid
+  createdByMembershipId  String                 @db.Uuid
+  replacesInvitationId   String?                @unique @db.Uuid
+  version                Int                    @default(1)
+  createdAt              DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime               @updatedAt @db.Timestamptz(3)
+
+  business           Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  createdBy          BusinessMembership  @relation("WorkerInvitationCreatedBy", fields: [businessId, createdByMembershipId], references: [businessId, id], onDelete: Restrict)
+  acceptedBy         BusinessMembership? @relation("WorkerInvitationAcceptedBy", fields: [businessId, acceptedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  revokedBy          BusinessMembership? @relation("WorkerInvitationRevokedBy", fields: [businessId, revokedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  replacesInvitation WorkerInvitation?   @relation("WorkerInvitationReplacement", fields: [businessId, replacesInvitationId], references: [businessId, id], onDelete: Restrict)
+  replacement        WorkerInvitation?   @relation("WorkerInvitationReplacement")
+
+  @@unique([businessId, id])
+  @@unique([businessId, replacesInvitationId])
+  @@index([businessId, status, expiresAt])
+  @@index([businessId, email, createdAt])
 }
 
 model Job {

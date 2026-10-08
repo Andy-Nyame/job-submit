@@ -2,10 +2,10 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 3
+## Current scope: Brick 4
 
-The project now contains the database, core-domain, authentication, and
-application-authorization foundation:
+The project now contains the database, authentication, application-authorization,
+and team/worker foundation:
 
 - Next.js App Router, React, strict TypeScript, Tailwind CSS, and ESLint
 - semantic light/dark visual tokens and a restrained placeholder shell
@@ -23,11 +23,17 @@ application-authorization foundation:
   `ADMIN` and `OWNER`, blocked-account enforcement, and reusable role guards
 - `/login`, `/signup`, `/access-denied`, and a minimal protected `/app`
   verification screen
+- secure, manually shareable worker invitations with random single-use tokens,
+  database-only token hashes, verified-email redemption, expiry, revocation,
+  and replacement links
+- OWNER/ADMIN worker management for active state, display name, six seeded
+  service skills, QUICK/STANDARD limits, and FOCUS eligibility
+- a read-only worker profile/status page without queue or job-board behavior
 
-Brick 3 does **not** implement role dashboards, team/worker management, service
-administration, job submission, upload endpoints, queue claiming, live
-messaging, notification delivery, pickup-code generation, payments, stars, or
-other business workflows. Those remain later-brick work.
+Brick 4 does **not** implement full role dashboards, service administration,
+job submission, upload endpoints, queue claiming or assignment enforcement,
+live messaging, notification delivery, pickup-code generation, payments,
+stars, or other business workflows. Those remain later-brick work.
 
 ## Requirements
 
@@ -103,6 +109,7 @@ docs/
   ARCHITECTURE.md         Application boundaries and project decisions
   AUTHENTICATION.md       Auth flows, locked bootstrap, and manual configuration
   DATABASE.md             Domain model, integrity, lifecycle, and transactions
+  TEAM.md                 Worker invitation, access, capacity, and audit policy
 ```
 
 The generated Prisma client lives under `src/generated/prisma` and is intentionally ignored because it is reproducibly generated during install/build workflows.

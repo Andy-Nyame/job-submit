@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
 
 import {
   hasAnyRole,
@@ -32,15 +33,27 @@ export async function requireAuthenticatedUser(
 export async function getApplicationPrincipal(
   suppliedClient?: SupabaseClient,
 ) {
+  if (!suppliedClient) {
+    return getCachedApplicationPrincipal();
+  }
+
   const identity = await getAuthenticatedIdentity(suppliedClient);
   return identity ? resolveApplicationPrincipal(identity) : null;
 }
 
+const getCachedApplicationPrincipal = cache(async () => {
+  const identity = await getAuthenticatedIdentity();
+  return identity ? resolveApplicationPrincipal(identity) : null;
+});
+
 export async function requireBusinessMembership(
   suppliedClient?: SupabaseClient,
 ) {
-  const identity = await requireAuthenticatedUser(suppliedClient);
-  const principal = await resolveApplicationPrincipal(identity);
+  const principal = await getApplicationPrincipal(suppliedClient);
+
+  if (!principal) {
+    throw new AuthenticationRequiredError();
+  }
 
   if (!principal.access.allowed) {
     throw new ApplicationAccessDeniedError();

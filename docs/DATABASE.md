@@ -21,6 +21,13 @@ resolution never reactivates it. `WorkerProfile` holds operational capacity
 (`QUICK`, `STANDARD`, and `FOCUS` eligibility), while `WorkerServiceSkill` keeps
 service eligibility manageable without HR/payroll modeling.
 
+`WorkerInvitation` is business- and email-bound. It stores only a SHA-256 token
+hash, lifecycle timestamps/status, authorized actors, replacement linkage, and
+an optimistic version. A partial unique index permits one pending invitation per
+normalized email/business. Redemption uses a serializable transaction and a
+compare-and-set update so concurrent requests cannot consume a token twice or
+create duplicate membership/profile state.
+
 ## Services
 
 `Service` is business-managed data, not a permanent code enum. It supports name, slug, description, active/archive state, online-submission availability, display order, default complexity, default workload, and default proof requirement. Referenced services should be deactivated or archived, not deleted.
@@ -55,6 +62,13 @@ These are separate closed concepts:
 
 Future claim logic must combine current assignments, capacity settings, focus exclusion, and active service skills inside one transaction. The schema does not pretend that complexity determines capacity.
 
+Brick 4 constrains QUICK capacity to `0..50` and STANDARD capacity to `0..20`.
+FOCUS eligibility is boolean configuration: a worker handling FOCUS work cannot
+simultaneously accept STANDARD or another FOCUS assignment, while QUICK remains
+permissible only below the configured QUICK limit. These rules are tested as
+domain policy but actual claim enforcement remains deferred to the queue and
+assignment brick.
+
 ## Assignments and files
 
 `JobAssignment` preserves claim, staff assignment, contributor, reassignment, release, completion, actors, timestamps, and reasons. A partial unique index prevents more than one live primary assignment per job while allowing historical rows and future contributors. Worker-membership triggers reject non-worker assignees.
@@ -85,7 +99,13 @@ V1 metadata supports text, audio/voice notes, and files. Message text may accomp
 
 ## Integrity and lifecycle
 
-PostgreSQL enforces foreign keys, composite business scope, unique membership/service/reference/revision/storage identities, nonnegative capacities and file sizes, currency format, queue/assignment/pickup partial uniqueness, sender/participant rules, replacement integrity, immutable public references and confirmed prices, and append-only status/star/audit records.
+PostgreSQL enforces foreign keys, composite business scope, unique
+membership/service/reference/revision/storage identities, bounded worker
+capacities, normalized invitation emails, hash/lifecycle shape, one pending
+invitation per email/business, nonnegative file sizes, currency format,
+queue/assignment/pickup partial uniqueness, sender/participant rules,
+replacement integrity, immutable public references and confirmed prices, and
+append-only status/star/audit records.
 
 Safe lifecycle policy:
 
@@ -111,6 +131,8 @@ Future server services must use database transactions and locking/serializable s
 - pickup confirmation + `PICKED_UP` transition + history + completion star ledger + notifications
 - message creation + participant authorization + attachment links + notification
 - canonical direct-conversation creation under the unique `directKey`
+- worker invitation create/revoke/reissue and one-time redemption
+- worker settings, service skills, and activate/deactivate changes with audit
 
 Client-provided roles, prices, queue positions, star values, and pickup results are never authoritative.
 

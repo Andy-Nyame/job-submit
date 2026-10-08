@@ -19,6 +19,7 @@ import type { AuthenticatedIdentity } from "./identity";
 
 export interface ApplicationPrincipal {
   access: ApplicationAccess;
+  businessId: string;
   displayName: string | null;
   email: string;
   membershipId: string;
@@ -173,6 +174,7 @@ async function provisionOnce(
           membershipStatus: membership.status,
           userDeactivatedAt: user.deactivatedAt,
         }),
+        businessId: business.id,
         displayName: user.displayName,
         email: identity.email,
         membershipId: membership.id,
