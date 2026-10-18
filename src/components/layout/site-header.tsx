@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { siteConfig } from "@/config/site";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 
 import { Container } from "./container";
 import { MobileNavigation } from "./mobile-navigation";
@@ -39,7 +40,7 @@ export function SiteHeader({
           </span>
         </Link>
 
-        <div className="hidden items-center gap-7 lg:flex">
+        <div className="hidden items-center gap-5 lg:flex">
           <nav aria-label="Primary navigation" className="flex items-center gap-6">
             {sectionLinks.map((link) => (
               <a
@@ -52,6 +53,8 @@ export function SiteHeader({
             ))}
           </nav>
 
+          <ThemeSwitcher />
+
           {isAuthenticated ? (
             <Link
               className="inline-flex min-h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -62,7 +65,7 @@ export function SiteHeader({
           ) : (
             <div className="flex items-center gap-2">
               <Link
-                className="inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold outline-none transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex min-h-10 items-center justify-center rounded-full px-4 text-sm font-semibold outline-none transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring"
                 href="/login"
               >
                 Sign In

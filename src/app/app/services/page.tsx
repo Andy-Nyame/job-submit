@@ -143,7 +143,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                       </div>
                     </dl>
                     <Link
-                      className="mt-5 inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-medium outline-none hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-ring"
+                      className="mt-5 inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-medium outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring"
                       href={`/app/services/${service.id}`}
                     >
                       Manage service

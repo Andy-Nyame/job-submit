@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 
 import { siteConfig } from "@/config/site";
+import { themeInitializationScript } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -28,8 +30,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafaf8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0b0b" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f8fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#24272d" },
   ],
 };
 
@@ -38,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      suppressHydrationWarning
     >
       <body>
         <a
@@ -47,6 +50,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         {children}
+        <Script
+          dangerouslySetInnerHTML={{ __html: themeInitializationScript }}
+          id="jobsubmit-theme-initializer"
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

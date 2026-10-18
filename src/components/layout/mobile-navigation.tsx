@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/class-names";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 
 const sectionLinks = [
   { href: "#services", label: "Services" },
@@ -97,7 +98,7 @@ export function MobileNavigation({
         <div className="mx-auto grid max-w-7xl gap-1">
           {sectionLinks.map((link) => (
             <a
-              className="rounded-lg px-3 py-3 text-base font-medium outline-none hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg px-3 py-3 text-base font-medium outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring"
               href={link.href}
               key={link.href}
               onClick={() => focusSection(link.href)}
@@ -105,6 +106,11 @@ export function MobileNavigation({
               {link.label}
             </a>
           ))}
+          <div className="my-3 border-t" />
+          <ThemeSwitcher
+            className="justify-between rounded-lg bg-surface-muted px-3 py-2"
+            showLabel
+          />
           <div className="my-3 border-t" />
           {isAuthenticated ? (
             <Link
@@ -117,7 +123,7 @@ export function MobileNavigation({
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border bg-surface px-5 text-sm font-semibold outline-none hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border bg-surface px-5 text-sm font-semibold outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 href="/login"
                 onClick={closeMenu}
               >

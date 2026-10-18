@@ -85,7 +85,12 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
 
 ## 5. Visual system
 
-Black (`#111111`) and white (`#FFFFFF`) carry the interface; gold (`#D4AF37`) and goldenrod (`#DAA520`) are deliberate accents. Components consume semantic light/dark tokens. Customers may eventually switch theme from desktop navigation or the mobile menu; workers will manage theme in User Settings rather than through a permanent navbar toggle.
+JobSubmit supports Light, Dark, and System appearance preferences throughout
+public, authentication, and authenticated routes. Components consume semantic
+tokens rather than palette values. The selected preference is available in the
+shared navigation and persists locally; System is the default and follows live
+operating-system colour-scheme changes. See [THEMING.md](THEMING.md) for the
+palette and implementation conventions.
 
 The public welcome page uses the same semantic tokens in both system light and
 dark modes. Its abstract print-production artwork is implemented with HTML,

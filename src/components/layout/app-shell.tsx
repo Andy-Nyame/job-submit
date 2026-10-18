@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { Container } from "./container";
 
 export function AppShell({
@@ -16,8 +17,8 @@ export function AppShell({
   return (
     <div className="min-h-dvh">
       <header className="border-b bg-background/95">
-        <Container className="flex min-h-20 flex-wrap items-center justify-between gap-4 py-4">
-          <div className="flex min-w-0 items-center gap-5">
+        <Container className="flex min-h-20 flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-5">
             <Link
               className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
               href="/app"
@@ -29,9 +30,12 @@ export function AppShell({
                 Capt. Bob Cedi&apos;s Artworks
               </span>
             </Link>
-            <nav aria-label="Workspace" className="flex items-center gap-1">
+            <nav
+              aria-label="Workspace"
+              className="-mx-2 flex max-w-full items-center gap-1 overflow-x-auto px-2"
+            >
               <Link
-                className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 href="/app"
               >
                 Home
@@ -39,13 +43,13 @@ export function AppShell({
               {principal.role === "ADMIN" || principal.role === "OWNER" ? (
                 <>
                   <Link
-                    className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     href="/app/services"
                   >
                     Services
                   </Link>
                   <Link
-                    className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     href="/app/team"
                   >
                     Team
@@ -54,7 +58,7 @@ export function AppShell({
               ) : null}
               {principal.role === "WORKER" ? (
                 <Link
-                  className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   href="/app/profile"
                 >
                   My profile
@@ -62,7 +66,8 @@ export function AppShell({
               ) : null}
             </nav>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <ThemeSwitcher />
             <Badge>{principal.role}</Badge>
             <LogoutButton />
           </div>

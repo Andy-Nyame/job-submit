@@ -140,7 +140,7 @@ const primaryLinkClassName =
   "inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground outline-none transition-[opacity,transform] hover:-translate-y-0.5 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const secondaryLinkClassName =
-  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full border bg-surface px-6 text-sm font-semibold outline-none transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full border bg-surface px-6 text-sm font-semibold outline-none transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function ArrowIcon() {
   return (
@@ -501,26 +501,26 @@ export default async function HomePage() {
           </Container>
         </section>
 
-        <section className="bg-primary py-20 text-primary-foreground sm:py-28">
+        <section className="bg-brand-panel py-20 text-brand-panel-foreground sm:py-28">
           <Container>
             <div className="grid gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:gap-20">
               <div>
-                <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground">
+                <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-brand-panel-foreground">
                   Why use JobSubmit?
                 </p>
                 <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-balance sm:text-5xl">
                   Less guesswork. Better job context.
                 </h2>
-                <p className="mt-6 max-w-lg text-base leading-7 text-primary-foreground/70">
+                <p className="mt-6 max-w-lg text-base leading-7 text-brand-panel-foreground/75">
                   JobSubmit is being designed to make requesting, discussing, and
                   collecting print work more organized for customers and the
                   production team.
                 </p>
-                <div className="mt-8 rounded-2xl border border-primary-foreground/20 bg-primary-foreground/6 p-5">
-                  <p className="font-semibold text-primary-foreground">
+                <div className="mt-8 rounded-2xl border border-brand-panel-foreground/20 bg-brand-panel-foreground/6 p-5">
+                  <p className="font-semibold text-brand-panel-foreground">
                     Planned Express handling
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-primary-foreground/70">
+                  <p className="mt-2 text-sm leading-6 text-brand-panel-foreground/75">
                     Express/Urgent requests will carry a 40% surcharge on the
                     confirmed normal base price. Express means priority handling,
                     not instant or guaranteed completion.
@@ -528,16 +528,16 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <div className="grid gap-px overflow-hidden rounded-2xl border border-primary-foreground/15 bg-primary-foreground/15 sm:grid-cols-2">
+              <div className="grid gap-px overflow-hidden rounded-2xl border border-brand-panel-foreground/15 bg-brand-panel-foreground/15 sm:grid-cols-2">
                 {benefits.map((benefit) => (
-                  <article className="bg-primary p-6 sm:p-7" key={benefit.title}>
+                  <article className="bg-brand-panel p-6 sm:p-7" key={benefit.title}>
                     <span className="grid size-8 place-items-center rounded-full bg-accent text-accent-foreground">
                       <CheckIcon />
                     </span>
                     <h3 className="mt-5 font-semibold tracking-tight">
                       {benefit.title}
                     </h3>
-                    <p className="mt-2 text-sm leading-6 text-primary-foreground/65">
+                    <p className="mt-2 text-sm leading-6 text-brand-panel-foreground/70">
                       {benefit.description}
                     </p>
                   </article>
@@ -736,4 +736,3 @@ export default async function HomePage() {
     </div>
   );
 }
-
