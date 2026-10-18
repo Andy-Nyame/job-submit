@@ -571,7 +571,7 @@ export default async function HomePage() {
                     <div aria-hidden="true" className="mt-8 grid grid-cols-4 gap-2">
                       <span className="h-3 rounded-full bg-foreground" />
                       <span className="h-3 rounded-full bg-accent" />
-                      <span className="h-3 rounded-full bg-[color:var(--brand-goldenrod)]" />
+                      <span className="h-3 rounded-full bg-accent-hover" />
                       <span className="h-3 rounded-full border bg-surface" />
                     </div>
                   </div>

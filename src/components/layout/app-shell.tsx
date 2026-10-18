@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Badge } from "@/components/ui/badge";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Container } from "./container";
 
 export function AppShell({
@@ -67,7 +67,7 @@ export function AppShell({
             </nav>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <ThemeSwitcher />
+            <ThemeToggle />
             <Badge>{principal.role}</Badge>
             <LogoutButton />
           </div>

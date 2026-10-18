@@ -62,8 +62,8 @@ export function getBrowserThemeSnapshot() {
   return getBrowserThemeStore().getSnapshot();
 }
 
-export function setBrowserThemePreference(preference: ThemePreference) {
-  getBrowserThemeStore().setPreference(preference);
+export function toggleBrowserTheme() {
+  getBrowserThemeStore().toggleTheme();
 }
 
 export function subscribeToBrowserTheme(listener: () => void) {

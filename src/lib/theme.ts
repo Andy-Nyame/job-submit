@@ -1,12 +1,6 @@
 export const THEME_STORAGE_KEY = "jobsubmit-theme";
 
-export const themeOptions = [
-  { label: "Light", value: "light" },
-  { label: "Dark", value: "dark" },
-  { label: "System", value: "system" },
-] as const;
-
-export type ThemePreference = (typeof themeOptions)[number]["value"];
+export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = Exclude<ThemePreference, "system">;
 export type ThemeSnapshot = `${ThemePreference}:${ResolvedTheme}`;
 
@@ -71,6 +65,14 @@ export function resolveTheme(
   return preference;
 }
 
+export function getOppositeTheme(theme: ResolvedTheme): ResolvedTheme {
+  return theme === "light" ? "dark" : "light";
+}
+
+export function getThemeToggleLabel(theme: ResolvedTheme) {
+  return `Switch to ${getOppositeTheme(theme)} mode`;
+}
+
 export class ThemeStore {
   private readonly applyTheme: ThemeStoreOptions["applyTheme"];
   private readonly listeners = new Set<() => void>();
@@ -105,6 +107,10 @@ export class ThemeStore {
     saveThemePreference(this.storage, preference);
     this.applyCurrentTheme();
     this.emitChange();
+  };
+
+  toggleTheme = () => {
+    this.setPreference(getOppositeTheme(this.resolvedTheme));
   };
 
   subscribe = (listener: () => void) => {

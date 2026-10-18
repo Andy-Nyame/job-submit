@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/class-names";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const sectionLinks = [
   { href: "#services", label: "Services" },
@@ -107,10 +107,10 @@ export function MobileNavigation({
             </a>
           ))}
           <div className="my-3 border-t" />
-          <ThemeSwitcher
-            className="justify-between rounded-lg bg-surface-muted px-3 py-2"
-            showLabel
-          />
+          <div className="flex items-center justify-between rounded-lg bg-surface-muted px-3 py-2">
+            <span className="text-sm font-medium text-muted">Appearance</span>
+            <ThemeToggle className="bg-surface-raised" />
+          </div>
           <div className="my-3 border-t" />
           {isAuthenticated ? (
             <Link

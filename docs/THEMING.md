@@ -1,14 +1,16 @@
 # JobSubmit theming
 
-JobSubmit supports **Light**, **Dark**, and **System**. System is the default
-when no valid preference has been saved, follows the operating system in real
-time, and remains active until the user explicitly chooses Light or Dark. The
-choice is stored in `localStorage` under `jobsubmit-theme`; unavailable storage
-falls back safely to System for the next visit while in-session switching still
-works.
+JobSubmit presents **Light** and **Dark** through one shared sun/moon toggle.
+When no valid explicit preference has been saved, the internal System default
+follows the operating system in real time. Clicking the toggle selects the
+opposite of the currently applied theme and stops following system changes.
+The explicit choice is stored in `localStorage` under `jobsubmit-theme`;
+unavailable storage falls back safely to System for the next visit while
+in-session switching still works. A legacy stored `system` value is treated as
+the automatic default for compatibility with the previous selector.
 
 An early root-layout initializer resolves the saved preference before React
-hydrates. Interactive selectors use one shared client store, so changes apply
+hydrates. Interactive toggles use one shared client store, so changes apply
 immediately across desktop and mobile navigation without converting pages or
 layouts into Client Components.
 

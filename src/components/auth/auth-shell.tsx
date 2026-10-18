@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Card } from "@/components/ui/card";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { siteConfig } from "@/config/site";
 
 interface AuthShellProps {
@@ -30,7 +30,7 @@ export function AuthShell({ children, description, heading }: AuthShellProps) {
               {siteConfig.productName}
             </span>
           </Link>
-          <ThemeSwitcher className="shrink-0" />
+          <ThemeToggle />
         </div>
 
         <Card className="p-6 sm:p-8">

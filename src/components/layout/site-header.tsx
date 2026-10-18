@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { siteConfig } from "@/config/site";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 import { Container } from "./container";
 import { MobileNavigation } from "./mobile-navigation";
@@ -53,7 +53,7 @@ export function SiteHeader({
             ))}
           </nav>
 
-          <ThemeSwitcher />
+          <ThemeToggle />
 
           {isAuthenticated ? (
             <Link
