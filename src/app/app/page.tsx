@@ -54,8 +54,9 @@ export default async function ApplicationPage() {
             on the server.
           </p>
           <p className="mt-5 border-t pt-5 text-sm leading-6 text-muted">
-            This is a Brick 3 verification screen only. Role dashboards and
-            business workflows are intentionally not implemented yet.
+            OWNER and ADMIN accounts can manage services and workers from the
+            workspace navigation. Job submission, pricing, production queues,
+            and other operational workflows remain intentionally deferred.
           </p>
         </Card>
       </Container>

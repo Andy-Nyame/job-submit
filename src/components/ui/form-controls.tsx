@@ -13,6 +13,15 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
   return <select className={cn(fieldClassName, className)} {...props} />;
 }
 
+export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
+  return (
+    <textarea
+      className={cn(fieldClassName, "min-h-28 py-3", className)}
+      {...props}
+    />
+  );
+}
+
 export function FormMessage({
   message,
   status,

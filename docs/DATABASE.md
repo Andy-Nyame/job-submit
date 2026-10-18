@@ -30,7 +30,13 @@ create duplicate membership/profile state.
 
 ## Services
 
-`Service` is business-managed data, not a permanent code enum. It supports name, slug, description, active/archive state, online-submission availability, display order, default complexity, default workload, and default proof requirement. Referenced services should be deactivated or archived, not deleted.
+`Service` is business-managed data, not a permanent code enum. It supports name, slug, description, active/archive state, online-submission availability, display order, default complexity, default workload, and default proof requirement. Referenced services should be deactivated or archived, not deleted. Brick 5 uses optimistic versions for safe concurrent edits and records create, update, deactivate, and restore events in the existing audit log.
+
+Services do not define customer prices. Jobs are costed individually through an
+authorized pricing workflow. The optional complexity, workload, and proof
+values are review defaults only; they do not lock an individual job to a
+classification or quotation. Future pricing authority will be position-based
+and is not implemented in Brick 5.
 
 ## Jobs and lifecycle
 
@@ -49,7 +55,7 @@ Side states are `WAITING_FOR_CUSTOMER`, `AWAITING_CUSTOMER_APPROVAL`, `DECLINED`
 
 ## Priority, pricing, and queue
 
-Priority is `REGULAR` or `EXPRESS`. Express means priority handling, never guaranteed instant completion. Prices use integer minor units (`BigInt`), never floating-point arithmetic. A confirmed Express snapshot is exactly base price plus a 4,000-basis-point (40%) surcharge, rounded half up to the nearest minor unit. Confirmed Regular pricing has zero surcharge. Database checks enforce the calculation and confirmed pricing rows become immutable; a commercial change creates a new revision.
+Priority is `REGULAR` or `EXPRESS`. Express means priority handling, never guaranteed instant completion. Future job-specific confirmed prices use integer minor units (`BigInt`), never floating-point arithmetic. A confirmed Express snapshot is exactly the individually confirmed base price plus a 4,000-basis-point (40%) surcharge, rounded half up to the nearest minor unit. Confirmed Regular pricing has zero surcharge. Database checks enforce the calculation and confirmed pricing rows become immutable; a commercial change creates a new revision. None of this creates catalogue or service-level pricing.
 
 `queueEnteredAt`, not `createdAt`, is the FIFO foundation. Future selection logic will order eligible Express and Regular groups explicitly, expose old Regular work for anti-starvation handling, and exclude paused/customer-waiting work. Re-entry policy must explicitly preserve or replace queue time. `JobQueueOverride` requires a reason; a partial unique index permits one live override per job, and future service code must add an `AuditLog` entry atomically.
 

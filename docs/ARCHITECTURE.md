@@ -4,9 +4,9 @@
 
 JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 4.5 adds the production public welcome experience on top of the existing
-team/worker access and capacity foundation. It does not add
-service administration, job submission, upload endpoints, job claiming,
+Brick 5 adds authorized service administration on top of the public welcome
+experience and team/worker foundation. It does not add job submission,
+quotation negotiation or acceptance, upload endpoints, job claiming,
 assignment enforcement, live messaging, delivery mechanisms, or later business
 workflows.
 
@@ -24,7 +24,11 @@ workflows.
   exposes no membership, customer, worker, job, or infrastructure data. A small
   Client Component owns only the mobile navigation interaction.
 
-The product roles are `CUSTOMER`, `WORKER`, `ADMIN`, and `OWNER`. Roles are persisted through business membership, but authentication and authorization enforcement are intentionally deferred. Authorization must use server-authoritative JobSubmit membership data, never client claims or identity-provider metadata alone.
+The product roles are `CUSTOMER`, `WORKER`, `ADMIN`, and `OWNER`. Roles are
+persisted through business membership. Authentication uses Supabase Auth, while
+authorization uses active, server-authoritative JobSubmit membership data in
+Neon; client claims and identity-provider metadata do not grant application
+roles.
 
 ## 3. Database decision
 
@@ -61,6 +65,10 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
   business, and never accept a client-selected staff role. `ADMIN` has no route
   for granting `ADMIN`/`OWNER`, removing owner authority, or changing bootstrap
   policy.
+- Service management is restricted to active `OWNER` and `ADMIN` principals.
+  Reads and mutations are business-scoped, every Server Action re-authorizes,
+  and versioned writes reject stale changes. `CUSTOMER` and `WORKER` members do
+  not receive service-management access.
 - Worker access begins with a server-created invitation. The raw 256-bit token
   is carried in a URL fragment, retained only temporarily in the browser during
   authentication, submitted over the Server Action request, and never stored
@@ -90,6 +98,17 @@ If an authorized user can create a persistent business entity, the product must 
 
 Services and team memberships are deactivated; jobs are archived; attachments and messages are tombstoned where appropriate; confirmed pricing is immutable; status history, stars, and audit logs are append-only. Corrections use new records or compensating entries.
 
+Service deactivation removes a service from the public active catalogue without
+deleting its row or historical references. Explicit restoration makes it
+publicly eligible again. Create, update, deactivate, and restore operations are
+written with their audit records in the same serializable database transaction.
+
+Services do not define customer prices. Jobs are costed individually through an
+authorized pricing workflow. Service records contain no fixed, minimum,
+maximum, starting, or base customer price. Position-based pricing authority and
+customer quotation acceptance are future workflow concerns and are not
+implemented in Brick 5.
+
 ## 7. Security and delivery baseline
 
 - TypeScript is strict, and lint warnings fail CI-style checks.
@@ -101,7 +120,8 @@ Services and team memberships are deactivated; jobs are archived; attachments an
 
 ## 8. Deferred implementation
 
-Full dashboards, service administration, job submission, queue/assignment
-claiming, messaging UI/transport, Blob upload/download flows, notification
-delivery, transactional email, secure pickup-code generation, payments, stars,
-and ecommerce remain deliberately deferred.
+Full role dashboards, job submission, pricing communication and quotation
+acceptance, queue/assignment claiming, messaging UI/transport, Blob
+upload/download flows, notification delivery, transactional email, secure
+pickup-code generation, payments, stars, and ecommerce remain deliberately
+deferred.

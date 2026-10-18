@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 4.5
+## Current scope: Brick 5
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -34,11 +34,16 @@ and team/worker foundation:
   the distinction between live and upcoming capabilities
 - a safe server-only public service query that returns only active,
   non-archived service presentation fields for the active Capt. Bob business
+- OWNER/ADMIN service management with search, lifecycle filtering, creation,
+  version-protected edits, deactivation/restoration, and transactional audits
+- service-level submission, proof, workload, and complexity configuration kept
+  explicitly as future defaults rather than immutable job classifications
 
-Brick 4.5 does **not** implement full role dashboards, service administration,
-job submission, upload endpoints, queue claiming or assignment enforcement,
-live messaging, notification delivery, pickup-code generation, payments,
-stars, or other business workflows. Those remain later-brick work.
+Services do not define customer prices. Jobs are costed individually through an
+authorized pricing workflow. Brick 5 does **not** implement job submission,
+quotation or price confirmation, upload endpoints, queue claiming or assignment
+enforcement, live messaging, notification delivery, pickup-code generation,
+payments, stars, or other later business workflows.
 
 ## Requirements
 
@@ -105,6 +110,7 @@ src/
   app/                   App Router shell, metadata, page, and global tokens
   components/
     layout/              Structural presentation components
+    services/            Service-management forms and interactions
     ui/                  Small reusable UI primitives
   config/                Factual product and site configuration
   domain/                Pure domain constants, calculations, and tests
@@ -114,6 +120,7 @@ docs/
   ARCHITECTURE.md         Application boundaries and project decisions
   AUTHENTICATION.md       Auth flows, locked bootstrap, and manual configuration
   DATABASE.md             Domain model, integrity, lifecycle, and transactions
+  SERVICES.md             Service catalogue, lifecycle, pricing boundary, and audit policy
   TEAM.md                 Worker invitation, access, capacity, and audit policy
 ```
 
