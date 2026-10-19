@@ -4,7 +4,8 @@
 
 JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 5.1 adds advanced authorized service administration on top of the public welcome
+Brick 5.2 simplifies authorized service administration and adds fixed-pricing,
+variation, customer-field, and size contracts on top of the public welcome
 experience and team/worker foundation. It does not add job submission,
 quotation negotiation or acceptance, upload endpoints, job claiming,
 assignment enforcement, live messaging, delivery mechanisms, or later business
@@ -108,21 +109,44 @@ deleting its row or historical references. Explicit restoration makes it
 publicly eligible again. Create, update, deactivate, and restore operations are
 written with their audit records in the same serializable database transaction.
 
-Services may expose an optional indicative GH₵ range stored in exact minor
-units. It is customer guidance only and never becomes a fixed price, quote, or
-automatic calculation. Jobs are still costed individually by the Owner or
-another explicitly authorized person. Position-based pricing authority,
-pricing chat, and customer quotation acceptance remain future workflow
-concerns.
+Services choose Fixed Pricing or Price on Request. Fixed pricing stores exact
+integer-pesewa inputs and applies only to valid quantity steps and uniform
+specifications. Price on Request never calculates a total. Legacy indicative
+range columns remain preserved but hidden; they are not converted into fixed
+prices. The Owner currently handles individual costing. Position-based pricing
+authority, pricing chat, and customer quotation acceptance remain future
+workflow concerns.
 
-Quantity and specification settings are versioned, strictly validated JSON
-snapshots. They cover bounded quantity rules, units, presets, service-specific
-options, artwork requirements, and custom dimensions without becoming a generic
-form builder. Future submission code must copy the applicable configuration
-and customer selections into a job snapshot so edits never alter historical job
+Quantity, pricing, and specification settings are versioned, strictly validated
+JSON contracts. Specification version 2 adds five explicit size modes, bounded
+custom customer fields, and repeatable variation metadata while reading Brick
+5.1 version 1 safely. Future submission code must copy applicable settings and
+customer values into an immutable snapshot so edits never alter historical job
 requirements.
 
-## 7. Security and delivery baseline
+Service difficulty is the only manager-editable classification default. It
+derives `SIMPLE → QUICK → 1`, `MEDIUM → STANDARD → 2`, and
+`COMPLEX → FOCUS → 3`. Actual future jobs may be reclassified during authorized
+review; service defaults do not permanently constrain a job.
+
+## 7. Homepage diagnostic record
+
+The Brick 5.2 audit confirmed `src/app/page.tsx` as a Server Component with
+parallel authentication/catalogue loading, safe catalogue failure handling,
+valid imports, and no hydration boundary. TypeScript, ESLint, browser console,
+axe WCAG A/AA checks, and a direct comparison of referenced CSS variables to
+the global token definitions found no remaining undefined variable. VS Code
+editor diagnostics were unavailable, so the earlier undefined-variable report
+could not be reproduced and is classified as historical or editor-only.
+
+Confirmed presentation defects were corrected: the service card reduced
+configured quantity rules to a unit-only sentence and still rendered retired
+indicative ranges. Catalogue rendering now uses a focused tested component,
+shows minimum-only rules without inventing a maximum, and displays only Fixed
+Pricing or Price on Request. The catalogue failure state and semantic theme
+classes have render regression coverage.
+
+## 8. Security and delivery baseline
 
 - TypeScript is strict, and lint warnings fail CI-style checks.
 - Secrets belong only in ignored environment files or deployment configuration.
@@ -131,7 +155,7 @@ requirements.
 - Sensitive actions must combine state change, history/audit, and related notifications atomically in future service code.
 - Production builds use Next.js’s webpack backend because the managed environment blocks Turbopack’s internal localhost binding.
 
-## 8. Deferred implementation
+## 9. Deferred implementation
 
 Full role dashboards, job submission, pricing communication and quotation
 acceptance, queue/assignment claiming, messaging UI/transport, Blob

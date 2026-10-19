@@ -3,64 +3,112 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { PublicServiceCard } from "@/components/home/public-service-card";
+import { PublicServicesSection } from "@/components/home/public-services-section";
 import { ServiceCustomerPreview } from "@/components/services/service-customer-preview";
-import { ServiceFormFields } from "@/components/services/service-form-fields";
+import { ServiceFormFields, type ServiceFormValues } from "@/components/services/service-form-fields";
+import { priceOnRequestConfiguration, validatePricingConfiguration } from "./service-pricing";
+import { validateQuantityConfiguration } from "./service-configuration";
 
-test("customer preview renders estimate disclaimer and offline availability", () => {
-  const markup = renderToStaticMarkup(
-    createElement(ServiceCustomerPreview, {
-      description: "A configured service.",
-      indicativePriceDescription: "For standard material.",
-      indicativePriceMaximum: 10_000n,
-      indicativePriceMinimum: 5_000n,
-      name: "Sticker Printing",
-      onlineSubmissionEnabled: false,
-      quantity: null,
-      specification: null,
-    }),
-  );
-  assert.match(markup, /Estimated price range only/);
-  assert.match(markup, /not enabled for online submission/);
-  assert.doesNotMatch(markup, /checkout|place order/i);
+const blankValues: ServiceFormValues = {
+  additionalStepPrice: "",
+  artworkRequirement: "",
+  customDimensionUnits: [],
+  customFields: [],
+  customInstructions: "",
+  defaultComplexity: null,
+  description: "",
+  finishingOptions: "",
+  finishingRequired: false,
+  fixedPriceCoverage: "",
+  fixedSizeHeight: "",
+  fixedSizeUnit: "",
+  fixedSizeWidth: "",
+  isActive: true,
+  materialOptions: "",
+  materialsRequired: false,
+  name: "",
+  onlineSubmissionEnabled: false,
+  pricingMode: "ON_REQUEST",
+  quantityIncrement: "",
+  quantityMaximum: "",
+  quantityMinimum: "",
+  quantityPresets: "",
+  quantityUnit: "",
+  sizeMode: "NO_SIZE",
+  standardSizeOptions: "",
+  startingPrice: "",
+  startingQuantity: "",
+  variationsEnabled: false,
+};
+
+test("simplified service form uses manager-friendly sections and hides retired controls", () => {
+  const markup = renderToStaticMarkup(createElement(ServiceFormFields, { includeActiveState: true, prefix: "test-service", values: blankValues }));
+  for (const heading of ["Basic Information", "Quantity &amp; Pricing", "Sizes &amp; Printing Options", "Customer Information", "Job Difficulty", "Availability"]) assert.match(markup, new RegExp(heading));
+  assert.match(markup, /Price on request/);
+  assert.match(markup, /Add customer field/);
+  assert.doesNotMatch(markup, /Display order|Proof Requirement|Indicative price|Estimated price|Workload class/i);
 });
 
-test("service form exposes advanced labelled fields without display order", () => {
+test("customer preview shows a minimum without fabricating a maximum", () => {
+  const quantity = validateQuantityConfiguration({ increment: "5", maximum: "", minimum: "5", presets: "5,10", unit: "pieces" });
+  const markup = renderToStaticMarkup(createElement(ServiceCustomerPreview, {
+    description: "A configured service.",
+    name: "Sticker Printing",
+    onlineSubmissionEnabled: false,
+    pricing: priceOnRequestConfiguration(),
+    quantity,
+    specification: null,
+  }));
+  assert.match(markup, /Minimum order: 5 pieces/);
+  assert.match(markup, /Multiples of 5/);
+  assert.match(markup, /Price on request/);
+  assert.doesNotMatch(markup, /maximum|estimated price/i);
+});
+
+test("customer preview presents exact fixed-price coverage without a checkout action", () => {
+  const quantity = validateQuantityConfiguration({ increment: "5", maximum: "", minimum: "5", presets: "", unit: "pieces" });
+  const pricing = validatePricingConfiguration({ additionalStepPrice: "17.35", coverage: "One configured material and uniform size.", mode: "FIXED", startingPrice: "20.10", startingQuantity: "5" }, quantity);
+  const markup = renderToStaticMarkup(createElement(ServiceCustomerPreview, {
+    description: null,
+    name: "Configured Service",
+    onlineSubmissionEnabled: true,
+    pricing,
+    quantity,
+    specification: null,
+  }));
+  assert.match(markup, /5 pieces: GH₵20.10/);
+  assert.match(markup, /Each additional 5: \+GH₵17.35/);
+  assert.match(markup, /Covers: One configured material/);
+  assert.doesNotMatch(markup, /checkout|place order|estimated price/i);
+});
+
+test("homepage service card renders accurate quantity and pricing fallbacks", () => {
+  const markup = renderToStaticMarkup(createElement(PublicServiceCard, {
+    index: 0,
+    service: {
+      description: null,
+      name: "Container Head & Batch Number Printing",
+      onlineSubmissionEnabled: false,
+      pricingConfiguration: null,
+      quantityConfiguration: { increment: 5, maximum: null, minimum: 5, presets: [5, 10], unit: "pieces", version: 1 },
+      slug: "container-head-sticker-batch-numbers-printing",
+      specificationConfiguration: null,
+    },
+  }));
+  assert.match(markup, /Minimum order: 5 pieces/);
+  assert.match(markup, /Price on request/);
+  assert.match(markup, /online submission is not enabled/);
+  assert.doesNotMatch(markup, /undefined|Estimated price range/i);
+});
+
+test("homepage service catalogue failure state is semantic and uses defined theme utilities", () => {
   const markup = renderToStaticMarkup(
-    createElement(ServiceFormFields, {
-      includeActiveState: true,
-      prefix: "test-service",
-      values: {
-        artworkRequirement: "",
-        customDimensionsEnabled: false,
-        customDimensionsRequired: false,
-        customInstructions: "",
-        defaultComplexity: null,
-        defaultWorkloadClass: null,
-        description: "",
-        dimensionUnits: [],
-        finishingOptions: "",
-        finishingRequired: false,
-        indicativePriceDescription: "",
-        indicativePriceMaximum: "",
-        indicativePriceMinimum: "",
-        isActive: true,
-        materialOptions: "",
-        materialsRequired: false,
-        name: "",
-        onlineSubmissionEnabled: false,
-        proofRequiredByDefault: null,
-        quantityIncrement: "",
-        quantityMaximum: "",
-        quantityMinimum: "",
-        quantityPresets: "",
-        quantityUnit: "",
-        sizeOptions: "",
-        sizesRequired: false,
-      },
-    }),
+    createElement(PublicServicesSection, { result: { status: "unavailable" } }),
   );
-  assert.match(markup, /Quantity unit/);
-  assert.match(markup, /Artwork requirement/);
-  assert.match(markup, /Optional price guidance/);
-  assert.doesNotMatch(markup, /Display order/i);
+  assert.match(markup, /role="status"/);
+  assert.match(markup, /temporarily unavailable/);
+  assert.match(markup, /bg-surface/);
+  assert.match(markup, /text-muted/);
+  assert.doesNotMatch(markup, /undefined/);
 });

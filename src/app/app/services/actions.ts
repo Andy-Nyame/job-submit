@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import type { ServiceActionState } from "@/domain/service-forms";
+import type { CustomerFieldConfigurationInput } from "@/domain/service-configuration";
 import type {
   ServiceComplexityDefault,
   ServiceSettingsInput,
-  ServiceWorkloadDefault,
 } from "@/domain/service-policy";
 import { requireServiceManager } from "@/server/services/authorization";
 import { ServiceOperationError } from "@/server/services/errors";
@@ -37,45 +37,37 @@ function readComplexity(formData: FormData) {
   return (value || null) as ServiceComplexityDefault | null;
 }
 
-function readWorkload(formData: FormData) {
-  const value = readText(formData, "defaultWorkloadClass");
-  return (value || null) as ServiceWorkloadDefault | null;
-}
-
-function readProofDefault(formData: FormData) {
-  const value = readText(formData, "proofRequiredByDefault");
-  if (value === "required") {
-    return { valid: true, value: true } as const;
+function readCustomerFields(formData: FormData) {
+  try {
+    const value: unknown = JSON.parse(readText(formData, "customerFields"));
+    return Array.isArray(value)
+      ? (value as CustomerFieldConfigurationInput[])
+      : null;
+  } catch {
+    return null;
   }
-  if (value === "not-required") {
-    return { valid: true, value: false } as const;
-  }
-  if (value === "") {
-    return { valid: true, value: null } as const;
-  }
-  return { valid: false, value: null } as const;
 }
 
 function readServiceSettings(formData: FormData): ServiceSettingsInput | null {
-  const proofDefault = readProofDefault(formData);
-  if (!proofDefault.valid) {
+  const customFields = readCustomerFields(formData);
+  if (customFields === null) {
     return null;
   }
 
   return {
     defaultComplexity: readComplexity(formData),
-    defaultWorkloadClass: readWorkload(formData),
     description: readText(formData, "description"),
     isActive: formData.get("isActive") === "on",
     name: readText(formData, "name"),
     onlineSubmissionEnabled:
       formData.get("onlineSubmissionEnabled") === "on",
-    price: {
-      description: readText(formData, "indicativePriceDescription"),
-      maximum: readText(formData, "indicativePriceMaximum"),
-      minimum: readText(formData, "indicativePriceMinimum"),
+    pricing: {
+      additionalStepPrice: readText(formData, "additionalStepPrice"),
+      coverage: readText(formData, "fixedPriceCoverage"),
+      mode: readText(formData, "pricingMode"),
+      startingPrice: readText(formData, "startingPrice"),
+      startingQuantity: readText(formData, "startingQuantity"),
     },
-    proofRequiredByDefault: proofDefault.value,
     quantity: {
       increment: readText(formData, "quantityIncrement"),
       maximum: readText(formData, "quantityMaximum"),
@@ -85,18 +77,19 @@ function readServiceSettings(formData: FormData): ServiceSettingsInput | null {
     },
     specification: {
       artworkRequirement: readText(formData, "artworkRequirement"),
-      customDimensionsEnabled:
-        formData.get("customDimensionsEnabled") === "on",
-      customDimensionsRequired:
-        formData.get("customDimensionsRequired") === "on",
+      customDimensionUnits: readTextList(formData, "customDimensionUnits"),
+      customFields,
       customInstructions: readText(formData, "customInstructions"),
-      dimensionUnits: readTextList(formData, "dimensionUnits"),
       finishingOptions: readText(formData, "finishingOptions"),
       finishingRequired: formData.get("finishingRequired") === "on",
+      fixedSizeHeight: readText(formData, "fixedSizeHeight"),
+      fixedSizeUnit: readText(formData, "fixedSizeUnit"),
+      fixedSizeWidth: readText(formData, "fixedSizeWidth"),
       materialOptions: readText(formData, "materialOptions"),
       materialsRequired: formData.get("materialsRequired") === "on",
-      sizeOptions: readText(formData, "sizeOptions"),
-      sizesRequired: formData.get("sizesRequired") === "on",
+      sizeMode: readText(formData, "sizeMode"),
+      standardSizeOptions: readText(formData, "standardSizeOptions"),
+      variationsEnabled: formData.get("variationsEnabled") === "on",
     },
   };
 }
@@ -108,12 +101,12 @@ function errorState(error: unknown): ServiceActionState {
         "Service management is unavailable while the business is inactive.",
       DUPLICATE_SERVICE:
         "A service with the same normalized name already exists.",
-      INVALID_PRICE_GUIDANCE:
-        "Enter both estimate amounts, use no more than two decimal places, and keep the minimum at or below the maximum.",
+      INVALID_PRICING_CONFIGURATION:
+        "Check the pricing method. Fixed pricing needs a valid starting quantity, exact GH₵ amounts, quantity multiple, and a short description of what it covers.",
       INVALID_QUANTITY_CONFIGURATION:
         "Check the quantity unit, limits, increment, and ascending presets. Every preset must satisfy the configured rules.",
       INVALID_SPECIFICATION_CONFIGURATION:
-        "Check specification options, required choices, artwork settings, and custom-dimension units.",
+        "Check size rules, printing options, customer fields, variation settings, and artwork information.",
       NOT_FOUND: "The requested service was not found.",
       STALE_UPDATE:
         "This service changed in another session. Refresh before trying again.",

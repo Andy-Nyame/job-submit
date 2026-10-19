@@ -12,6 +12,7 @@ import {
   normalizeServiceName,
   SERVICE_AUDIT_ACTIONS,
   SERVICE_EDITABLE_FIELDS,
+  serviceDifficultyDefaults,
   serviceLifecycleAuditAction,
   ServicePolicyError,
   serviceSlugFromName,
@@ -25,13 +26,17 @@ import {
 
 const validSettings: ServiceSettingsInput = {
   defaultComplexity: null,
-  defaultWorkloadClass: null,
   description: "  Public   summary  ",
   isActive: true,
   name: "  Document   Printing  ",
   onlineSubmissionEnabled: false,
-  price: { description: "", maximum: "", minimum: "" },
-  proofRequiredByDefault: null,
+  pricing: {
+    additionalStepPrice: "",
+    coverage: "",
+    mode: "ON_REQUEST",
+    startingPrice: "",
+    startingQuantity: "",
+  },
   quantity: {
     increment: "",
     maximum: "",
@@ -41,16 +46,19 @@ const validSettings: ServiceSettingsInput = {
   },
   specification: {
     artworkRequirement: "",
-    customDimensionsEnabled: false,
-    customDimensionsRequired: false,
+    customDimensionUnits: [],
+    customFields: [],
     customInstructions: "",
-    dimensionUnits: [],
     finishingOptions: "",
     finishingRequired: false,
+    fixedSizeHeight: "",
+    fixedSizeUnit: "",
+    fixedSizeWidth: "",
     materialOptions: "",
     materialsRequired: false,
-    sizeOptions: "",
-    sizesRequired: false,
+    sizeMode: "NO_SIZE",
+    standardSizeOptions: "",
+    variationsEnabled: false,
   },
 };
 
@@ -71,13 +79,14 @@ test("service input is normalized while advanced settings remain optional", () =
   assert.equal(service.description, "Public summary");
   assert.equal(service.quantityConfiguration, null);
   assert.equal(service.specificationConfiguration, null);
-  assert.equal(service.indicativePriceMinMinor, null);
+  assert.equal(service.pricingConfiguration.mode, "ON_REQUEST");
 });
 
 test("display order is not part of the manager-editable contract", () => {
   assert.equal(SERVICE_EDITABLE_FIELDS.includes("sortOrder" as never), false);
   assert.equal(SERVICE_EDITABLE_FIELDS.includes("quantityConfiguration"), true);
-  assert.equal(SERVICE_EDITABLE_FIELDS.includes("indicativePriceMinMinor"), true);
+  assert.equal(SERVICE_EDITABLE_FIELDS.includes("pricingConfiguration"), true);
+  assert.equal(SERVICE_EDITABLE_FIELDS.includes("proofRequiredByDefault" as never), false);
 });
 
 test("new services receive predictable automatic catalogue order", () => {
@@ -207,14 +216,11 @@ test("seed reconciliation changes known legacy names but preserves custom names"
   assert.equal(shouldReconcileSeededServiceName(sticker.name, sticker), false);
 });
 
-test("service defaults remain optional per-job guidance", () => {
-  const service = validateServiceSettings({
-    ...validSettings,
-    defaultComplexity: "COMPLEX",
-    defaultWorkloadClass: "FOCUS",
-    proofRequiredByDefault: true,
-  });
-  assert.equal(service.defaultComplexity, "COMPLEX");
+test("difficulty automatically derives workload and worker-star defaults", () => {
+  assert.deepEqual(serviceDifficultyDefaults("SIMPLE"), { stars: 1, workload: "QUICK" });
+  assert.deepEqual(serviceDifficultyDefaults("MEDIUM"), { stars: 2, workload: "STANDARD" });
+  assert.deepEqual(serviceDifficultyDefaults("COMPLEX"), { stars: 3, workload: "FOCUS" });
+  const service = validateServiceSettings({ ...validSettings, defaultComplexity: "COMPLEX" });
   assert.equal(service.defaultWorkloadClass, "FOCUS");
-  assert.equal(service.proofRequiredByDefault, true);
+  assert.equal("proofRequiredByDefault" in service, false);
 });

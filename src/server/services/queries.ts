@@ -31,10 +31,10 @@ export async function getServicesPageData(input: {
     select: {
       description: true,
       id: true,
-      indicativePriceMinMinor: true,
       isActive: true,
       name: true,
       onlineSubmissionEnabled: true,
+      pricingConfiguration: true,
       quantityConfiguration: true,
       specificationConfiguration: true,
       updatedAt: true,

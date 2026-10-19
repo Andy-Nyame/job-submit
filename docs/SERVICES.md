@@ -1,86 +1,137 @@
 # Service management
 
-Brick 5.1 provides service catalogue administration at `/app/services` for
+Brick 5.2 provides service catalogue administration at `/app/services` for
 active `OWNER` and `ADMIN` memberships. `CUSTOMER`, `WORKER`, and
-unauthenticated requests cannot read or invoke management operations. Every
-query and Server Action verifies the Supabase identity and active Neon business
+unauthenticated requests cannot invoke management operations. Every query and
+Server Action verifies the Supabase identity and active Neon business
 membership; navigation visibility is not an authorization boundary.
 
-## Identity, friendly names, and lifecycle
+## Identity, names, sorting, and lifecycle
 
-Managers can search, filter, create, edit, deactivate, and restore services.
-Service IDs and existing slugs remain stable across name edits. The six seeded
-records use the customer-facing names Designing, Sticker Printing, Banner
-Printing, Document Printing, For Sale Stickers, and Container Head & Batch
-Number Printing.
+Managers can search, create, edit, deactivate, and restore services. IDs and
+existing slugs remain stable across name edits. The six seeded records retain
+their customer-friendly names and stable identities. New services receive an
+automatic catalogue position; display order is not exposed in the form.
 
-The Brick 5.1 migration and seed reconcile only exact known legacy names on the
-matching stable slug. A later manager-customized name is never overwritten, and
-no duplicate service is created. New services receive the next catalogue sort
-position automatically inside the serializable create transaction; display
-order is not exposed as a quantity-like form field.
+Deactivation, not deletion, is the normal removal path. It preserves job,
+skill, and audit history and hides the service from the active public
+catalogue. Online-submission eligibility is separate: an active service can be
+publicly visible while unavailable for future online submission.
 
-Normal removal is deactivation, never deletion. Deactivation preserves job,
-skill, and audit history and removes the service from the public active
-catalogue. Online-submission eligibility is independent: an active service can
-remain publicly visible while unavailable for future online submission.
+## Simplified management sections
 
-## Quantity contract
+The form is organized as Basic Information, Quantity & Pricing, Sizes &
+Printing Options, Customer Information, Job Difficulty, and Availability.
+Implementation-only workload values, display order, legacy price ranges, and
+the printing-industry “Proof Requirement” setting are not independently
+editable. The proof column is retained for historical compatibility; a future
+artwork-approval feature should use plain wording such as “Customer must
+approve artwork before printing.” No approval workflow exists yet.
 
-Quantity configuration is optional and snapshot-friendly. When present it has
-schema version `1`, a customer-friendly unit, optional minimum, maximum and
-increment, and up to 20 ascending unique presets. All values are positive safe
-integers no greater than 1,000,000. A maximum cannot be below the minimum.
+## Quantity rules
 
-An increment advances from the configured minimum. If no minimum exists, the
-increment itself is the first valid quantity. For example, minimum 50 and
-increment 25 accepts 50, 75, 100, and so on. Presets must satisfy the same rule,
-but are shortcuts only: any custom quantity satisfying the constraints remains
-valid. A blank configuration means any positive quantity within the application
-safety bound; services that do not use quantity can leave the section blank.
+Quantity configuration version `1` remains compatible with Brick 5.1. It has a
+customer-friendly unit, optional minimum and maximum, optional multiple/step,
+and up to 20 ascending unique quick choices. All values are positive safe
+integers no greater than 1,000,000.
 
-Future Brick 6A code must call the same domain eligibility rule and copy the
-configuration into the job specification snapshot. It must not interpret
-presets as an allow-list.
+An increment advances from the configured minimum. Without a minimum, the
+increment itself is the first valid quantity. A minimum of 5 and increment of
+5 accepts 5, 10, 15, and so on. Quick choices must satisfy the same rule but
+are shortcuts only; any other valid custom quantity remains allowed. A
+minimum without a maximum is displayed as “Minimum order: 5 pieces,” never as
+an invented range.
 
-## Specifications and artwork
+## Pricing methods
 
-Optional schema-versioned configuration supports service-specific size,
-material, and finishing options; required/optional flags; four artwork modes;
-custom dimensions; allowed measurement units (`mm`, `cm`, `inches`, `feet`);
-and a short customer instruction. Options are normalized, bounded, unique
-case-insensitively, and plain text. Required option groups cannot be empty, and
-required custom dimensions cannot be enabled without an allowed unit.
+Every service resolves to one of two modes:
 
-No sample option is seeded or advertised. A service gets only the options an
-Owner/Admin explicitly saves. Future job submission must snapshot both the
-selected answers and the applicable configuration so later service edits do not
-rewrite historical job requirements.
+- **Price on Request** performs no automatic calculation. The Owner currently
+  costs the work after review. Future pricing authority must be granted by an
+  explicit position-based policy; accepting or producing a job does not grant
+  a worker pricing authority.
+- **Fixed Pricing** stores exact integer-pesewa values for a starting quantity,
+  starting price, the configured quantity step, and an additional price per
+  step. A required note explains what the price covers.
 
-## Indicative price guidance
+The fixed formula is:
 
-A service may have an optional indicative GH₵ minimum and maximum, stored
-exactly as integer pesewas (`BigInt`) with an optional short explanation. Both
-endpoints must be supplied together, cannot be negative, and the minimum cannot
-exceed the maximum. The database and application both enforce a defensive upper
-bound of GH₵1,000,000.00.
+```text
+total = startingPrice + (numberOfAdditionalSteps × additionalStepPrice)
+```
 
-This range is informational only. Wherever shown, it carries: “Estimated price
-range only. Final pricing is confirmed privately after job review.” It is never
-used to calculate, accept, or confirm a job price. Actual costing remains an
-individual review performed by the Owner or another explicitly authorized
-person. Pricing chat, quotation acceptance, payments, and invoices are not part
-of Brick 5.1.
+The starting quantity and requested total must satisfy the service quantity
+rules. Fixed pricing requires a quantity step, uses exact `BigInt` arithmetic,
+and is ineligible when variations use different specification keys. Such work
+falls back to individual review instead of showing a misleading total.
 
-## Preview, transactions, and audit
+Brick 5.1’s indicative-range columns and any stored values remain in the
+database for compatibility and audit history. They are hidden from ordinary
+management and all customer-facing pages. No range is silently converted to a
+fixed price. Production contained no populated ranges when Brick 5.2 began.
 
-The management detail page renders a clearly labelled read-only preview from
-the saved configuration. It has no job, quotation, checkout, or customer-record
-action. The homepage shows active services only and adds compact configured
-details, an estimate only when present, and accurate online-availability text.
+## Sizes and printing options
 
-Create, edit, deactivate, and restore operations are business-scoped,
-version-protected, and executed in serializable transactions. Each meaningful
-change and its `AuditLog` entry commit together. Configuration and indicative
-range changes are included in safe before/after audit snapshots; money is
-serialized as minor-unit strings in audit JSON.
+Specification configuration version `2` supports exactly five size modes:
+no size, one fixed size, standard size choices, custom size only, or standard
+choices plus custom size. Fixed sizes store validated positive width, height,
+and unit. Custom sizes declare the permitted units (`mm`, `cm`, `inches`, or
+`feet`). No standard size or dimension is seeded or invented.
+
+Materials and finishing remain explicit, bounded option lists with optional
+required-selection flags. Version `1` Brick 5.1 configuration is read safely:
+existing size options become standard choices and enabled custom dimensions
+become a compatible custom-size mode. Saved edits write version `2`; old JSON
+is not destructively rewritten by migration.
+
+## Customer information and variations
+
+Managers can define up to 16 strictly validated fields using short text, long
+text, number, date, or selection inputs. Each has a stable identifier, label,
+required flag, optional help text, safe limits, and `JOB` or `VARIATION` scope.
+Selection choices are bounded and unique. Labels, identifiers, and options
+cannot be empty, duplicated, contradictory, or executable markup.
+
+Batch numbers should use short text, not number, so leading zeros, letters,
+punctuation, hyphens, case, and meaningful spacing are preserved exactly.
+Future submission validation must show the exact final values at confirmation.
+
+When repeatable variations are enabled, each future variation has a stable
+snapshot identifier, its own quantity, variation-scoped answers, and a future
+specification key. At most 50 variations are accepted by the contract. Service
+minimum, maximum, and increment apply to the combined quantity, not each
+variation. The combined total also drives eligible fixed pricing.
+
+Brick 5.2 defines and tests this snapshot-ready contract; it does not create a
+customer submission form or production jobs.
+
+## Difficulty defaults
+
+Managers choose only the usual service difficulty. Workload and worker-star
+defaults are derived together:
+
+```text
+Simple  → Quick    → 1 star
+Medium  → Standard → 2 stars
+Complex → Focus    → 3 stars
+```
+
+Production had no mismatched legacy defaults at inspection time. New and
+edited services always save the derived pair. These remain review defaults:
+an authorized reviewer may classify an actual future job differently.
+
+## Preview, transactions, and future snapshots
+
+The detail page renders a read-only preview from saved configuration. It has no
+job, quotation, chat, checkout, or customer-record action. The homepage shows
+active services only, concise quantity/options information, the selected
+pricing mode, and accurate online-availability messaging.
+
+Create, edit, deactivate, and restore operations remain business-scoped,
+version-protected, and serializable. Each meaningful change and its `AuditLog`
+entry commit together. Audit snapshots include quantity, specification,
+pricing, derived workload, and preserved legacy values.
+
+Future Brick 6A must copy the applicable configuration and entered values into
+an immutable job snapshot. Later service edits must never alter historical job
+specifications or prices.

@@ -1,15 +1,19 @@
 import type { ApplicationRole } from "./auth-policy";
 import {
-  type IndicativePriceInput,
   type QuantityConfigurationInput,
   ServiceConfigurationError,
   type ServiceQuantityConfiguration,
   type ServiceSpecificationConfiguration,
   type SpecificationConfigurationInput,
-  validateIndicativePrice,
   validateQuantityConfiguration,
   validateSpecificationConfiguration,
 } from "./service-configuration";
+import {
+  type PricingConfigurationInput,
+  ServicePricingError,
+  type ServicePricingConfiguration,
+  validatePricingConfiguration,
+} from "./service-pricing";
 
 export const SERVICE_MANAGER_ROLES = ["OWNER", "ADMIN"] as const;
 export const SERVICE_AUDIT_ACTIONS = {
@@ -34,6 +38,12 @@ export const SERVICE_WORKLOAD_OPTIONS = [
   "FOCUS",
 ] as const;
 
+export const SERVICE_DIFFICULTY_DEFAULTS = {
+  COMPLEX: { stars: 3, workload: "FOCUS" },
+  MEDIUM: { stars: 2, workload: "STANDARD" },
+  SIMPLE: { stars: 1, workload: "QUICK" },
+} as const;
+
 export type ServiceComplexityDefault =
   (typeof SERVICE_COMPLEXITY_OPTIONS)[number];
 export type ServiceWorkloadDefault =
@@ -46,35 +56,29 @@ export const SERVICE_EDITABLE_FIELDS = [
   "onlineSubmissionEnabled",
   "quantityConfiguration",
   "specificationConfiguration",
-  "indicativePriceMinMinor",
-  "indicativePriceMaxMinor",
-  "indicativePriceDescription",
+  "pricingConfiguration",
   "defaultComplexity",
   "defaultWorkloadClass",
-  "proofRequiredByDefault",
 ] as const;
 
 export interface ServiceSettingsInput {
   defaultComplexity: ServiceComplexityDefault | null;
-  defaultWorkloadClass: ServiceWorkloadDefault | null;
   description: string;
   isActive: boolean;
   name: string;
   onlineSubmissionEnabled: boolean;
-  price: IndicativePriceInput;
-  proofRequiredByDefault: boolean | null;
+  pricing: PricingConfigurationInput;
   quantity: QuantityConfigurationInput;
   specification: SpecificationConfigurationInput;
 }
 
 export interface ValidatedServiceSettings extends Omit<
   ServiceSettingsInput,
-  "description" | "price" | "quantity" | "specification"
+  "description" | "pricing" | "quantity" | "specification"
 > {
+  defaultWorkloadClass: ServiceWorkloadDefault | null;
   description: string | null;
-  indicativePriceDescription: string | null;
-  indicativePriceMaxMinor: bigint | null;
-  indicativePriceMinMinor: bigint | null;
+  pricingConfiguration: ServicePricingConfiguration;
   quantityConfiguration: ServiceQuantityConfiguration | null;
   slug: string;
   specificationConfiguration: ServiceSpecificationConfiguration | null;
@@ -86,7 +90,7 @@ export class ServicePolicyError extends Error {
       | "INVALID_CONFIGURATION"
       | "INVALID_DESCRIPTION"
       | "INVALID_NAME"
-      | "INVALID_PRICE_GUIDANCE"
+      | "INVALID_PRICING_CONFIGURATION"
       | "INVALID_QUANTITY_CONFIGURATION"
       | "INVALID_SPECIFICATION_CONFIGURATION"
       | "SERVICE_MANAGER_REQUIRED",
@@ -98,6 +102,14 @@ export class ServicePolicyError extends Error {
 
 export function canManageServices(role: ApplicationRole | null | undefined) {
   return SERVICE_MANAGER_ROLES.some((allowedRole) => allowedRole === role);
+}
+
+export function serviceDifficultyDefaults(
+  complexity: ServiceComplexityDefault | null,
+) {
+  return complexity === null
+    ? { stars: null, workload: null }
+    : SERVICE_DIFFICULTY_DEFAULTS[complexity];
 }
 
 export function assertCanManageServices(role: ApplicationRole) {
@@ -153,8 +165,7 @@ export function validateServiceSettings(
   input: ServiceSettingsInput,
 ): ValidatedServiceSettings {
   if (
-    !isOneOf(input.defaultComplexity, SERVICE_COMPLEXITY_OPTIONS) ||
-    !isOneOf(input.defaultWorkloadClass, SERVICE_WORKLOAD_OPTIONS)
+    !isOneOf(input.defaultComplexity, SERVICE_COMPLEXITY_OPTIONS)
   ) {
     throw new ServicePolicyError("INVALID_CONFIGURATION");
   }
@@ -162,31 +173,35 @@ export function validateServiceSettings(
   const name = normalizeServiceName(input.name);
   let quantityConfiguration: ServiceQuantityConfiguration | null;
   let specificationConfiguration: ServiceSpecificationConfiguration | null;
-  let price: ReturnType<typeof validateIndicativePrice>;
+  let pricingConfiguration: ServicePricingConfiguration;
   try {
     quantityConfiguration = validateQuantityConfiguration(input.quantity);
     specificationConfiguration = validateSpecificationConfiguration(
       input.specification,
     );
-    price = validateIndicativePrice(input.price);
+    pricingConfiguration = validatePricingConfiguration(input.pricing, quantityConfiguration);
   } catch (error) {
     if (error instanceof ServiceConfigurationError) {
-      throw new ServicePolicyError(error.code);
+      throw new ServicePolicyError(
+        error.code === "INVALID_QUANTITY_CONFIGURATION"
+          ? "INVALID_QUANTITY_CONFIGURATION"
+          : "INVALID_SPECIFICATION_CONFIGURATION",
+      );
+    }
+    if (error instanceof ServicePricingError) {
+      throw new ServicePolicyError("INVALID_PRICING_CONFIGURATION");
     }
     throw error;
   }
 
   return {
     defaultComplexity: input.defaultComplexity,
-    defaultWorkloadClass: input.defaultWorkloadClass,
+    defaultWorkloadClass: serviceDifficultyDefaults(input.defaultComplexity).workload,
     description: normalizeServiceDescription(input.description),
-    indicativePriceDescription: price.description,
-    indicativePriceMaxMinor: price.maximumMinor,
-    indicativePriceMinMinor: price.minimumMinor,
     isActive: input.isActive,
     name,
     onlineSubmissionEnabled: input.onlineSubmissionEnabled,
-    proofRequiredByDefault: input.proofRequiredByDefault,
+    pricingConfiguration,
     quantityConfiguration,
     slug: serviceSlugFromName(name),
     specificationConfiguration,

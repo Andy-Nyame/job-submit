@@ -9,10 +9,13 @@ import { ServiceStatusForm } from "@/components/services/service-status-form";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
-  formatMoneyInput,
   readQuantityConfiguration,
   readSpecificationConfiguration,
 } from "@/domain/service-configuration";
+import {
+  formatMoneyInput,
+  readPricingConfiguration,
+} from "@/domain/service-pricing";
 import { requireBusinessMembership } from "@/server/auth/authorization";
 import { getManagedService } from "@/server/services/queries";
 
@@ -38,6 +41,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
   const specification = readSpecificationConfiguration(
     service.specificationConfiguration,
   );
+  const pricing = readPricingConfiguration(service.pricingConfiguration);
 
   return (
     <main id="main-content" className="py-10 sm:py-14">
@@ -75,31 +79,36 @@ export default async function ServicePage({ params }: ServicePageProps) {
               <EditServiceForm
                 serviceId={service.id}
                 values={{
+                  additionalStepPrice: pricing.fixed
+                    ? formatMoneyInput(pricing.fixed.additionalStepPriceMinor)
+                    : "",
                   artworkRequirement:
                     specification?.artworkRequirement ?? "",
-                  customDimensionsEnabled:
-                    specification?.customDimensions.enabled ?? false,
-                  customDimensionsRequired:
-                    specification?.customDimensions.required ?? false,
+                  customDimensionUnits:
+                    specification?.sizes.customUnits ?? [],
+                  customFields:
+                    specification?.customerFields.map((field) => ({
+                      helpText: field.helpText ?? "",
+                      id: field.id,
+                      label: field.label,
+                      maxLength: field.maxLength?.toString() ?? "",
+                      options: field.options.join("\n"),
+                      required: field.required,
+                      scope: field.scope,
+                      type: field.type,
+                    })) ?? [],
                   customInstructions:
                     specification?.customInstructions ?? "",
                   defaultComplexity: service.defaultComplexity,
-                  defaultWorkloadClass: service.defaultWorkloadClass,
                   description: service.description ?? "",
-                  dimensionUnits:
-                    specification?.customDimensions.units ?? [],
                   finishingOptions:
                     specification?.finishing.options.join("\n") ?? "",
                   finishingRequired:
                     specification?.finishing.required ?? false,
-                  indicativePriceDescription:
-                    service.indicativePriceDescription ?? "",
-                  indicativePriceMaximum: formatMoneyInput(
-                    service.indicativePriceMaxMinor,
-                  ),
-                  indicativePriceMinimum: formatMoneyInput(
-                    service.indicativePriceMinMinor,
-                  ),
+                  fixedPriceCoverage: pricing.fixed?.coverage ?? "",
+                  fixedSizeHeight: specification?.sizes.fixed?.height ?? "",
+                  fixedSizeUnit: specification?.sizes.fixed?.unit ?? "",
+                  fixedSizeWidth: specification?.sizes.fixed?.width ?? "",
                   isActive: service.isActive,
                   materialOptions:
                     specification?.materials.options.join("\n") ?? "",
@@ -107,14 +116,22 @@ export default async function ServicePage({ params }: ServicePageProps) {
                     specification?.materials.required ?? false,
                   name: service.name,
                   onlineSubmissionEnabled: service.onlineSubmissionEnabled,
-                  proofRequiredByDefault: service.proofRequiredByDefault,
+                  pricingMode: pricing.mode,
                   quantityIncrement: quantity?.increment?.toString() ?? "",
                   quantityMaximum: quantity?.maximum?.toString() ?? "",
                   quantityMinimum: quantity?.minimum?.toString() ?? "",
                   quantityPresets: quantity?.presets.join(", ") ?? "",
                   quantityUnit: quantity?.unit ?? "",
-                  sizeOptions: specification?.sizes.options.join("\n") ?? "",
-                  sizesRequired: specification?.sizes.required ?? false,
+                  sizeMode: specification?.sizes.mode ?? "NO_SIZE",
+                  standardSizeOptions:
+                    specification?.sizes.options.join("\n") ?? "",
+                  startingPrice: pricing.fixed
+                    ? formatMoneyInput(pricing.fixed.startingPriceMinor)
+                    : "",
+                  startingQuantity:
+                    pricing.fixed?.startingQuantity.toString() ?? "",
+                  variationsEnabled:
+                    specification?.variations.enabled ?? false,
                 }}
                 version={service.version}
               />
@@ -124,11 +141,9 @@ export default async function ServicePage({ params }: ServicePageProps) {
           <aside className="space-y-6">
             <ServiceCustomerPreview
               description={service.description}
-              indicativePriceDescription={service.indicativePriceDescription}
-              indicativePriceMaximum={service.indicativePriceMaxMinor}
-              indicativePriceMinimum={service.indicativePriceMinMinor}
               name={service.name}
               onlineSubmissionEnabled={service.onlineSubmissionEnabled}
+              pricing={pricing}
               quantity={quantity}
               specification={specification}
             />

@@ -30,13 +30,30 @@ create duplicate membership/profile state.
 
 ## Services
 
-`Service` is business-managed data, not a permanent code enum. It supports name, stable slug, description, active/archive state, online-submission availability, automatically assigned display order, default complexity/workload/proof guidance, versioned quantity/specification JSON, and an optional indicative price range. Referenced services should be deactivated or archived, not deleted. Brick 5.1 uses optimistic versions for safe concurrent edits and records create, update, deactivate, and restore events in the existing audit log.
+`Service` is business-managed data, not a permanent code enum. It supports
+name, stable slug, description, active/archive state, online-submission
+availability, automatic display order, synchronized complexity/workload
+defaults, and versioned quantity, specification, and pricing JSON. Referenced
+services are deactivated or archived, not deleted. Optimistic versions protect
+concurrent edits, and create/update/deactivate/restore events use the existing
+transactional audit log.
 
-Indicative price endpoints use integer Ghana-pesewa `BigInt` values, must be
-present together, and are guarded by database constraints. They are never a
-confirmed job price or calculation input. Jobs remain individually reviewed and
-costed through an authorized future pricing workflow. Optional complexity,
-workload, and proof values are review defaults only.
+`pricingConfiguration` is nullable for safe rollout and contains version `1`
+Fixed Pricing or Price on Request data. Fixed amounts are serialized as exact
+integer-pesewa strings inside JSON and validated before persistence. The fixed
+formula uses the saved starting quantity, saved quantity step, starting price,
+and additional-step price; mixed specifications are not eligible.
+
+Brick 5.1 indicative price columns remain constrained and preserved for
+historical compatibility, but ordinary management and public queries do not
+read them. No migration converts ranges to fixed prices. The existing
+`proofRequiredByDefault` column is likewise retained but hidden until a future
+plain-language artwork approval design exists.
+
+Quantity configuration stays at version `1`. Specification version `2` stores
+explicit size modes, printing options, customer-field definitions, and
+variation settings. The database accepts specification versions 1 and 2; the
+application adapts version 1 without destroying existing values.
 
 ## Jobs and lifecycle
 
@@ -55,7 +72,7 @@ Side states are `WAITING_FOR_CUSTOMER`, `AWAITING_CUSTOMER_APPROVAL`, `DECLINED`
 
 ## Priority, pricing, and queue
 
-Priority is `REGULAR` or `EXPRESS`. Express means priority handling, never guaranteed instant completion. Future job-specific confirmed prices use integer minor units (`BigInt`), never floating-point arithmetic. A confirmed Express snapshot is exactly the individually confirmed base price plus a 4,000-basis-point (40%) surcharge, rounded half up to the nearest minor unit. Confirmed Regular pricing has zero surcharge. Database checks enforce the calculation and confirmed pricing rows become immutable; a commercial change creates a new revision. Optional service ranges remain informational and never feed this calculation.
+Priority is `REGULAR` or `EXPRESS`. Express means priority handling, never guaranteed instant completion. Future job-specific confirmed prices use integer minor units (`BigInt`), never floating-point arithmetic. A confirmed Express snapshot is exactly the individually confirmed base price plus a 4,000-basis-point (40%) surcharge, rounded half up to the nearest minor unit. Confirmed Regular pricing has zero surcharge. Database checks enforce the calculation and confirmed pricing rows become immutable; a commercial change creates a new revision. Service fixed pricing can propose an eligible base total, but it does not create or confirm a `JobPricing` record by itself.
 
 `queueEnteredAt`, not `createdAt`, is the FIFO foundation. Future selection logic will order eligible Express and Regular groups explicitly, expose old Regular work for anti-starvation handling, and exclude paused/customer-waiting work. Re-entry policy must explicitly preserve or replace queue time. `JobQueueOverride` requires a reason; a partial unique index permits one live override per job, and future service code must add an `AuditLog` entry atomically.
 
@@ -65,6 +82,11 @@ These are separate closed concepts:
 
 - complexity controls completion stars: `SIMPLE = 1`, `MEDIUM = 2`, `COMPLEX = 3`
 - workload controls capacity: `QUICK`, `STANDARD`, `FOCUS`
+
+For service defaults, the manager chooses only complexity and the application
+stores the matching workload: `SIMPLE → QUICK`, `MEDIUM → STANDARD`, and
+`COMPLEX → FOCUS`. This prevents contradictory service defaults while leaving
+actual future jobs independently reviewable.
 
 Future claim logic must combine current assignments, capacity settings, focus exclusion, and active service skills inside one transaction. The schema does not pretend that complexity determines capacity.
 
@@ -154,4 +176,4 @@ npm run db:seed
 The seed is idempotent. It creates missing known services with stable slugs and
 reconciles only exact legacy names. It preserves manager-customized names,
 existing IDs/order, lifecycle choices, descriptions, advanced configuration,
-price guidance, workflow defaults, and online availability.
+legacy ranges, fixed pricing, workflow defaults, and online availability.

@@ -2,290 +2,176 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  formatIndicativePriceRange,
-  INDICATIVE_PRICE_DISCLAIMER,
+  formatQuantityRule,
   isQuantityAllowed,
-  readQuantityConfiguration,
   readSpecificationConfiguration,
   ServiceConfigurationError,
-  validateIndicativePrice,
+  validateCustomerFieldValues,
   validateQuantityConfiguration,
   validateSpecificationConfiguration,
+  validateVariationOrder,
+  type CustomerFieldConfigurationInput,
+  type SpecificationConfigurationInput,
 } from "./service-configuration";
 
-const blankQuantity = {
-  increment: "",
-  maximum: "",
-  minimum: "",
-  presets: "",
-  unit: "",
-};
-
-const blankSpecification = {
+const blankQuantity = { increment: "", maximum: "", minimum: "", presets: "", unit: "" };
+const blankSpecification: SpecificationConfigurationInput = {
   artworkRequirement: "",
-  customDimensionsEnabled: false,
-  customDimensionsRequired: false,
+  customDimensionUnits: [],
+  customFields: [],
   customInstructions: "",
-  dimensionUnits: [] as string[],
   finishingOptions: "",
   finishingRequired: false,
+  fixedSizeHeight: "",
+  fixedSizeUnit: "",
+  fixedSizeWidth: "",
   materialOptions: "",
   materialsRequired: false,
-  sizeOptions: "",
-  sizesRequired: false,
+  sizeMode: "NO_SIZE",
+  standardSizeOptions: "",
+  variationsEnabled: false,
 };
 
-test("quantity rules may be left entirely blank", () => {
+function field(overrides: Partial<CustomerFieldConfigurationInput> = {}): CustomerFieldConfigurationInput {
+  return {
+    helpText: "Enter the exact text to print.",
+    id: "batch-number",
+    label: "Batch Number",
+    maxLength: "80",
+    options: "",
+    required: true,
+    scope: "VARIATION",
+    type: "SHORT_TEXT",
+    ...overrides,
+  };
+}
+
+test("quantity rules support no minimum, a minimum only, and an optional maximum", () => {
   assert.equal(validateQuantityConfiguration(blankQuantity), null);
   assert.equal(isQuantityAllowed(1, null), true);
-  assert.equal(isQuantityAllowed(0, null), false);
+  const minimumOnly = validateQuantityConfiguration({ ...blankQuantity, minimum: "5", unit: "pieces" });
+  assert.equal(isQuantityAllowed(4, minimumOnly), false);
+  assert.equal(isQuantityAllowed(5, minimumOnly), true);
+  assert.equal(isQuantityAllowed(500_000, minimumOnly), true);
+  assert.equal(formatQuantityRule(minimumOnly), "Minimum order: 5 pieces");
+  const bounded = validateQuantityConfiguration({ ...blankQuantity, maximum: "100", minimum: "5", unit: "pieces" });
+  assert.equal(formatQuantityRule(bounded), "5–100 pieces");
+  assert.equal(isQuantityAllowed(101, bounded), false);
 });
 
-test("minimum, maximum, unit and ascending presets are normalized", () => {
-  const configuration = validateQuantityConfiguration({
-    increment: "",
-    maximum: "500",
-    minimum: "50",
-    presets: "50, 100, 200, 500",
-    unit: "  pieces ",
-  });
-  assert.deepEqual(configuration, {
-    increment: null,
-    maximum: 500,
-    minimum: 50,
-    presets: [50, 100, 200, 500],
-    unit: "pieces",
+test("increments align to the minimum, or to the increment when no minimum exists", () => {
+  const fromMinimum = validateQuantityConfiguration({ increment: "5", maximum: "100", minimum: "7", presets: "7, 12, 17", unit: "pieces" });
+  assert.equal(isQuantityAllowed(12, fromMinimum), true);
+  assert.equal(isQuantityAllowed(10, fromMinimum), false);
+  const withoutMinimum = validateQuantityConfiguration({ ...blankQuantity, increment: "5", unit: "copies" });
+  assert.equal(isQuantityAllowed(5, withoutMinimum), true);
+  assert.equal(isQuantityAllowed(6, withoutMinimum), false);
+});
+
+test("invalid quantity bounds and inconsistent presets are rejected", () => {
+  for (const input of [
+    { ...blankQuantity, minimum: "0", unit: "pieces" },
+    { ...blankQuantity, minimum: "-1", unit: "pieces" },
+    { ...blankQuantity, minimum: "1.5", unit: "pieces" },
+    { ...blankQuantity, maximum: "4", minimum: "5", unit: "pieces" },
+    { ...blankQuantity, increment: "5", minimum: "5", presets: "5,5", unit: "pieces" },
+    { ...blankQuantity, increment: "5", minimum: "5", presets: "5,9", unit: "pieces" },
+  ]) assert.throws(() => validateQuantityConfiguration(input), ServiceConfigurationError);
+});
+
+test("quantity presets remain shortcuts rather than the only valid quantities", () => {
+  const quantity = validateQuantityConfiguration({ increment: "5", maximum: "100", minimum: "5", presets: "5,25,50", unit: "pieces" });
+  assert.equal(isQuantityAllowed(30, quantity), true);
+  assert.equal(quantity?.presets.includes(30), false);
+});
+
+test("all five size modes validate without inventing dimensions", () => {
+  assert.equal(validateSpecificationConfiguration(blankSpecification), null);
+  const fixed = validateSpecificationConfiguration({ ...blankSpecification, fixedSizeHeight: "20.5", fixedSizeUnit: "CM", fixedSizeWidth: "10", sizeMode: "FIXED" });
+  assert.deepEqual(fixed?.sizes.fixed, { height: "20.5", unit: "CM", width: "10" });
+  const preset = validateSpecificationConfiguration({ ...blankSpecification, sizeMode: "PRESET", standardSizeOptions: "Owner size 1\nOwner size 2" });
+  assert.deepEqual(preset?.sizes.options, ["Owner size 1", "Owner size 2"]);
+  const custom = validateSpecificationConfiguration({ ...blankSpecification, customDimensionUnits: ["MM", "CM"], sizeMode: "CUSTOM" });
+  assert.deepEqual(custom?.sizes.customUnits, ["MM", "CM"]);
+  const both = validateSpecificationConfiguration({ ...blankSpecification, customDimensionUnits: ["INCHES"], sizeMode: "PRESET_OR_CUSTOM", standardSizeOptions: "Shop size" });
+  assert.equal(both?.sizes.mode, "PRESET_OR_CUSTOM");
+});
+
+test("invalid fixed dimensions and contradictory size settings are rejected", () => {
+  for (const input of [
+    { ...blankSpecification, fixedSizeHeight: "10", fixedSizeUnit: "CM", fixedSizeWidth: "0", sizeMode: "FIXED" },
+    { ...blankSpecification, sizeMode: "PRESET" },
+    { ...blankSpecification, customDimensionUnits: ["CM"], sizeMode: "NO_SIZE" },
+    { ...blankSpecification, fixedSizeHeight: "10", fixedSizeUnit: "CM", fixedSizeWidth: "10", sizeMode: "CUSTOM" },
+  ]) assert.throws(() => validateSpecificationConfiguration(input), ServiceConfigurationError);
+});
+
+test("legacy Brick 5.1 sizes adapt safely to the new size modes", () => {
+  const adapted = readSpecificationConfiguration({
+    artworkRequirement: "EITHER",
+    customDimensions: { enabled: true, required: false, units: ["CM"] },
+    customInstructions: null,
+    finishing: { options: [], required: false },
+    materials: { options: ["Configured material"], required: true },
+    sizes: { options: ["Configured size"], required: true },
     version: 1,
   });
-  assert.equal(isQuantityAllowed(75, configuration), true);
-  assert.equal(isQuantityAllowed(501, configuration), false);
+  assert.equal(adapted?.sizes.mode, "PRESET_OR_CUSTOM");
+  assert.deepEqual(adapted?.sizes.options, ["Configured size"]);
+  assert.deepEqual(adapted?.materials.options, ["Configured material"]);
 });
 
-test("a maximum below the minimum is rejected", () => {
-  assert.throws(
-    () =>
-      validateQuantityConfiguration({
-        ...blankQuantity,
-        maximum: "49",
-        minimum: "50",
-        unit: "copies",
-      }),
-    ServiceConfigurationError,
-  );
+test("customer fields support required exact batch text and preserve leading zeros", () => {
+  const specification = validateSpecificationConfiguration({ ...blankSpecification, customFields: [field()], variationsEnabled: true });
+  assert.ok(specification);
+  assert.deepEqual(validateCustomerFieldValues(specification.customerFields, "VARIATION", { "batch-number": "001-A / 7" }), { "batch-number": "001-A / 7" });
+  assert.throws(() => validateCustomerFieldValues(specification.customerFields, "VARIATION", {}), ServiceConfigurationError);
 });
 
-test("zero, negative, fractional and excessive quantity values are rejected", () => {
-  for (const minimum of ["0", "-1", "1.5", "1000001", "1e2"]) {
-    assert.throws(
-      () =>
-        validateQuantityConfiguration({
-          ...blankQuantity,
-          minimum,
-          unit: "sheets",
-        }),
-      ServiceConfigurationError,
-    );
-  }
-});
-
-test("increments consistently advance from the configured minimum", () => {
-  const configuration = validateQuantityConfiguration({
-    increment: "25",
-    maximum: "150",
-    minimum: "50",
-    presets: "50,75,100,150",
-    unit: "pieces",
-  });
-  assert.equal(isQuantityAllowed(50, configuration), true);
-  assert.equal(isQuantityAllowed(75, configuration), true);
-  assert.equal(isQuantityAllowed(60, configuration), false);
-});
-
-test("an increment without a minimum uses the increment as its baseline", () => {
-  const configuration = validateQuantityConfiguration({
-    ...blankQuantity,
-    increment: "50",
-    unit: "copies",
-  });
-  assert.equal(isQuantityAllowed(50, configuration), true);
-  assert.equal(isQuantityAllowed(100, configuration), true);
-  assert.equal(isQuantityAllowed(1, configuration), false);
-});
-
-test("duplicate, descending and constraint-breaking presets are rejected", () => {
-  for (const presets of ["50,50", "100,50", "25,50", "50,60"]) {
-    assert.throws(
-      () =>
-        validateQuantityConfiguration({
-          increment: "25",
-          maximum: "100",
-          minimum: "50",
-          presets,
-          unit: "pieces",
-        }),
-      ServiceConfigurationError,
-    );
-  }
-});
-
-test("presets remain shortcuts and do not restrict other valid custom quantities", () => {
-  const configuration = validateQuantityConfiguration({
-    increment: "10",
-    maximum: "200",
-    minimum: "50",
-    presets: "50,100,200",
-    unit: "sets",
-  });
-  assert.equal(isQuantityAllowed(70, configuration), true);
-  assert.equal(configuration?.presets.includes(70), false);
-});
-
-test("service specification options are normalized and required states retained", () => {
-  const configuration = validateSpecificationConfiguration({
+test("custom field types, scopes, options and help are validated", () => {
+  const specification = validateSpecificationConfiguration({
     ...blankSpecification,
-    artworkRequirement: "EITHER",
-    finishingOptions: "Cutting\nBinding",
-    materialOptions: "Paper\nWhite SAV",
-    materialsRequired: true,
-    sizeOptions: "A4\nA3",
-    sizesRequired: true,
+    customFields: [
+      field({ id: "product-name", label: "Product name", required: false, scope: "JOB" }),
+      field({ id: "manufacture-date", label: "Manufacture date", maxLength: "", scope: "JOB", type: "DATE" }),
+      field({ id: "choice-field", label: "Configured choice", maxLength: "", options: "Choice A\nChoice B", required: false, scope: "JOB", type: "SELECTION" }),
+    ],
   });
-  assert.deepEqual(configuration?.sizes, {
-    options: ["A4", "A3"],
-    required: true,
-  });
-  assert.deepEqual(configuration?.materials.options, ["Paper", "White SAV"]);
-  assert.equal(configuration?.artworkRequirement, "EITHER");
+  assert.ok(specification);
+  const values = validateCustomerFieldValues(specification.customerFields, "JOB", { "manufacture-date": "2026-10-19", "choice-field": "Choice B" });
+  assert.equal(values["choice-field"], "Choice B");
 });
 
-test("custom dimensions require an allowed measurement unit", () => {
-  assert.throws(
-    () =>
-      validateSpecificationConfiguration({
-        ...blankSpecification,
-        customDimensionsEnabled: true,
-      }),
-    ServiceConfigurationError,
-  );
-  const configuration = validateSpecificationConfiguration({
-    ...blankSpecification,
-    customDimensionsEnabled: true,
-    customDimensionsRequired: true,
-    dimensionUnits: ["CM", "INCHES"],
-  });
-  assert.deepEqual(configuration?.customDimensions, {
-    enabled: true,
-    required: true,
-    units: ["CM", "INCHES"],
-  });
+test("duplicate custom fields, malicious text and inconsistent variation scopes are rejected", () => {
+  for (const input of [
+    { ...blankSpecification, customFields: [field({ scope: "JOB" }), field({ scope: "JOB" })] },
+    { ...blankSpecification, customFields: [field({ id: "unsafe", label: "<script>", scope: "JOB" })] },
+    { ...blankSpecification, customFields: [field()], variationsEnabled: false },
+  ]) assert.throws(() => validateSpecificationConfiguration(input), ServiceConfigurationError);
 });
 
-test("required options cannot be empty and duplicate options are rejected", () => {
-  assert.throws(
-    () =>
-      validateSpecificationConfiguration({
-        ...blankSpecification,
-        sizesRequired: true,
-      }),
-    ServiceConfigurationError,
-  );
-  assert.throws(
-    () =>
-      validateSpecificationConfiguration({
-        ...blankSpecification,
-        materialOptions: "Paper\npaper",
-      }),
-    ServiceConfigurationError,
-  );
+test("variation quantities are validated against their combined total, not per-item minimums", () => {
+  const quantity = validateQuantityConfiguration({ ...blankQuantity, increment: "5", minimum: "5", unit: "pieces" });
+  const specification = validateSpecificationConfiguration({ ...blankSpecification, customFields: [field()], variationsEnabled: true });
+  assert.ok(specification);
+  const order = validateVariationOrder(quantity, specification, [
+    { fieldValues: { "batch-number": "A123" }, id: "variation-1", quantity: 2, specificationKey: "same" },
+    { fieldValues: { "batch-number": "A124" }, id: "variation-2", quantity: 3, specificationKey: "same" },
+  ]);
+  assert.equal(order.totalQuantity, 5);
+  assert.equal(order.variations[0].fieldValues["batch-number"], "A123");
+  assert.equal(order.hasMixedSpecifications, false);
 });
 
-test("malicious markup and invalid artwork values are rejected", () => {
-  assert.throws(
-    () =>
-      validateSpecificationConfiguration({
-        ...blankSpecification,
-        customInstructions: "<script>alert(1)</script>",
-      }),
-    ServiceConfigurationError,
-  );
-  assert.throws(
-    () =>
-      validateSpecificationConfiguration({
-        ...blankSpecification,
-        artworkRequirement: "SOMETIMES",
-      }),
-    ServiceConfigurationError,
-  );
-});
-
-test("service-specific configurations stay isolated", () => {
-  const sticker = validateSpecificationConfiguration({
-    ...blankSpecification,
-    materialOptions: "White SAV",
-  });
-  const document = validateSpecificationConfiguration({
-    ...blankSpecification,
-    materialOptions: "Paper",
-  });
-  assert.deepEqual(sticker?.materials.options, ["White SAV"]);
-  assert.deepEqual(document?.materials.options, ["Paper"]);
-  assert.notStrictEqual(sticker, document);
-});
-
-test("stored configurations require the supported snapshot version", () => {
-  assert.equal(readQuantityConfiguration({ unit: "pieces", version: 2 }), null);
-  assert.equal(
-    readSpecificationConfiguration({
-      artworkRequirement: "NOT_REQUIRED",
-      version: 2,
-    }),
-    null,
-  );
-});
-
-test("indicative price guidance may be blank or an exact valid GH₵ range", () => {
-  assert.deepEqual(
-    validateIndicativePrice({ description: "", maximum: "", minimum: "" }),
-    { description: null, maximumMinor: null, minimumMinor: null },
-  );
-  assert.deepEqual(
-    validateIndicativePrice({
-      description: "For the configured material and size.",
-      maximum: "150.50",
-      minimum: "50",
-    }),
-    {
-      description: "For the configured material and size.",
-      maximumMinor: 15_050n,
-      minimumMinor: 5_000n,
-    },
-  );
-});
-
-test("incomplete, malformed, negative and reversed price ranges are rejected", () => {
-  const invalidRanges = [
-    { description: "", maximum: "", minimum: "10" },
-    { description: "", maximum: "20", minimum: "" },
-    { description: "", maximum: "10", minimum: "20" },
-    { description: "", maximum: "20", minimum: "-1" },
-    { description: "", maximum: "20.999", minimum: "10" },
-    { description: "Context without a range", maximum: "", minimum: "" },
-  ];
-  for (const range of invalidRanges) {
-    assert.throws(() => validateIndicativePrice(range), ServiceConfigurationError);
-  }
-});
-
-test("price presentation is explicitly an estimate and performs no job calculation", () => {
-  const price = validateIndicativePrice({
-    description: "",
-    maximum: "100",
-    minimum: "50",
-  });
-  assert.equal(formatIndicativePriceRange(5_000n, 10_000n), "GH₵50.00 – GH₵100.00");
-  assert.equal(
-    INDICATIVE_PRICE_DISCLAIMER,
-    "Estimated price range only. Final pricing is confirmed privately after job review.",
-  );
-  assert.equal("confirmedTotalMinor" in price, false);
+test("variation limits, duplicate IDs, invalid totals and mixed specifications are detected", () => {
+  const quantity = validateQuantityConfiguration({ ...blankQuantity, increment: "5", minimum: "5", unit: "pieces" });
+  const specification = validateSpecificationConfiguration({ ...blankSpecification, variationsEnabled: true });
+  assert.ok(specification);
+  const mixed = validateVariationOrder(quantity, specification, [
+    { fieldValues: {}, id: "one", quantity: 2, specificationKey: "small" },
+    { fieldValues: {}, id: "two", quantity: 3, specificationKey: "large" },
+  ]);
+  assert.equal(mixed.hasMixedSpecifications, true);
+  assert.throws(() => validateVariationOrder(quantity, specification, [{ fieldValues: {}, id: "one", quantity: 2 }]), ServiceConfigurationError);
+  assert.throws(() => validateVariationOrder(quantity, specification, [{ fieldValues: {}, id: "same", quantity: 2 }, { fieldValues: {}, id: "same", quantity: 3 }]), ServiceConfigurationError);
 });

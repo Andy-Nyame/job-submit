@@ -21,37 +21,40 @@ export function CreateServiceForm() {
         includeActiveState
         prefix="create-service"
         values={{
+          additionalStepPrice: "",
           artworkRequirement: "",
-          customDimensionsEnabled: false,
-          customDimensionsRequired: false,
+          customDimensionUnits: [],
+          customFields: [],
           customInstructions: "",
           defaultComplexity: null,
-          defaultWorkloadClass: null,
           description: "",
-          dimensionUnits: [],
           finishingOptions: "",
           finishingRequired: false,
-          indicativePriceDescription: "",
-          indicativePriceMaximum: "",
-          indicativePriceMinimum: "",
+          fixedPriceCoverage: "",
+          fixedSizeHeight: "",
+          fixedSizeUnit: "",
+          fixedSizeWidth: "",
           isActive: true,
           materialOptions: "",
           materialsRequired: false,
           name: "",
           onlineSubmissionEnabled: false,
-          proofRequiredByDefault: null,
+          pricingMode: "ON_REQUEST",
           quantityIncrement: "",
           quantityMaximum: "",
           quantityMinimum: "",
           quantityPresets: "",
           quantityUnit: "",
-          sizeOptions: "",
-          sizesRequired: false,
+          sizeMode: "NO_SIZE",
+          standardSizeOptions: "",
+          startingPrice: "",
+          startingQuantity: "",
+          variationsEnabled: false,
         }}
       />
       <p className="rounded-md border border-accent/35 bg-accent/10 p-3 text-xs leading-5 text-muted">
-        Any price range is informational only. Each future job will still be
-        reviewed and costed individually by an authorized person.
+        Price on request never creates an automatic total. Fixed pricing applies
+        only when the saved quantity and specification rules are satisfied.
       </p>
       <FormMessage message={state.message} status={state.status} />
       <ServiceSubmitButton pendingLabel="Creating service…">

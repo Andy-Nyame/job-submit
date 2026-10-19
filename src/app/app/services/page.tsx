@@ -58,8 +58,8 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
             Manage the service categories customers can discover, including
-            quantity rules, specification options, and optional estimate
-            guidance. Final job prices are always reviewed privately.
+            quantity, pricing, size, customer-information, and availability
+            rules in straightforward sections.
           </p>
         </header>
 
@@ -139,8 +139,8 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                         <dd>
                           {service.quantityConfiguration ||
                           service.specificationConfiguration ||
-                          service.indicativePriceMinMinor !== null
-                            ? "Advanced options configured"
+                          service.pricingConfiguration
+                            ? "Service options configured"
                             : "Basic catalogue details"}
                         </dd>
                       </div>

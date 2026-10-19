@@ -279,6 +279,7 @@ model Service {
   description                String?
   quantityConfiguration      Json?
   specificationConfiguration Json?
+  pricingConfiguration       Json?
   indicativePriceMinMinor    BigInt?
   indicativePriceMaxMinor    BigInt?
   indicativePriceDescription String?        @db.VarChar(500)

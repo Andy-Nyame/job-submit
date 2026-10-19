@@ -4,11 +4,9 @@ import { prisma } from "@/server/db/prisma";
 
 export interface PublicService {
   description: string | null;
-  indicativePriceDescription: string | null;
-  indicativePriceMaxMinor: bigint | null;
-  indicativePriceMinMinor: bigint | null;
   name: string;
   onlineSubmissionEnabled: boolean;
+  pricingConfiguration: unknown;
   quantityConfiguration: unknown;
   slug: string;
   specificationConfiguration: unknown;
@@ -30,11 +28,9 @@ export async function getActivePublicServices(): Promise<PublicServicesResult> {
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
           select: {
             description: true,
-            indicativePriceDescription: true,
-            indicativePriceMaxMinor: true,
-            indicativePriceMinMinor: true,
             name: true,
             onlineSubmissionEnabled: true,
+            pricingConfiguration: true,
             quantityConfiguration: true,
             slug: true,
             specificationConfiguration: true,

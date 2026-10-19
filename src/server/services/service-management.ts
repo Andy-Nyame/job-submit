@@ -37,7 +37,7 @@ function validateInput(input: ServiceSettingsInput) {
   } catch (error) {
     if (error instanceof ServicePolicyError) {
       if (
-        error.code === "INVALID_PRICE_GUIDANCE" ||
+        error.code === "INVALID_PRICING_CONFIGURATION" ||
         error.code === "INVALID_QUANTITY_CONFIGURATION" ||
         error.code === "INVALID_SPECIFICATION_CONFIGURATION"
       ) {
@@ -97,6 +97,7 @@ function auditSnapshot(service: {
   isActive: boolean;
   name: string;
   onlineSubmissionEnabled: boolean;
+  pricingConfiguration: unknown;
   proofRequiredByDefault: boolean | null;
   quantityConfiguration: unknown;
   sortOrder: number;
@@ -112,6 +113,8 @@ function auditSnapshot(service: {
     isActive: service.isActive,
     name: service.name,
     onlineSubmissionEnabled: service.onlineSubmissionEnabled,
+    pricingConfiguration:
+      service.pricingConfiguration as Prisma.InputJsonValue | null,
     proofRequiredByDefault: service.proofRequiredByDefault,
     quantityConfiguration:
       service.quantityConfiguration as Prisma.InputJsonValue | null,
@@ -162,13 +165,12 @@ export async function createService(
         defaultComplexity: settings.defaultComplexity,
         defaultWorkloadClass: settings.defaultWorkloadClass,
         description: settings.description,
-        indicativePriceDescription: settings.indicativePriceDescription,
-        indicativePriceMaxMinor: settings.indicativePriceMaxMinor,
-        indicativePriceMinMinor: settings.indicativePriceMinMinor,
         isActive: settings.isActive,
         name: settings.name,
         onlineSubmissionEnabled: settings.onlineSubmissionEnabled,
-        proofRequiredByDefault: settings.proofRequiredByDefault,
+        pricingConfiguration: jsonDatabaseValue(
+          settings.pricingConfiguration,
+        ),
         quantityConfiguration: jsonDatabaseValue(
           settings.quantityConfiguration,
         ),
@@ -241,6 +243,7 @@ export async function updateService(
 
     const before = auditSnapshot(current);
     const updatedSettings = {
+      ...current,
       ...settings,
       isActive: current.isActive,
       sortOrder: current.sortOrder,
@@ -267,7 +270,9 @@ export async function updateService(
         indicativePriceMinMinor: updatedSettings.indicativePriceMinMinor,
         name: updatedSettings.name,
         onlineSubmissionEnabled: updatedSettings.onlineSubmissionEnabled,
-        proofRequiredByDefault: updatedSettings.proofRequiredByDefault,
+        pricingConfiguration: jsonDatabaseValue(
+          updatedSettings.pricingConfiguration,
+        ),
         quantityConfiguration: jsonDatabaseValue(
           updatedSettings.quantityConfiguration,
         ),
