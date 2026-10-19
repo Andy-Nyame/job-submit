@@ -156,7 +156,7 @@ function HeroStudioVisual() {
       role="img"
     >
       <div aria-hidden="true" className="absolute -inset-8 -z-10 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_68%)] blur-2xl" />
-      <div className="relative overflow-hidden rounded-[2rem] border bg-surface p-4 shadow-[0_30px_80px_-50px_rgba(0,0,0,0.55)] sm:p-6">
+      <div className="relative overflow-hidden rounded-4xl border bg-surface p-4 shadow-[0_30px_80px_-50px_rgba(0,0,0,0.55)] sm:p-6">
         <div className="flex items-center justify-between border-b pb-4">
           <div>
             <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">
@@ -241,7 +241,7 @@ export default async function HomePage() {
 
       <main id="main-content">
         <section className="relative overflow-hidden py-16 sm:py-24 lg:py-28">
-          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--border)_35%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--border)_35%,transparent)_1px,transparent_1px)] bg-[size:56px_56px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--border)_35%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--border)_35%,transparent)_1px,transparent_1px)] bg-size-[56px_56px] mask-[linear-gradient(to_bottom,black,transparent_82%)]" />
           <Container>
             <div className="grid items-center gap-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12 xl:gap-20">
               <div>
@@ -386,8 +386,8 @@ export default async function HomePage() {
         >
           <Container>
             <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-20">
-              <div className="relative min-h-96 overflow-hidden rounded-[2rem] border bg-surface-muted p-7 sm:p-10">
-                <div aria-hidden="true" className="absolute -right-16 -top-16 size-64 rounded-full border-[32px] border-accent/20" />
+              <div className="relative min-h-96 overflow-hidden rounded-4xl border bg-surface-muted p-7 sm:p-10">
+                <div aria-hidden="true" className="absolute -right-16 -top-16 size-64 rounded-full border-32 border-accent/20" />
                 <div className="relative flex h-full min-h-80 flex-col justify-between">
                   <div className="flex items-center gap-3">
                     <span className="h-px w-12 bg-accent" />
@@ -439,7 +439,7 @@ export default async function HomePage() {
           tabIndex={-1}
         >
           <Container>
-            <div className="overflow-hidden rounded-[2rem] border bg-surface">
+            <div className="overflow-hidden rounded-4xl border bg-surface">
               <div className="grid lg:grid-cols-[1.2fr_0.8fr]">
                 <div className="p-7 sm:p-10 lg:p-14">
                   <p className="section-kicker">Unlisted or custom work</p>
