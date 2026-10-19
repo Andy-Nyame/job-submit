@@ -1,4 +1,15 @@
 import type { ApplicationRole } from "./auth-policy";
+import {
+  type IndicativePriceInput,
+  type QuantityConfigurationInput,
+  ServiceConfigurationError,
+  type ServiceQuantityConfiguration,
+  type ServiceSpecificationConfiguration,
+  type SpecificationConfigurationInput,
+  validateIndicativePrice,
+  validateQuantityConfiguration,
+  validateSpecificationConfiguration,
+} from "./service-configuration";
 
 export const SERVICE_MANAGER_ROLES = ["OWNER", "ADMIN"] as const;
 export const SERVICE_AUDIT_ACTIONS = {
@@ -10,6 +21,7 @@ export const SERVICE_AUDIT_ACTIONS = {
 export const MAX_SERVICE_NAME_LENGTH = 160;
 export const MAX_SERVICE_DESCRIPTION_LENGTH = 2000;
 export const MAX_SERVICE_SORT_ORDER = 10000;
+export const SERVICE_SORT_ORDER_STEP = 10;
 
 export const SERVICE_COMPLEXITY_OPTIONS = [
   "SIMPLE",
@@ -32,7 +44,11 @@ export const SERVICE_EDITABLE_FIELDS = [
   "description",
   "isActive",
   "onlineSubmissionEnabled",
-  "sortOrder",
+  "quantityConfiguration",
+  "specificationConfiguration",
+  "indicativePriceMinMinor",
+  "indicativePriceMaxMinor",
+  "indicativePriceDescription",
   "defaultComplexity",
   "defaultWorkloadClass",
   "proofRequiredByDefault",
@@ -45,14 +61,23 @@ export interface ServiceSettingsInput {
   isActive: boolean;
   name: string;
   onlineSubmissionEnabled: boolean;
+  price: IndicativePriceInput;
   proofRequiredByDefault: boolean | null;
-  sortOrder: number;
+  quantity: QuantityConfigurationInput;
+  specification: SpecificationConfigurationInput;
 }
 
-export interface ValidatedServiceSettings
-  extends Omit<ServiceSettingsInput, "description"> {
+export interface ValidatedServiceSettings extends Omit<
+  ServiceSettingsInput,
+  "description" | "price" | "quantity" | "specification"
+> {
   description: string | null;
+  indicativePriceDescription: string | null;
+  indicativePriceMaxMinor: bigint | null;
+  indicativePriceMinMinor: bigint | null;
+  quantityConfiguration: ServiceQuantityConfiguration | null;
   slug: string;
+  specificationConfiguration: ServiceSpecificationConfiguration | null;
 }
 
 export class ServicePolicyError extends Error {
@@ -61,7 +86,9 @@ export class ServicePolicyError extends Error {
       | "INVALID_CONFIGURATION"
       | "INVALID_DESCRIPTION"
       | "INVALID_NAME"
-      | "INVALID_SORT_ORDER"
+      | "INVALID_PRICE_GUIDANCE"
+      | "INVALID_QUANTITY_CONFIGURATION"
+      | "INVALID_SPECIFICATION_CONFIGURATION"
       | "SERVICE_MANAGER_REQUIRED",
   ) {
     super(code);
@@ -126,13 +153,6 @@ export function validateServiceSettings(
   input: ServiceSettingsInput,
 ): ValidatedServiceSettings {
   if (
-    !Number.isSafeInteger(input.sortOrder) ||
-    input.sortOrder < 0 ||
-    input.sortOrder > MAX_SERVICE_SORT_ORDER
-  ) {
-    throw new ServicePolicyError("INVALID_SORT_ORDER");
-  }
-  if (
     !isOneOf(input.defaultComplexity, SERVICE_COMPLEXITY_OPTIONS) ||
     !isOneOf(input.defaultWorkloadClass, SERVICE_WORKLOAD_OPTIONS)
   ) {
@@ -140,12 +160,55 @@ export function validateServiceSettings(
   }
 
   const name = normalizeServiceName(input.name);
+  let quantityConfiguration: ServiceQuantityConfiguration | null;
+  let specificationConfiguration: ServiceSpecificationConfiguration | null;
+  let price: ReturnType<typeof validateIndicativePrice>;
+  try {
+    quantityConfiguration = validateQuantityConfiguration(input.quantity);
+    specificationConfiguration = validateSpecificationConfiguration(
+      input.specification,
+    );
+    price = validateIndicativePrice(input.price);
+  } catch (error) {
+    if (error instanceof ServiceConfigurationError) {
+      throw new ServicePolicyError(error.code);
+    }
+    throw error;
+  }
+
   return {
-    ...input,
+    defaultComplexity: input.defaultComplexity,
+    defaultWorkloadClass: input.defaultWorkloadClass,
     description: normalizeServiceDescription(input.description),
+    indicativePriceDescription: price.description,
+    indicativePriceMaxMinor: price.maximumMinor,
+    indicativePriceMinMinor: price.minimumMinor,
+    isActive: input.isActive,
     name,
+    onlineSubmissionEnabled: input.onlineSubmissionEnabled,
+    proofRequiredByDefault: input.proofRequiredByDefault,
+    quantityConfiguration,
     slug: serviceSlugFromName(name),
+    specificationConfiguration,
   };
+}
+
+export function nextServiceSortOrder(existingOrders: readonly number[]) {
+  const validOrders = existingOrders.filter(
+    (order) => Number.isSafeInteger(order) && order >= 0 && order <= MAX_SERVICE_SORT_ORDER,
+  );
+  const highest = validOrders.length === 0 ? 0 : Math.max(...validOrders);
+  if (highest + SERVICE_SORT_ORDER_STEP <= MAX_SERVICE_SORT_ORDER) {
+    return highest + SERVICE_SORT_ORDER_STEP;
+  }
+
+  const used = new Set(validOrders);
+  for (let order = 0; order <= MAX_SERVICE_SORT_ORDER; order += 1) {
+    if (!used.has(order)) {
+      return order;
+    }
+  }
+  throw new ServicePolicyError("INVALID_CONFIGURATION");
 }
 
 export function isServicePubliclyEligible(service: {

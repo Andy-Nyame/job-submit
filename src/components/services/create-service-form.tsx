@@ -21,19 +21,37 @@ export function CreateServiceForm() {
         includeActiveState
         prefix="create-service"
         values={{
+          artworkRequirement: "",
+          customDimensionsEnabled: false,
+          customDimensionsRequired: false,
+          customInstructions: "",
           defaultComplexity: null,
           defaultWorkloadClass: null,
           description: "",
+          dimensionUnits: [],
+          finishingOptions: "",
+          finishingRequired: false,
+          indicativePriceDescription: "",
+          indicativePriceMaximum: "",
+          indicativePriceMinimum: "",
           isActive: true,
+          materialOptions: "",
+          materialsRequired: false,
           name: "",
           onlineSubmissionEnabled: false,
           proofRequiredByDefault: null,
-          sortOrder: 0,
+          quantityIncrement: "",
+          quantityMaximum: "",
+          quantityMinimum: "",
+          quantityPresets: "",
+          quantityUnit: "",
+          sizeOptions: "",
+          sizesRequired: false,
         }}
       />
       <p className="rounded-md border border-accent/35 bg-accent/10 p-3 text-xs leading-5 text-muted">
-        Services never set customer prices. Each future job will be costed
-        individually by an authorized person.
+        Any price range is informational only. Each future job will still be
+        reviewed and costed individually by an authorized person.
       </p>
       <FormMessage message={state.message} status={state.status} />
       <ServiceSubmitButton pendingLabel="Creating service…">

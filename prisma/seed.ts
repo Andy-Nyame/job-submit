@@ -2,6 +2,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { config } from "dotenv";
 
 import { PrismaClient } from "../src/generated/prisma/client";
+import {
+  SEEDED_SERVICES,
+  shouldReconcileSeededServiceName,
+} from "../src/domain/service-seed";
 
 config({ path: [".env.local", ".env"], quiet: true });
 
@@ -14,35 +18,6 @@ if (!connectionString) {
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 });
-
-const services = [
-  { name: "Designing", slug: "designing", sortOrder: 10 },
-  {
-    name: "SAV / Sticker Printing",
-    slug: "sav-sticker-printing",
-    sortOrder: 20,
-  },
-  {
-    name: "Flexi / Banner Printing",
-    slug: "flexi-banner-printing",
-    sortOrder: 30,
-  },
-  {
-    name: "Document Printing",
-    slug: "document-printing",
-    sortOrder: 40,
-  },
-  {
-    name: "For Sale Sticker Printing",
-    slug: "for-sale-sticker-printing",
-    sortOrder: 50,
-  },
-  {
-    name: "Container Head Sticker / Batch Numbers Printing",
-    slug: "container-head-sticker-batch-numbers-printing",
-    sortOrder: 60,
-  },
-] as const;
 
 async function main() {
   const business = await prisma.business.upsert({
@@ -60,25 +35,29 @@ async function main() {
     },
   });
 
-  for (const service of services) {
-    await prisma.service.upsert({
+  for (const service of SEEDED_SERVICES) {
+    const existing = await prisma.service.findUnique({
       where: {
-        businessId_slug: {
-          businessId: business.id,
-          slug: service.slug,
-        },
+        businessId_slug: { businessId: business.id, slug: service.slug },
       },
-      update: {
-        name: service.name,
-        sortOrder: service.sortOrder,
-      },
-      create: {
-        businessId: business.id,
-        name: service.name,
-        slug: service.slug,
-        sortOrder: service.sortOrder,
-      },
+      select: { id: true, name: true },
     });
+
+    if (!existing) {
+      await prisma.service.create({
+        data: {
+          businessId: business.id,
+          name: service.name,
+          slug: service.slug,
+          sortOrder: service.sortOrder,
+        },
+      });
+    } else if (shouldReconcileSeededServiceName(existing.name, service)) {
+      await prisma.service.update({
+        where: { id: existing.id },
+        data: { name: service.name, version: { increment: 1 } },
+      });
+    }
   }
 }
 

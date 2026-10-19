@@ -7,7 +7,7 @@ import {
   canManageServices,
   isServicePubliclyEligible,
   MAX_SERVICE_DESCRIPTION_LENGTH,
-  MAX_SERVICE_SORT_ORDER,
+  nextServiceSortOrder,
   normalizeServiceDescription,
   normalizeServiceName,
   SERVICE_AUDIT_ACTIONS,
@@ -15,19 +15,44 @@ import {
   serviceLifecycleAuditAction,
   ServicePolicyError,
   serviceSlugFromName,
+  type ServiceSettingsInput,
   validateServiceSettings,
 } from "./service-policy";
+import {
+  SEEDED_SERVICES,
+  shouldReconcileSeededServiceName,
+} from "./service-seed";
 
-const validSettings = {
+const validSettings: ServiceSettingsInput = {
   defaultComplexity: null,
   defaultWorkloadClass: null,
   description: "  Public   summary  ",
   isActive: true,
   name: "  Document   Printing  ",
   onlineSubmissionEnabled: false,
+  price: { description: "", maximum: "", minimum: "" },
   proofRequiredByDefault: null,
-  sortOrder: 40,
-} as const;
+  quantity: {
+    increment: "",
+    maximum: "",
+    minimum: "",
+    presets: "",
+    unit: "",
+  },
+  specification: {
+    artworkRequirement: "",
+    customDimensionsEnabled: false,
+    customDimensionsRequired: false,
+    customInstructions: "",
+    dimensionUnits: [],
+    finishingOptions: "",
+    finishingRequired: false,
+    materialOptions: "",
+    materialsRequired: false,
+    sizeOptions: "",
+    sizesRequired: false,
+  },
+};
 
 test("only OWNER and ADMIN can manage services", () => {
   assert.equal(canManageServices("OWNER"), true);
@@ -39,20 +64,26 @@ test("only OWNER and ADMIN can manage services", () => {
   assert.throws(() => assertCanManageServices("CUSTOMER"), ServicePolicyError);
 });
 
-test("service input is normalized without requiring a price", () => {
+test("service input is normalized while advanced settings remain optional", () => {
   const service = validateServiceSettings(validSettings);
   assert.equal(service.name, "Document Printing");
   assert.equal(service.slug, "document-printing");
   assert.equal(service.description, "Public summary");
-  assert.equal("price" in service, false);
+  assert.equal(service.quantityConfiguration, null);
+  assert.equal(service.specificationConfiguration, null);
+  assert.equal(service.indicativePriceMinMinor, null);
 });
 
-test("the management contract contains no pricing fields", () => {
-  const pricingPattern = /(price|amount|rate)/i;
-  assert.equal(
-    SERVICE_EDITABLE_FIELDS.some((field) => pricingPattern.test(field)),
-    false,
-  );
+test("display order is not part of the manager-editable contract", () => {
+  assert.equal(SERVICE_EDITABLE_FIELDS.includes("sortOrder" as never), false);
+  assert.equal(SERVICE_EDITABLE_FIELDS.includes("quantityConfiguration"), true);
+  assert.equal(SERVICE_EDITABLE_FIELDS.includes("indicativePriceMinMinor"), true);
+});
+
+test("new services receive predictable automatic catalogue order", () => {
+  assert.equal(nextServiceSortOrder([]), 10);
+  assert.equal(nextServiceSortOrder([10, 20, 60]), 70);
+  assert.equal(nextServiceSortOrder([10_000, 0, 2]), 1);
 });
 
 test("empty and excessive service names are rejected", () => {
@@ -66,7 +97,10 @@ test("empty and excessive service names are rejected", () => {
 test("excessive service descriptions are rejected", () => {
   assert.equal(normalizeServiceDescription("   "), null);
   assert.throws(
-    () => normalizeServiceDescription("x".repeat(MAX_SERVICE_DESCRIPTION_LENGTH + 1)),
+    () =>
+      normalizeServiceDescription(
+        "x".repeat(MAX_SERVICE_DESCRIPTION_LENGTH + 1),
+      ),
     ServicePolicyError,
   );
 });
@@ -78,19 +112,7 @@ test("normalized slugs make conflicting names deterministic", () => {
   );
 });
 
-test("invalid configuration and display order are rejected", () => {
-  assert.throws(
-    () => validateServiceSettings({ ...validSettings, sortOrder: -1 }),
-    ServicePolicyError,
-  );
-  assert.throws(
-    () =>
-      validateServiceSettings({
-        ...validSettings,
-        sortOrder: MAX_SERVICE_SORT_ORDER + 1,
-      }),
-    ServicePolicyError,
-  );
+test("invalid workflow defaults are rejected", () => {
   assert.throws(
     () =>
       validateServiceSettings({
@@ -106,11 +128,18 @@ test("optimistic versions reject stale concurrent edits", () => {
   assert.equal(canApplyServiceVersion(4, 3), false);
 });
 
-test("public catalogue eligibility follows non-destructive lifecycle state", () => {
+test("public visibility is independent from online-submission eligibility", () => {
   assert.equal(
     isServicePubliclyEligible({ archivedAt: null, isActive: true }),
     true,
   );
+  const visibleButOffline = validateServiceSettings({
+    ...validSettings,
+    isActive: true,
+    onlineSubmissionEnabled: false,
+  });
+  assert.equal(visibleButOffline.isActive, true);
+  assert.equal(visibleButOffline.onlineSubmissionEnabled, false);
   assert.equal(
     isServicePubliclyEligible({ archivedAt: null, isActive: false }),
     false,
@@ -138,25 +167,44 @@ test("deactivation and restoration use distinct audit events", () => {
   );
 });
 
-test("the six seeded services normalize to distinct stable keys", () => {
-  const names = [
-    "Designing",
-    "SAV / Sticker Printing",
-    "Flexi / Banner Printing",
-    "Document Printing",
-    "For Sale Sticker Printing",
-    "Container Head Sticker / Batch Numbers Printing",
-  ];
-  const slugs = names.map(serviceSlugFromName);
-  assert.equal(new Set(slugs).size, 6);
-  assert.deepEqual(slugs, [
-    "designing",
-    "sav-sticker-printing",
-    "flexi-banner-printing",
-    "document-printing",
-    "for-sale-sticker-printing",
-    "container-head-sticker-batch-numbers-printing",
-  ]);
+test("the six friendly seeded services retain distinct stable slugs", () => {
+  assert.equal(SEEDED_SERVICES.length, 6);
+  assert.deepEqual(
+    SEEDED_SERVICES.map(({ name }) => name),
+    [
+      "Designing",
+      "Sticker Printing",
+      "Banner Printing",
+      "Document Printing",
+      "For Sale Stickers",
+      "Container Head & Batch Number Printing",
+    ],
+  );
+  assert.equal(new Set(SEEDED_SERVICES.map(({ slug }) => slug)).size, 6);
+  assert.deepEqual(
+    SEEDED_SERVICES.map(({ slug }) => slug),
+    [
+      "designing",
+      "sav-sticker-printing",
+      "flexi-banner-printing",
+      "document-printing",
+      "for-sale-sticker-printing",
+      "container-head-sticker-batch-numbers-printing",
+    ],
+  );
+});
+
+test("seed reconciliation changes known legacy names but preserves custom names", () => {
+  const sticker = SEEDED_SERVICES[1];
+  assert.equal(
+    shouldReconcileSeededServiceName("SAV / Sticker Printing", sticker),
+    true,
+  );
+  assert.equal(
+    shouldReconcileSeededServiceName("Premium Decals", sticker),
+    false,
+  );
+  assert.equal(shouldReconcileSeededServiceName(sticker.name, sticker), false);
 });
 
 test("service defaults remain optional per-job guidance", () => {

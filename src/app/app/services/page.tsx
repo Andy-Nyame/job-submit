@@ -57,12 +57,13 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
             Services
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Manage the service categories customers can discover. Services do
-            not define prices; every future job will be costed individually.
+            Manage the service categories customers can discover, including
+            quantity rules, specification options, and optional estimate
+            guidance. Final job prices are always reviewed privately.
           </p>
         </header>
 
-        <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_25rem]">
+        <div className="mt-8 space-y-10">
           <section aria-labelledby="service-list-heading">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-xl font-semibold" id="service-list-heading">
@@ -134,8 +135,14 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                         </dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-foreground">Order</dt>
-                        <dd>{service.sortOrder}</dd>
+                        <dt className="font-medium text-foreground">Setup</dt>
+                        <dd>
+                          {service.quantityConfiguration ||
+                          service.specificationConfiguration ||
+                          service.indicativePriceMinMinor !== null
+                            ? "Advanced options configured"
+                            : "Basic catalogue details"}
+                        </dd>
                       </div>
                       <div>
                         <dt className="font-medium text-foreground">Updated</dt>
@@ -154,18 +161,21 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
             )}
           </section>
 
-          <aside>
-            <Card className="p-5 sm:p-6">
-              <h2 className="text-lg font-semibold">Create service</h2>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Add a distinct service category without creating catalogue
-                pricing or job workflow behavior.
+          <section aria-labelledby="create-service-heading">
+            <Card className="p-5 sm:p-6 lg:p-8">
+              <h2 className="text-xl font-semibold" id="create-service-heading">
+                Create service
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
+                Add a distinct service category. Catalogue order is assigned
+                automatically; advanced options can stay blank when they are not
+                relevant.
               </p>
-              <div className="mt-6">
+              <div className="mt-6 max-w-5xl">
                 <CreateServiceForm />
               </div>
             </Card>
-          </aside>
+          </section>
         </div>
       </Container>
     </main>

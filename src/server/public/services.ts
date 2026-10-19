@@ -4,8 +4,14 @@ import { prisma } from "@/server/db/prisma";
 
 export interface PublicService {
   description: string | null;
+  indicativePriceDescription: string | null;
+  indicativePriceMaxMinor: bigint | null;
+  indicativePriceMinMinor: bigint | null;
   name: string;
+  onlineSubmissionEnabled: boolean;
+  quantityConfiguration: unknown;
   slug: string;
+  specificationConfiguration: unknown;
 }
 
 export type PublicServicesResult =
@@ -22,7 +28,17 @@ export async function getActivePublicServices(): Promise<PublicServicesResult> {
         services: {
           where: { archivedAt: null, isActive: true },
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-          select: { description: true, name: true, slug: true },
+          select: {
+            description: true,
+            indicativePriceDescription: true,
+            indicativePriceMaxMinor: true,
+            indicativePriceMinMinor: true,
+            name: true,
+            onlineSubmissionEnabled: true,
+            quantityConfiguration: true,
+            slug: true,
+            specificationConfiguration: true,
+          },
         },
       },
     });

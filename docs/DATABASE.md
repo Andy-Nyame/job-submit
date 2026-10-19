@@ -30,13 +30,13 @@ create duplicate membership/profile state.
 
 ## Services
 
-`Service` is business-managed data, not a permanent code enum. It supports name, slug, description, active/archive state, online-submission availability, display order, default complexity, default workload, and default proof requirement. Referenced services should be deactivated or archived, not deleted. Brick 5 uses optimistic versions for safe concurrent edits and records create, update, deactivate, and restore events in the existing audit log.
+`Service` is business-managed data, not a permanent code enum. It supports name, stable slug, description, active/archive state, online-submission availability, automatically assigned display order, default complexity/workload/proof guidance, versioned quantity/specification JSON, and an optional indicative price range. Referenced services should be deactivated or archived, not deleted. Brick 5.1 uses optimistic versions for safe concurrent edits and records create, update, deactivate, and restore events in the existing audit log.
 
-Services do not define customer prices. Jobs are costed individually through an
-authorized pricing workflow. The optional complexity, workload, and proof
-values are review defaults only; they do not lock an individual job to a
-classification or quotation. Future pricing authority will be position-based
-and is not implemented in Brick 5.
+Indicative price endpoints use integer Ghana-pesewa `BigInt` values, must be
+present together, and are guarded by database constraints. They are never a
+confirmed job price or calculation input. Jobs remain individually reviewed and
+costed through an authorized future pricing workflow. Optional complexity,
+workload, and proof values are review defaults only.
 
 ## Jobs and lifecycle
 
@@ -55,7 +55,7 @@ Side states are `WAITING_FOR_CUSTOMER`, `AWAITING_CUSTOMER_APPROVAL`, `DECLINED`
 
 ## Priority, pricing, and queue
 
-Priority is `REGULAR` or `EXPRESS`. Express means priority handling, never guaranteed instant completion. Future job-specific confirmed prices use integer minor units (`BigInt`), never floating-point arithmetic. A confirmed Express snapshot is exactly the individually confirmed base price plus a 4,000-basis-point (40%) surcharge, rounded half up to the nearest minor unit. Confirmed Regular pricing has zero surcharge. Database checks enforce the calculation and confirmed pricing rows become immutable; a commercial change creates a new revision. None of this creates catalogue or service-level pricing.
+Priority is `REGULAR` or `EXPRESS`. Express means priority handling, never guaranteed instant completion. Future job-specific confirmed prices use integer minor units (`BigInt`), never floating-point arithmetic. A confirmed Express snapshot is exactly the individually confirmed base price plus a 4,000-basis-point (40%) surcharge, rounded half up to the nearest minor unit. Confirmed Regular pricing has zero surcharge. Database checks enforce the calculation and confirmed pricing rows become immutable; a commercial change creates a new revision. Optional service ranges remain informational and never feed this calculation.
 
 `queueEnteredAt`, not `createdAt`, is the FIFO foundation. Future selection logic will order eligible Express and Regular groups explicitly, expose old Regular work for anti-starvation handling, and exclude paused/customer-waiting work. Re-entry policy must explicitly preserve or replace queue time. `JobQueueOverride` requires a reason; a partial unique index permits one live override per job, and future service code must add an `AuditLog` entry atomically.
 
@@ -151,4 +151,7 @@ npm run db:migrate:deploy
 npm run db:seed
 ```
 
-The seed is idempotent. It updates the known business identity and service display names/order while leaving lifecycle/configuration choices such as descriptions, prices, complexity, workload, proof requirements, and online availability un-invented.
+The seed is idempotent. It creates missing known services with stable slugs and
+reconciles only exact legacy names. It preserves manager-customized names,
+existing IDs/order, lifecycle choices, descriptions, advanced configuration,
+price guidance, workflow defaults, and online availability.

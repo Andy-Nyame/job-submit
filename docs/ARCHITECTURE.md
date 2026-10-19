@@ -4,7 +4,7 @@
 
 JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 5 adds authorized service administration on top of the public welcome
+Brick 5.1 adds advanced authorized service administration on top of the public welcome
 experience and team/worker foundation. It does not add job submission,
 quotation negotiation or acceptance, upload endpoints, job claiming,
 assignment enforcement, live messaging, delivery mechanisms, or later business
@@ -108,11 +108,19 @@ deleting its row or historical references. Explicit restoration makes it
 publicly eligible again. Create, update, deactivate, and restore operations are
 written with their audit records in the same serializable database transaction.
 
-Services do not define customer prices. Jobs are costed individually through an
-authorized pricing workflow. Service records contain no fixed, minimum,
-maximum, starting, or base customer price. Position-based pricing authority and
-customer quotation acceptance are future workflow concerns and are not
-implemented in Brick 5.
+Services may expose an optional indicative GH₵ range stored in exact minor
+units. It is customer guidance only and never becomes a fixed price, quote, or
+automatic calculation. Jobs are still costed individually by the Owner or
+another explicitly authorized person. Position-based pricing authority,
+pricing chat, and customer quotation acceptance remain future workflow
+concerns.
+
+Quantity and specification settings are versioned, strictly validated JSON
+snapshots. They cover bounded quantity rules, units, presets, service-specific
+options, artwork requirements, and custom dimensions without becoming a generic
+form builder. Future submission code must copy the applicable configuration
+and customer selections into a job snapshot so edits never alter historical job
+requirements.
 
 ## 7. Security and delivery baseline
 

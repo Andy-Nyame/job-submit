@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   assertCanManageServices,
+  nextServiceSortOrder,
   SERVICE_AUDIT_ACTIONS,
   serviceLifecycleAuditAction,
   ServicePolicyError,
@@ -35,6 +36,13 @@ function validateInput(input: ServiceSettingsInput) {
     return validateServiceSettings(input);
   } catch (error) {
     if (error instanceof ServicePolicyError) {
+      if (
+        error.code === "INVALID_PRICE_GUIDANCE" ||
+        error.code === "INVALID_QUANTITY_CONFIGURATION" ||
+        error.code === "INVALID_SPECIFICATION_CONFIGURATION"
+      ) {
+        throw new ServiceOperationError(error.code);
+      }
       throw new ServiceOperationError("VALIDATION");
     }
     throw error;
@@ -83,22 +91,40 @@ function auditSnapshot(service: {
   defaultComplexity: string | null;
   defaultWorkloadClass: string | null;
   description: string | null;
+  indicativePriceDescription: string | null;
+  indicativePriceMaxMinor: bigint | null;
+  indicativePriceMinMinor: bigint | null;
   isActive: boolean;
   name: string;
   onlineSubmissionEnabled: boolean;
   proofRequiredByDefault: boolean | null;
+  quantityConfiguration: unknown;
   sortOrder: number;
-}) {
+  specificationConfiguration: unknown;
+}): Prisma.InputJsonObject {
   return {
     defaultComplexity: service.defaultComplexity,
     defaultWorkloadClass: service.defaultWorkloadClass,
     description: service.description,
+    indicativePriceDescription: service.indicativePriceDescription,
+    indicativePriceMaxMinor: service.indicativePriceMaxMinor?.toString() ?? null,
+    indicativePriceMinMinor: service.indicativePriceMinMinor?.toString() ?? null,
     isActive: service.isActive,
     name: service.name,
     onlineSubmissionEnabled: service.onlineSubmissionEnabled,
     proofRequiredByDefault: service.proofRequiredByDefault,
+    quantityConfiguration:
+      service.quantityConfiguration as Prisma.InputJsonValue | null,
     sortOrder: service.sortOrder,
+    specificationConfiguration:
+      service.specificationConfiguration as Prisma.InputJsonValue | null,
   };
+}
+
+function jsonDatabaseValue(value: object | null) {
+  return value === null
+    ? Prisma.DbNull
+    : (value as Prisma.InputJsonObject);
 }
 
 export async function createService(
@@ -122,18 +148,35 @@ export async function createService(
       throw new ServiceOperationError("DUPLICATE_SERVICE");
     }
 
+    const catalogueOrders = await transaction.service.findMany({
+      where: { archivedAt: null, businessId: actor.businessId },
+      select: { sortOrder: true },
+    });
+    const sortOrder = nextServiceSortOrder(
+      catalogueOrders.map((service) => service.sortOrder),
+    );
+
     const service = await transaction.service.create({
       data: {
         businessId: actor.businessId,
         defaultComplexity: settings.defaultComplexity,
         defaultWorkloadClass: settings.defaultWorkloadClass,
         description: settings.description,
+        indicativePriceDescription: settings.indicativePriceDescription,
+        indicativePriceMaxMinor: settings.indicativePriceMaxMinor,
+        indicativePriceMinMinor: settings.indicativePriceMinMinor,
         isActive: settings.isActive,
         name: settings.name,
         onlineSubmissionEnabled: settings.onlineSubmissionEnabled,
         proofRequiredByDefault: settings.proofRequiredByDefault,
+        quantityConfiguration: jsonDatabaseValue(
+          settings.quantityConfiguration,
+        ),
         slug: settings.slug,
-        sortOrder: settings.sortOrder,
+        sortOrder,
+        specificationConfiguration: jsonDatabaseValue(
+          settings.specificationConfiguration,
+        ),
       },
     });
 
@@ -188,10 +231,7 @@ export async function updateService(
       where: {
         businessId: actor.businessId,
         id: { not: current.id },
-        OR: [
-          { slug: settings.slug },
-          { name: { equals: settings.name, mode: "insensitive" } },
-        ],
+        name: { equals: settings.name, mode: "insensitive" },
       },
       select: { id: true },
     });
@@ -200,7 +240,11 @@ export async function updateService(
     }
 
     const before = auditSnapshot(current);
-    const updatedSettings = { ...settings, isActive: current.isActive };
+    const updatedSettings = {
+      ...settings,
+      isActive: current.isActive,
+      sortOrder: current.sortOrder,
+    };
     const after = auditSnapshot(updatedSettings);
     if (JSON.stringify(before) === JSON.stringify(after)) {
       return current;
@@ -217,10 +261,19 @@ export async function updateService(
         defaultComplexity: updatedSettings.defaultComplexity,
         defaultWorkloadClass: updatedSettings.defaultWorkloadClass,
         description: updatedSettings.description,
+        indicativePriceDescription:
+          updatedSettings.indicativePriceDescription,
+        indicativePriceMaxMinor: updatedSettings.indicativePriceMaxMinor,
+        indicativePriceMinMinor: updatedSettings.indicativePriceMinMinor,
         name: updatedSettings.name,
         onlineSubmissionEnabled: updatedSettings.onlineSubmissionEnabled,
         proofRequiredByDefault: updatedSettings.proofRequiredByDefault,
-        sortOrder: updatedSettings.sortOrder,
+        quantityConfiguration: jsonDatabaseValue(
+          updatedSettings.quantityConfiguration,
+        ),
+        specificationConfiguration: jsonDatabaseValue(
+          updatedSettings.specificationConfiguration,
+        ),
         version: { increment: 1 },
       },
     });

@@ -21,14 +21,15 @@ function readText(formData: FormData, name: string) {
   return typeof value === "string" ? value : "";
 }
 
-function readInteger(formData: FormData, name: string) {
+function readPositiveInteger(formData: FormData, name: string) {
   const value = Number(readText(formData, name));
-  return Number.isSafeInteger(value) ? value : null;
+  return Number.isSafeInteger(value) && value >= 1 ? value : null;
 }
 
-function readPositiveInteger(formData: FormData, name: string) {
-  const value = readInteger(formData, name);
-  return value !== null && value >= 1 ? value : null;
+function readTextList(formData: FormData, name: string) {
+  return formData
+    .getAll(name)
+    .filter((value): value is string => typeof value === "string");
 }
 
 function readComplexity(formData: FormData) {
@@ -56,9 +57,8 @@ function readProofDefault(formData: FormData) {
 }
 
 function readServiceSettings(formData: FormData): ServiceSettingsInput | null {
-  const sortOrder = readInteger(formData, "sortOrder");
   const proofDefault = readProofDefault(formData);
-  if (sortOrder === null || !proofDefault.valid) {
+  if (!proofDefault.valid) {
     return null;
   }
 
@@ -70,8 +70,34 @@ function readServiceSettings(formData: FormData): ServiceSettingsInput | null {
     name: readText(formData, "name"),
     onlineSubmissionEnabled:
       formData.get("onlineSubmissionEnabled") === "on",
+    price: {
+      description: readText(formData, "indicativePriceDescription"),
+      maximum: readText(formData, "indicativePriceMaximum"),
+      minimum: readText(formData, "indicativePriceMinimum"),
+    },
     proofRequiredByDefault: proofDefault.value,
-    sortOrder,
+    quantity: {
+      increment: readText(formData, "quantityIncrement"),
+      maximum: readText(formData, "quantityMaximum"),
+      minimum: readText(formData, "quantityMinimum"),
+      presets: readText(formData, "quantityPresets"),
+      unit: readText(formData, "quantityUnit"),
+    },
+    specification: {
+      artworkRequirement: readText(formData, "artworkRequirement"),
+      customDimensionsEnabled:
+        formData.get("customDimensionsEnabled") === "on",
+      customDimensionsRequired:
+        formData.get("customDimensionsRequired") === "on",
+      customInstructions: readText(formData, "customInstructions"),
+      dimensionUnits: readTextList(formData, "dimensionUnits"),
+      finishingOptions: readText(formData, "finishingOptions"),
+      finishingRequired: formData.get("finishingRequired") === "on",
+      materialOptions: readText(formData, "materialOptions"),
+      materialsRequired: formData.get("materialsRequired") === "on",
+      sizeOptions: readText(formData, "sizeOptions"),
+      sizesRequired: formData.get("sizesRequired") === "on",
+    },
   };
 }
 
@@ -82,6 +108,12 @@ function errorState(error: unknown): ServiceActionState {
         "Service management is unavailable while the business is inactive.",
       DUPLICATE_SERVICE:
         "A service with the same normalized name already exists.",
+      INVALID_PRICE_GUIDANCE:
+        "Enter both estimate amounts, use no more than two decimal places, and keep the minimum at or below the maximum.",
+      INVALID_QUANTITY_CONFIGURATION:
+        "Check the quantity unit, limits, increment, and ascending presets. Every preset must satisfy the configured rules.",
+      INVALID_SPECIFICATION_CONFIGURATION:
+        "Check specification options, required choices, artwork settings, and custom-dimension units.",
       NOT_FOUND: "The requested service was not found.",
       STALE_UPDATE:
         "This service changed in another session. Refresh before trying again.",
@@ -112,7 +144,7 @@ export async function createServiceAction(
     const actor = await requireServiceManager();
     const settings = readServiceSettings(formData);
     if (!settings) {
-      return { message: "Check the display order.", status: "error" };
+      return { message: "Check the service configuration.", status: "error" };
     }
 
     const service = await createService(actor, settings);

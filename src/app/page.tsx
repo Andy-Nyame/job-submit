@@ -6,6 +6,12 @@ import { Container } from "@/components/layout/container";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Badge } from "@/components/ui/badge";
 import { siteConfig } from "@/config/site";
+import {
+  formatIndicativePriceRange,
+  INDICATIVE_PRICE_DISCLAIMER,
+  readQuantityConfiguration,
+  readSpecificationConfiguration,
+} from "@/domain/service-configuration";
 import { getAuthenticatedIdentity } from "@/server/auth/identity";
 import {
   getActivePublicServices,
@@ -33,11 +39,6 @@ const serviceDescriptions: Record<string, string> = {
     "Dedicated production for For Sale sticker printing requests.",
   "container-head-sticker-batch-numbers-printing":
     "Container identification and batch-number printing requests.",
-};
-
-const servicePublicNames: Record<string, string> = {
-  "container-head-sticker-batch-numbers-printing":
-    "Container Head / Batch Number Printing",
 };
 
 const workflowSteps = [
@@ -368,10 +369,21 @@ function ServiceCard({
     service.description ??
     serviceDescriptions[service.slug] ??
     "A service request reviewed against the details and artwork supplied.";
-  const publicName = servicePublicNames[service.slug] ?? service.name;
+  const quantity = readQuantityConfiguration(service.quantityConfiguration);
+  const specification = readSpecificationConfiguration(
+    service.specificationConfiguration,
+  );
+  const specificationSummary = specification
+    ? [
+        specification.sizes.options.length > 0 ? "sizes" : null,
+        specification.materials.options.length > 0 ? "materials" : null,
+        specification.finishing.options.length > 0 ? "finishing" : null,
+        specification.customDimensions.enabled ? "custom dimensions" : null,
+      ].filter(Boolean)
+    : [];
 
   return (
-    <article className="group relative min-h-64 overflow-hidden rounded-2xl border bg-surface p-6 transition-[border-color,transform] hover:-translate-y-1 hover:border-accent/70 sm:p-7">
+    <article className="group relative overflow-hidden rounded-2xl border bg-surface p-6 transition-[border-color,transform] hover:-translate-y-1 hover:border-accent/70 sm:p-7">
       <div className="flex items-start justify-between gap-4">
         <ServiceIcon slug={service.slug} />
         <span className="font-mono text-xs text-muted">
@@ -379,9 +391,42 @@ function ServiceCard({
         </span>
       </div>
       <h3 className="mt-8 max-w-xs text-xl font-semibold tracking-[-0.025em]">
-        {publicName}
+        {service.name}
       </h3>
       <p className="mt-3 max-w-sm text-sm leading-6 text-muted">{description}</p>
+      {quantity || specificationSummary.length > 0 ? (
+        <p className="mt-4 text-xs leading-5 text-muted">
+          {quantity ? `Quantity measured in ${quantity.unit}` : null}
+          {quantity && specificationSummary.length > 0 ? " · " : null}
+          {specificationSummary.length > 0
+            ? `Options for ${specificationSummary.join(", ")}`
+            : null}
+        </p>
+      ) : null}
+      {service.indicativePriceMinMinor !== null &&
+      service.indicativePriceMaxMinor !== null ? (
+        <div className="mt-4 rounded-lg border border-accent/35 bg-accent/10 p-3">
+          <p className="text-sm font-semibold">
+            {formatIndicativePriceRange(
+              service.indicativePriceMinMinor,
+              service.indicativePriceMaxMinor,
+            )}
+          </p>
+          {service.indicativePriceDescription ? (
+            <p className="mt-1 text-xs leading-5 text-muted">
+              {service.indicativePriceDescription}
+            </p>
+          ) : null}
+          <p className="mt-1 text-xs font-medium leading-5">
+            {INDICATIVE_PRICE_DISCLAIMER}
+          </p>
+        </div>
+      ) : null}
+      <p className="mt-4 border-t pt-3 text-xs font-medium leading-5 text-muted">
+        {service.onlineSubmissionEnabled
+          ? "Prepared for future online submission; submission is not live yet."
+          : "Available in the public catalogue; online submission is not enabled."}
+      </p>
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform group-hover:scale-x-100" />
     </article>
   );
