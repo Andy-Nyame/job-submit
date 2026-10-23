@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -53,11 +54,25 @@ export default async function ApplicationPage() {
             application identity and active business membership were resolved
             on the server.
           </p>
-          <p className="mt-5 border-t pt-5 text-sm leading-6 text-muted">
-            OWNER and ADMIN accounts can manage services and workers from the
-            workspace navigation. Job submission, pricing, production queues,
-            and other operational workflows remain intentionally deferred.
-          </p>
+          {principal.role === "CUSTOMER" ? (
+            <div className="mt-5 border-t pt-5">
+              <p className="text-sm leading-6 text-muted">
+                Submit requests for services currently enabled online, attach
+                optional private reference files, and return to your submitted
+                job details from this workspace.
+              </p>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs/new">Submit a job</Link>
+                <Link className="inline-flex min-h-11 items-center justify-center rounded-md border px-4 text-sm font-semibold outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs">View my jobs</Link>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-5 border-t pt-5 text-sm leading-6 text-muted">
+              OWNER and ADMIN accounts can manage services and workers from the
+              workspace navigation. Customer submission is available only to
+              active CUSTOMER memberships; staff production workflows remain deferred.
+            </p>
+          )}
         </Card>
       </Container>
     </main>

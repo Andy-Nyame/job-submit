@@ -1,0 +1,58 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const files = {
+  action: new URL("../app/app/jobs/actions.ts", import.meta.url),
+  component: new URL("../components/jobs/customer-job-submission-form.tsx", import.meta.url),
+  detail: new URL("../app/app/jobs/[publicReference]/page.tsx", import.meta.url),
+  download: new URL("../app/api/jobs/[publicReference]/attachments/[attachmentId]/route.ts", import.meta.url),
+  server: new URL("../server/jobs/job-submission.ts", import.meta.url),
+  upload: new URL("../app/api/customer-uploads/route.ts", import.meta.url),
+};
+
+test("submission UI includes conditional review, upload, pending, and accessible error states", async () => {
+  const source = await readFile(files.component, "utf8");
+  assert.match(source, /Review job request/u);
+  assert.match(source, /Preparing secure review/u);
+  assert.match(source, /role="alert"/u);
+  assert.match(source, /Technical proof is not required/u);
+  assert.match(source, /onUploadProgress/u);
+  assert.match(source, /Price on request/u);
+  assert.match(source, /No GH₵0 quotation/u);
+});
+
+test("server submission reauthorizes customers and creates one atomic operational record", async () => {
+  const [action, server] = await Promise.all([
+    readFile(files.action, "utf8"),
+    readFile(files.server, "utf8"),
+  ]);
+  assert.match(action, /requireCustomer\(\)/u);
+  assert.match(server, /TransactionIsolationLevel\.Serializable/u);
+  assert.match(server, /source: "CUSTOMER_PORTAL"/u);
+  assert.match(server, /toStatus: "SUBMITTED"/u);
+  assert.match(server, /submissionKey/u);
+  assert.match(server, /job\.customer_submitted/u);
+  assert.match(server, /status: \{ in: \["PENDING", "UPLOADED"\] \}/u);
+});
+
+test("private upload and download routes enforce identity, ownership, and nosniff delivery", async () => {
+  const [upload, download] = await Promise.all([
+    readFile(files.upload, "utf8"),
+    readFile(files.download, "utf8"),
+  ]);
+  assert.match(upload, /requireCustomer\(\)/u);
+  assert.match(upload, /allowedContentTypes/u);
+  assert.match(upload, /maximumSizeInBytes/u);
+  assert.match(download, /customer: \{ userId: actor\.userId \}/u);
+  assert.match(download, /access: "private"/u);
+  assert.match(download, /X-Content-Type-Options/u);
+  assert.doesNotMatch(download, /publicReference\s*\)\s*\{/u);
+});
+
+test("customer details route does not expose staff notes or other customer data", async () => {
+  const detail = await readFile(files.detail, "utf8");
+  assert.doesNotMatch(detail, /jobNotes|notes:/u);
+  assert.doesNotMatch(detail, /customer\.email|customer\.phone/u);
+  assert.match(detail, /Quotation pending/u);
+});

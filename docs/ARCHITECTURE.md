@@ -4,10 +4,10 @@
 
 JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, Git history, PostgreSQL database, object storage, environments, credentials, deployments, and external services must remain independent of Footwear Empire, Vault Commerce, CIV, Kobby’s Kitchen, and every other client project.
 
-Brick 5.2 simplifies authorized service administration and adds fixed-pricing,
-variation, customer-field, and size contracts on top of the public welcome
-experience and team/worker foundation. It does not add job submission,
-quotation negotiation or acceptance, upload endpoints, job claiming,
+Brick 6A adds authenticated customer job submission, immutable configured-
+service snapshots, private reference-file handling, and customer-owned job
+visibility on top of the Brick 5.2 service contracts. It does not add
+quotation negotiation or acceptance, job claiming,
 assignment enforcement, live messaging, delivery mechanisms, or later business
 workflows.
 
@@ -70,6 +70,10 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
   Reads and mutations are business-scoped, every Server Action re-authorizes,
   and versioned writes reject stale changes. `CUSTOMER` and `WORKER` members do
   not receive service-management access.
+- Customer job submission is restricted to active `CUSTOMER` principals. Every
+  page, Server Action, upload-token request, private download, and database query
+  rechecks the Supabase identity and active Neon membership. `WORKER`, `ADMIN`,
+  and `OWNER` roles do not gain customer ownership implicitly.
 - Worker access begins with a server-created invitation. The raw 256-bit token
   is carried in a URL fragment, retained only temporarily in the browser during
   authentication, submitted over the Server Action request, and never stored
@@ -78,7 +82,12 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
   promotes only `CUSTOMER` to `WORKER`, creates the profile, and appends audit
   history.
 - Vercel hosts the application at `https://capt-bob-cedis-artworks.vercel.app`.
-- Vercel Blob is the object-storage provider. Job artwork, proofs, documents, staff attachments, and voice notes require server-authorized access; possession of a Blob URL is not authorization.
+- Vercel Blob is the object-storage provider. The JobSubmit store is private.
+  Customer uploads receive a short-lived business/user-bound reservation before
+  a job exists, then the reservation, `JobAttachment`, job, customer snapshot,
+  initial status history, and audit event are associated in one serializable
+  database transaction. Private downloads query job ownership before streaming;
+  possession of a reference, attachment ID, or Blob URL is not authorization.
 - Production transactional email/custom SMTP remains deferred until a proper
   sending domain exists. Public email signup stays gated through
   `EMAIL_PASSWORD_SIGNUP_ENABLED=false`; password login remains available for
@@ -120,9 +129,9 @@ workflow concerns.
 Quantity, pricing, and specification settings are versioned, strictly validated
 JSON contracts. Specification version 2 adds five explicit size modes, bounded
 custom customer fields, and repeatable variation metadata while reading Brick
-5.1 version 1 safely. Future submission code must copy applicable settings and
-customer values into an immutable snapshot so edits never alter historical job
-requirements.
+5.1 version 1 safely. Brick 6A copies applicable service settings, validated
+customer values, and the server-calculated pricing treatment into an immutable
+job snapshot so later service edits cannot alter historical requirements.
 
 Service difficulty is the only manager-editable classification default. It
 derives `SIMPLE → QUICK → 1`, `MEDIUM → STANDARD → 2`, and
@@ -150,15 +159,15 @@ classes have render regression coverage.
 
 - TypeScript is strict, and lint warnings fail CI-style checks.
 - Secrets belong only in ignored environment files or deployment configuration.
-- Private file storage will require server authorization; permanent public object URLs are not part of this design.
+- Private file storage requires server authorization; permanent public object URLs are not part of this design.
 - Pickup codes will be stored as secure hashes, not plaintext.
 - Sensitive actions must combine state change, history/audit, and related notifications atomically in future service code.
 - Production builds use Next.js’s webpack backend because the managed environment blocks Turbopack’s internal localhost binding.
 
 ## 9. Deferred implementation
 
-Full role dashboards, job submission, pricing communication and quotation
-acceptance, queue/assignment claiming, messaging UI/transport, Blob
-upload/download flows, notification delivery, transactional email, secure
+Full role dashboards, staff job review, pricing communication and quotation
+acceptance, queue/assignment claiming, messaging UI/transport, attachment
+replacement, notification delivery, transactional email, secure
 pickup-code generation, payments, stars, and ecommerce remain deliberately
 deferred.

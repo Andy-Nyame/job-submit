@@ -95,6 +95,13 @@ enum JobMessageSenderKind {
   SYSTEM
 }
 
+enum CustomerUploadStatus {
+  PENDING
+  UPLOADED
+  CLAIMED
+  EXPIRED
+}
+
 enum StaffConversationKind {
   DIRECT
 }
@@ -166,6 +173,7 @@ model Business {
   jobQueueOverrides   JobQueueOverride[]
   jobAssignments      JobAssignment[]
   jobAttachments      JobAttachment[]
+  customerUploads     CustomerUpload[]
   jobMessages         JobMessage[]
   jobNotes            JobNote[]
   staffConversations  StaffConversation[]
@@ -193,6 +201,7 @@ model User {
   jobCustomerSnapshots   JobCustomer[]
   statusChanges          JobStatusHistory[]
   uploadedJobAttachments JobAttachment[]
+  customerUploads        CustomerUpload[]
   sentJobMessages        JobMessage[]
   auditLogs              AuditLog[]
 }
@@ -353,31 +362,33 @@ model WorkerInvitation {
 }
 
 model Job {
-  id                     String        @id @default(uuid()) @db.Uuid
-  businessId             String        @db.Uuid
-  publicReference        String        @unique @db.VarChar(32)
-  serviceId              String        @db.Uuid
-  title                  String        @db.VarChar(200)
+  id                     String         @id @default(uuid()) @db.Uuid
+  businessId             String         @db.Uuid
+  publicReference        String         @unique @db.VarChar(32)
+  submissionKey          String?        @unique @db.Uuid
+  serviceId              String         @db.Uuid
+  title                  String         @db.VarChar(200)
   instructions           String
+  submissionSnapshot     Json?
   quantity               Int?
-  requestedByAt          DateTime?     @db.Timestamptz(3)
-  promisedReadyAt        DateTime?     @db.Timestamptz(3)
+  requestedByAt          DateTime?      @db.Timestamptz(3)
+  promisedReadyAt        DateTime?      @db.Timestamptz(3)
   source                 JobSource
-  priority               JobPriority   @default(REGULAR)
-  complexity             JobComplexity
-  workloadClass          WorkloadClass
-  currentStatus          JobStatus     @default(SUBMITTED)
-  queueEnteredAt         DateTime?     @db.Timestamptz(3)
-  reviewedAt             DateTime?     @db.Timestamptz(3)
-  reviewedByMembershipId String?       @db.Uuid
-  acceptedAt             DateTime?     @db.Timestamptz(3)
-  acceptedByMembershipId String?       @db.Uuid
-  archivedAt             DateTime?     @db.Timestamptz(3)
-  archivedByMembershipId String?       @db.Uuid
+  priority               JobPriority    @default(REGULAR)
+  complexity             JobComplexity?
+  workloadClass          WorkloadClass?
+  currentStatus          JobStatus      @default(SUBMITTED)
+  queueEnteredAt         DateTime?      @db.Timestamptz(3)
+  reviewedAt             DateTime?      @db.Timestamptz(3)
+  reviewedByMembershipId String?        @db.Uuid
+  acceptedAt             DateTime?      @db.Timestamptz(3)
+  acceptedByMembershipId String?        @db.Uuid
+  archivedAt             DateTime?      @db.Timestamptz(3)
+  archivedByMembershipId String?        @db.Uuid
   archiveReason          String?
-  version                Int           @default(1)
-  createdAt              DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt              DateTime      @updatedAt @db.Timestamptz(3)
+  version                Int            @default(1)
+  createdAt              DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime       @updatedAt @db.Timestamptz(3)
 
   business   Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
   service    Service             @relation(fields: [businessId, serviceId], references: [businessId, id], onDelete: Restrict)
@@ -391,6 +402,7 @@ model Job {
   queueOverrides      JobQueueOverride[]
   assignments         JobAssignment[]
   attachments         JobAttachment[]
+  customerUploads     CustomerUpload[]
   messages            JobMessage[]
   notes               JobNote[]
   pickupVerifications PickupVerification[]
@@ -401,6 +413,31 @@ model Job {
   @@index([businessId, serviceId, currentStatus])
   @@index([businessId, createdAt])
   @@index([archivedAt])
+}
+
+model CustomerUpload {
+  id               String               @id @db.Uuid
+  businessId       String               @db.Uuid
+  userId           String               @db.Uuid
+  jobId            String?              @db.Uuid
+  status           CustomerUploadStatus @default(PENDING)
+  storageKey       String?              @db.VarChar(500)
+  originalFilename String               @db.VarChar(255)
+  mimeType         String?              @db.VarChar(160)
+  byteSize         BigInt?
+  expiresAt        DateTime             @db.Timestamptz(3)
+  uploadedAt       DateTime?            @db.Timestamptz(3)
+  claimedAt        DateTime?            @db.Timestamptz(3)
+  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  job      Job?     @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+
+  @@unique([businessId, storageKey])
+  @@index([businessId, userId, status, expiresAt])
+  @@index([businessId, jobId])
 }
 
 model JobCustomer {

@@ -40,6 +40,22 @@ export function AppShell({
               >
                 Home
               </Link>
+              {principal.role === "CUSTOMER" ? (
+                <>
+                  <Link
+                    className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    href="/app/jobs/new"
+                  >
+                    Submit job
+                  </Link>
+                  <Link
+                    className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    href="/app/jobs"
+                  >
+                    My jobs
+                  </Link>
+                </>
+              ) : null}
               {principal.role === "ADMIN" || principal.role === "OWNER" ? (
                 <>
                   <Link

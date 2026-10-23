@@ -81,7 +81,7 @@ export function PublicServiceCard({ index, service }: { index: number; service: 
           <p className="mt-1 text-xs leading-5 text-muted">Covers: {pricing.fixed.coverage}</p>
         </div>
       ) : <p className="mt-4 text-sm font-semibold">Price on request</p>}
-      <p className="mt-4 border-t pt-3 text-xs font-medium leading-5 text-muted">{service.onlineSubmissionEnabled ? "Prepared for future online submission; submission is not live yet." : "Available in the public catalogue; online submission is not enabled."}</p>
+      <p className="mt-4 border-t pt-3 text-xs font-medium leading-5 text-muted">{service.onlineSubmissionEnabled ? "Available for authenticated online job requests." : "Available in the public catalogue; online submission is not enabled."}</p>
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform group-hover:scale-x-100" />
     </article>
   );

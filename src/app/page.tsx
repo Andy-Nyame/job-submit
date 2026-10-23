@@ -21,29 +21,35 @@ export const metadata: Metadata = {
 const workflowSteps = [
   {
     description: "Sign in securely using the available authentication methods.",
+    status: "Available",
     title: "Create an Account",
   },
   {
     description: "Select a service and provide instructions and files.",
+    status: "Available",
     title: "Submit Your Job",
   },
   {
     description:
       "The team reviews the request, clarifies details, and confirms pricing.",
+    status: "Upcoming",
     title: "Job Review",
   },
   {
     description: "Follow updates as the job moves through production.",
+    status: "Upcoming",
     title: "Track Progress",
   },
   {
     description:
       "Receive a notification and secure pickup code when completed.",
+    status: "Upcoming",
     title: "Ready for Pickup",
   },
   {
     description:
       "Present the code for verification and collect the finished job.",
+    status: "Upcoming",
     title: "Collect Your Work",
   },
 ] as const;
@@ -84,17 +90,17 @@ const benefits = [
 const frequentlyAskedQuestions = [
   {
     answer:
-      "JobSubmit is the secure online workspace being developed for Capt. Bob Cedi's Artworks. Account access is available now; job submission, progress tracking, job messages, and pickup verification are planned for later releases.",
+      "JobSubmit is the secure online workspace for Capt. Bob Cedi's Artworks. Account access and customer job submission are available now for services enabled online; detailed production tracking, job messages, and pickup verification are planned for later releases.",
     question: "What is JobSubmit?",
   },
   {
     answer:
-      "Yes. An account will keep each request connected to the correct customer and protect private job details. Google sign-in is available now, while broader customer workflows are still being prepared.",
+      "Yes. A signed-in customer account keeps each request and private reference file connected to the correct customer. Google sign-in is available now.",
     question: "Do I need an account?",
   },
   {
     answer:
-      "Secure artwork and document uploads are planned, but they are not available on the public site yet. Original customer files will be handled through protected job workflows when that capability launches.",
+      "Yes. When submitting an online-enabled service, customers may attach supported artwork, images, and documents through private file storage. Technical proof is not mandatory.",
     question: "Can I upload my artwork or documents?",
   },
   {
@@ -104,7 +110,7 @@ const frequentlyAskedQuestions = [
   },
   {
     answer:
-      "Express or Urgent is the planned priority-handling option. It will add 40% to the confirmed normal base price, but it will not promise instant work or guarantee a particular completion time.",
+      "Express or Urgent requests carry a 40% surcharge on the confirmed normal base price. It means priority handling, not instant work or a guaranteed completion time.",
     question: "What is Express/Urgent service?",
   },
   {
@@ -266,9 +272,9 @@ export default async function HomePage() {
                 <div className="mt-8 flex max-w-2xl items-start gap-3 border-t pt-5 text-sm leading-6 text-muted">
                   <span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" />
                   <p>
-                    Secure account access is available now. Job submission,
-                    tracking, messaging, and pickup tools are launching in future
-                    releases.
+                    Secure account access and customer submission are available
+                    for services enabled online. Detailed tracking, messaging,
+                    notifications, and pickup tools remain upcoming.
                   </p>
                 </div>
               </div>
@@ -292,7 +298,7 @@ export default async function HomePage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <p className="section-kicker">How JobSubmit works</p>
                   <span className="rounded-full border border-accent/45 bg-accent/10 px-3 py-1 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.14em]">
-                    Planned workflow
+                    Live + upcoming
                   </span>
                 </div>
                 <h2
@@ -303,9 +309,9 @@ export default async function HomePage() {
                 </h2>
               </div>
               <p className="max-w-xl text-sm leading-6 text-muted sm:text-base sm:leading-7">
-                Account sign-in works today. The six-step production journey below
-                describes the experience being built, not currently available live
-                job functionality.
+                Account sign-in and customer submission work today for enabled
+                services. Review, production tracking, messaging, notifications,
+                and pickup verification remain clearly marked as upcoming.
               </p>
             </div>
 
@@ -317,7 +323,7 @@ export default async function HomePage() {
                       {index + 1}
                     </span>
                     <span className="font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted">
-                      Coming soon
+                      {step.status}
                     </span>
                   </div>
                   <h3 className="mt-6 text-xl font-semibold tracking-tight">
@@ -343,16 +349,16 @@ export default async function HomePage() {
                   Less guesswork. Better job context.
                 </h2>
                 <p className="mt-6 max-w-lg text-base leading-7 text-brand-panel-foreground/75">
-                  JobSubmit is being designed to make requesting, discussing, and
-                  collecting print work more organized for customers and the
-                  production team.
+                  JobSubmit now organizes authenticated customer requests and
+                  private reference files. Later bricks will add the discussion,
+                  production, notification, and collection tools.
                 </p>
                 <div className="mt-8 rounded-2xl border border-brand-panel-foreground/20 bg-brand-panel-foreground/6 p-5">
                   <p className="font-semibold text-brand-panel-foreground">
-                    Planned Express handling
+                    Express handling
                   </p>
                   <p className="mt-2 text-sm leading-6 text-brand-panel-foreground/75">
-                    Express/Urgent requests will carry a 40% surcharge on the
+                    Express/Urgent requests carry a 40% surcharge on the
                     confirmed normal base price. Express means priority handling,
                     not instant or guaranteed completion.
                   </p>

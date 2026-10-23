@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 5.2
+## Current scope: Brick 6A
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -41,12 +41,22 @@ and team/worker foundation:
   difficulty/workload defaults, online eligibility, and customer preview
 - exact fixed pricing for eligible uniform specifications or Price on Request;
   legacy indicative-range values remain preserved but are hidden
+- authenticated CUSTOMER submission at `/app/jobs/new`, with configured
+  service selection, conditional quantity/size/options/customer fields,
+  repeatable variations, a review step, and unique confirmation references
+- server-authoritative fixed/Express calculations, truthful Price on Request
+  handling, immutable job snapshots, initial `SUBMITTED` history, idempotent
+  creation, and transactional audit/attachment association
+- optional private Vercel Blob uploads with bounded type/size rules, upload
+  progress, expiring pre-job ownership reservations, and owner-scoped downloads
+- customer-scoped `/app/jobs` history and `/app/jobs/[reference]` details;
+  references alone never grant access
 
 Fixed pricing uses integer pesewas and configured quantity steps; it does not
-confirm a job quotation. Price on Request performs no automatic calculation,
-and the Owner currently handles individual costing. Brick 5.2 does **not**
-implement job submission, pricing chat,
-quotation or price confirmation, upload endpoints, queue claiming or assignment
+confirm a job quotation or record payment. Price on Request performs no
+automatic calculation, and the Owner currently handles individual costing.
+Brick 6A does **not** implement pricing chat, quotation acceptance or price
+confirmation, queue claiming or assignment
 enforcement, live messaging, notification delivery, pickup-code generation,
 payments, stars, or other later business workflows.
 
@@ -79,8 +89,8 @@ Set the required values in the ignored `.env.local` file. Prisma tooling loads
 - `BLOB_READ_WRITE_TOKEN`: server-only Vercel Blob credential
 
 Supabase owns authentication identity only; Neon remains authoritative for
-JobSubmit application data. Vercel Blob will hold file/media objects, but future
-application routes must authorize every private job or staff file access. Never
+JobSubmit application data. Vercel Blob holds private customer reference files,
+and every file route rechecks authenticated customer ownership. Never
 point these values at another project’s infrastructure. No credentials are
 committed.
 
@@ -115,6 +125,7 @@ src/
   app/                   App Router shell, metadata, page, and global tokens
   components/
     layout/              Structural presentation components
+    jobs/                Customer job-submission interaction
     services/            Service-management forms and interactions
     ui/                  Small reusable UI primitives
   config/                Factual product and site configuration
@@ -125,6 +136,7 @@ docs/
   ARCHITECTURE.md         Application boundaries and project decisions
   AUTHENTICATION.md       Auth flows, locked bootstrap, and manual configuration
   DATABASE.md             Domain model, integrity, lifecycle, and transactions
+  JOB_SUBMISSION.md       Brick 6A customer submission, uploads, pricing, and boundaries
   SERVICES.md             Service catalogue, lifecycle, pricing boundary, and audit policy
   TEAM.md                 Worker invitation, access, capacity, and audit policy
 ```
