@@ -9,6 +9,11 @@ import {
 import { Prisma } from "@/generated/prisma/client";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { prisma } from "@/server/db/prisma";
+import {
+  notifyCustomerOfQuotationOutcome,
+  notifyManagementOfCounteroffer,
+  notifyManagementOfQuotationDecision,
+} from "@/server/notifications/events";
 
 import { QuotationOperationError } from "./errors";
 
@@ -71,7 +76,11 @@ async function withCustomerTransaction<T>(
 async function expireQuotation(
   transaction: Prisma.TransactionClient,
   actor: ApplicationPrincipal,
-  quotation: { id: string; rowVersion: number },
+  quotation: {
+    id: string;
+    job: { publicReference: string };
+    rowVersion: number;
+  },
 ) {
   const now = new Date();
   await transaction.quotationCounteroffer.updateMany({
@@ -104,6 +113,13 @@ async function expireQuotation(
       targetType: "JobQuotation",
     },
   });
+  await notifyCustomerOfQuotationOutcome(transaction, {
+    businessId: actor.businessId,
+    customerUserId: actor.userId,
+    outcome: "EXPIRED",
+    publicReference: quotation.job.publicReference,
+    quotationId: quotation.id,
+  });
 }
 
 export async function decideCustomerQuotation(
@@ -125,9 +141,12 @@ export async function decideCustomerQuotation(
         decidedByUserId: true,
         expiresAt: true,
         id: true,
+        job: { select: { id: true, publicReference: true } },
         jobId: true,
         rowVersion: true,
         status: true,
+        currency: true,
+        totalMinor: true,
       },
     });
     if (!quotation) throw new QuotationOperationError("NOT_FOUND");
@@ -196,6 +215,14 @@ export async function decideCustomerQuotation(
         targetType: "JobQuotation",
       },
     });
+    await notifyManagementOfQuotationDecision(transaction, {
+      businessId: actor.businessId,
+      currency: quotation.currency,
+      decision: target,
+      publicReference: quotation.job.publicReference,
+      quotationId: quotation.id,
+      totalMinor: quotation.totalMinor,
+    });
     return { expired: false, idempotent: false };
   });
   if (result.expired) throw new QuotationOperationError("EXPIRED");
@@ -230,6 +257,7 @@ export async function submitCustomerCounteroffer(
       select: {
         expiresAt: true,
         id: true,
+        job: { select: { id: true, publicReference: true } },
         jobId: true,
         negotiationAllowed: true,
         rowVersion: true,
@@ -294,6 +322,11 @@ export async function submitCustomerCounteroffer(
         targetId: quotation.id,
         targetType: "JobQuotation",
       },
+    });
+    await notifyManagementOfCounteroffer(transaction, {
+      businessId: actor.businessId,
+      counterofferId: counteroffer.id,
+      publicReference: quotation.job.publicReference,
     });
     return { expired: false, id: counteroffer.id };
   });

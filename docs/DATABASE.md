@@ -162,7 +162,12 @@ V1 metadata supports text, audio/voice notes, and files. Message text may accomp
 
 ## Notifications, pickup, stars, and audit
 
-`Notification` is persistent and indexed for unread-recipient and event queries. It carries safe display fields plus optional structured payload/target metadata. Delivery and push are not implemented.
+`Notification` is persistent and indexed for unread-recipient and event queries.
+It carries safe display fields, an authorized internal destination, target
+metadata, and a stable event key. The unique `(businessId, recipientUserId,
+eventKey)` identity makes request retries harmless per recipient while allowing
+one event to fan out to multiple eligible managers. In-app delivery and
+read/unread state are implemented; email, push, and realtime transport are not.
 
 `PickupVerification` stores only a future code hash and optional non-sensitive hint. A partial unique index allows one active code per job. Status/timestamp checks enforce one-time consumption shape, while overrides require actor, timestamp, and reason. Future verification must display the resolved job/customer/service/handler and atomically consume the code, transition the job, award stars, and audit any override.
 

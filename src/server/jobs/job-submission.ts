@@ -11,6 +11,7 @@ import {
 import { Prisma } from "@/generated/prisma/client";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { prisma } from "@/server/db/prisma";
+import { notifyManagementOfNewJob } from "@/server/notifications/events";
 
 import { JobOperationError } from "./errors";
 import {
@@ -240,6 +241,14 @@ async function createInTransaction(
           targetId: job.id,
           targetType: "Job",
         },
+      });
+      await notifyManagementOfNewJob(transaction, {
+        businessId: actor.businessId,
+        jobId: job.id,
+        pricingMode: submission.snapshot.pricing.mode,
+        priority: submission.priority,
+        publicReference: job.publicReference,
+        serviceName: service.name,
       });
 
       return {

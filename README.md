@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 6C
+## Current scope: Brick 6D
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -66,14 +66,20 @@ and team/worker foundation:
   management deliberately enables negotiation for that service
 - fixed-price submissions remain immediately confirmed from their immutable
   server-calculated snapshot and never enter manual quotation
+- persistent, recipient-scoped in-app notifications for meaningful job and
+  quotation events, with stable retry deduplication and transactional creation
+- an accessible notification bell plus `/app/notifications` action center with
+  unread counts, newest-first bounded pagination, filtering, secure deep links,
+  and idempotent individual/all read controls
 
 Fixed pricing uses integer pesewas and configured quantity steps and remains
 confirmed at submission. Price on Request performs no automatic calculation;
 OWNER/ADMIN issue a versioned GHS quotation that the customer must explicitly
 accept or decline. Negotiation is independently configured per manual-price
-service and defaults OFF. Brick 6C does **not** implement payment, general
+service and defaults OFF. Brick 6D adds in-app notification delivery only; no
+transactional email provider is configured. It does **not** implement payment, general
 pricing chat, queue claiming or assignment
-enforcement, live messaging, notification delivery, pickup-code generation,
+enforcement, live messaging, external notifications, pickup-code generation,
 payments, stars, or other later business workflows.
 
 ## Requirements

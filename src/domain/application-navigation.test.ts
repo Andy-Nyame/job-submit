@@ -14,16 +14,19 @@ function hrefs(role: Parameters<typeof getApplicationNavigation>[0]) {
 test("application navigation exposes only role-appropriate implemented routes", () => {
   assert.deepEqual(hrefs("CUSTOMER"), [
     "/app",
+    "/app/notifications",
     "/app/jobs/new",
     "/app/jobs",
   ]);
   assert.deepEqual(hrefs("WORKER"), [
     "/app",
+    "/app/notifications",
     "/app/staff/jobs",
     "/app/profile",
   ]);
   assert.deepEqual(hrefs("ADMIN"), [
     "/app",
+    "/app/notifications",
     "/app/staff/jobs",
     "/app/services",
     "/app/team",

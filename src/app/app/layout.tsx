@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { getApplicationPrincipal } from "@/server/auth/authorization";
+import { getNotificationShellData } from "@/server/notifications/queries";
 
 export default async function ApplicationLayout({
   children,
@@ -17,5 +18,15 @@ export default async function ApplicationLayout({
     redirect("/access-denied");
   }
 
-  return <AppShell principal={principal}>{children}</AppShell>;
+  const notificationData = await getNotificationShellData(principal);
+
+  return (
+    <AppShell
+      notifications={notificationData.notifications}
+      principal={principal}
+      unreadNotificationCount={notificationData.unreadCount}
+    >
+      {children}
+    </AppShell>
+  );
 }

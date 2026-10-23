@@ -19,6 +19,10 @@ import {
 import { Prisma } from "@/generated/prisma/client";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { prisma } from "@/server/db/prisma";
+import {
+  notifyCustomerOfQuotationIssued,
+  notifyCustomerOfQuotationOutcome,
+} from "@/server/notifications/events";
 
 import { QuotationOperationError } from "./errors";
 
@@ -325,7 +329,13 @@ export async function issueQuotation(
       },
       select: {
         id: true,
-        job: { select: { service: { select: { allowPriceNegotiation: true } } } },
+        job: {
+          select: {
+            customer: { select: { userId: true } },
+            publicReference: true,
+            service: { select: { allowPriceNegotiation: true } },
+          },
+        },
         jobId: true,
         quotationVersion: true,
         validityDays: true,
@@ -405,6 +415,13 @@ export async function issueQuotation(
         targetType: "JobQuotation",
       },
     });
+    await notifyCustomerOfQuotationIssued(transaction, {
+      businessId: actor.businessId,
+      customerUserId: draft.job.customer?.userId ?? null,
+      publicReference: draft.job.publicReference,
+      quotationId: draft.id,
+      quotationVersion: draft.quotationVersion,
+    });
     return { rowVersion: input.expectedVersion + 1 };
   });
 }
@@ -431,7 +448,17 @@ export async function withdrawQuotation(
         rowVersion: input.expectedVersion,
         status: { in: ["DRAFT", "ISSUED"] },
       },
-      select: { expiresAt: true, id: true, status: true },
+      select: {
+        expiresAt: true,
+        id: true,
+        job: {
+          select: {
+            customer: { select: { userId: true } },
+            publicReference: true,
+          },
+        },
+        status: true,
+      },
     });
     if (!quotation) throw new QuotationOperationError("INVALID_TRANSITION");
     const now = new Date();
@@ -450,6 +477,15 @@ export async function withdrawQuotation(
           targetType: "JobQuotation",
         },
       });
+      if (quotation.status === "ISSUED") {
+        await notifyCustomerOfQuotationOutcome(transaction, {
+          businessId: actor.businessId,
+          customerUserId: quotation.job.customer?.userId ?? null,
+          outcome: "EXPIRED",
+          publicReference: quotation.job.publicReference,
+          quotationId: quotation.id,
+        });
+      }
       return { expired: true };
     }
     assertQuotationTransition(quotation.status, "WITHDRAWN");
@@ -486,6 +522,15 @@ export async function withdrawQuotation(
         targetType: "JobQuotation",
       },
     });
+    if (quotation.status === "ISSUED") {
+      await notifyCustomerOfQuotationOutcome(transaction, {
+        businessId: actor.businessId,
+        customerUserId: quotation.job.customer?.userId ?? null,
+        outcome: "WITHDRAWN",
+        publicReference: quotation.job.publicReference,
+        quotationId: quotation.id,
+      });
+    }
     return { expired: false };
   }).then((result) => {
     if (result.expired) throw new QuotationOperationError("EXPIRED");
@@ -504,7 +549,20 @@ export async function declineCounteroffer(
         id: input.counterofferId,
         status: "PENDING",
       },
-      select: { id: true, quotationId: true },
+      select: {
+        id: true,
+        quotation: {
+          select: {
+            job: {
+              select: {
+                customer: { select: { userId: true } },
+                publicReference: true,
+              },
+            },
+          },
+        },
+        quotationId: true,
+      },
     });
     if (!counteroffer) throw new QuotationOperationError("INVALID_TRANSITION");
     const now = new Date();
@@ -531,6 +589,13 @@ export async function declineCounteroffer(
         targetId: counteroffer.quotationId,
         targetType: "JobQuotation",
       },
+    });
+    await notifyCustomerOfQuotationOutcome(transaction, {
+      businessId: actor.businessId,
+      customerUserId: counteroffer.quotation.job.customer?.userId ?? null,
+      outcome: "COUNTEROFFER_DECLINED",
+      publicReference: counteroffer.quotation.job.publicReference,
+      quotationId: counteroffer.quotationId,
     });
     return { id: counteroffer.id };
   });

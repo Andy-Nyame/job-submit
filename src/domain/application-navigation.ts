@@ -5,6 +5,7 @@ export type ApplicationNavigationIcon =
   | "dashboard"
   | "document-add"
   | "documents"
+  | "notifications"
   | "profile"
   | "services"
   | "team";
@@ -30,12 +31,20 @@ const OVERVIEW: ApplicationNavigationItem = {
   label: "Overview",
 };
 
+const NOTIFICATIONS: ApplicationNavigationItem = {
+  group: "Workspace",
+  href: "/app/notifications",
+  icon: "notifications",
+  label: "Notifications",
+};
+
 const ROLE_NAVIGATION: Record<
   ApplicationRole,
   readonly ApplicationNavigationItem[]
 > = {
   CUSTOMER: [
     OVERVIEW,
+    NOTIFICATIONS,
     {
       group: "Customer jobs",
       href: "/app/jobs/new",
@@ -51,6 +60,7 @@ const ROLE_NAVIGATION: Record<
   ],
   WORKER: [
     OVERVIEW,
+    NOTIFICATIONS,
     {
       group: "Operations",
       href: "/app/staff/jobs",
@@ -66,6 +76,7 @@ const ROLE_NAVIGATION: Record<
   ],
   ADMIN: [
     OVERVIEW,
+    NOTIFICATIONS,
     {
       group: "Operations",
       href: "/app/staff/jobs",
@@ -87,6 +98,7 @@ const ROLE_NAVIGATION: Record<
   ],
   OWNER: [
     OVERVIEW,
+    NOTIFICATIONS,
     {
       group: "Operations",
       href: "/app/staff/jobs",

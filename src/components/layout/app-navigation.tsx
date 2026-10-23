@@ -7,6 +7,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import {
+  NotificationBell,
+  type ShellNotification,
+} from "@/components/notifications/notification-bell";
+import {
   getActiveApplicationNavigationHref,
   getApplicationNavigation,
   type ApplicationNavigationIcon,
@@ -52,6 +56,12 @@ const NAVIGATION_ICON_PATHS: Record<ApplicationNavigationIcon, ReactNode> = {
       <path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h8A1.5 1.5 0 0 1 19 4.5v11a1.5 1.5 0 0 1-1.5 1.5H16" />
       <rect height="14" rx="1.5" width="11" x="5" y="7" />
       <path d="M8 11h5M8 15h5M8 18h3" />
+    </>
+  ),
+  notifications: (
+    <>
+      <path d="M18 9.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z" />
+      <path d="M9.8 21h4.4" />
     </>
   ),
   profile: (
@@ -177,7 +187,9 @@ interface AppNavigationProps {
   displayName: string | null;
   email: string;
   mobileActions: ReactNode;
+  notifications: readonly ShellNotification[];
   role: ApplicationRole;
+  unreadNotificationCount: number;
 }
 
 export function AppNavigation({
@@ -185,7 +197,9 @@ export function AppNavigation({
   displayName,
   email,
   mobileActions,
+  notifications,
   role,
+  unreadNotificationCount,
 }: AppNavigationProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -254,13 +268,14 @@ export function AppNavigation({
   return (
     <>
       <aside className="sticky top-0 hidden h-dvh min-h-0 flex-col border-r bg-surface lg:flex">
-        <div className="border-b px-5 py-6">
-          <Link
-            className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-surface"
-            href="/app"
-          >
+        <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+          <Link className="min-w-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-surface" href="/app">
             <Brand />
           </Link>
+          <NotificationBell
+            notifications={notifications}
+            unreadCount={unreadNotificationCount}
+          />
         </div>
         <nav aria-label="Workspace" className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4">
           <NavigationLinks activeHref={activeHref} items={items} />
@@ -282,8 +297,13 @@ export function AppNavigation({
         >
           <Brand />
         </Link>
-        <button
-          ref={triggerRef}
+        <div className="flex shrink-0 items-center gap-2">
+          <NotificationBell
+            notifications={notifications}
+            unreadCount={unreadNotificationCount}
+          />
+          <button
+            ref={triggerRef}
           aria-controls={DRAWER_ID}
           aria-expanded={open}
           aria-label={open ? "Close workspace menu" : "Open workspace menu"}
@@ -292,7 +312,8 @@ export function AppNavigation({
           type="button"
         >
           <MenuIcon open={open} />
-        </button>
+          </button>
+        </div>
       </header>
 
       {open ? (

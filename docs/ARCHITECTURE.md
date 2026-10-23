@@ -185,13 +185,15 @@ classes have render regression coverage.
 - Secrets belong only in ignored environment files or deployment configuration.
 - Private file storage requires server authorization; permanent public object URLs are not part of this design.
 - Pickup codes will be stored as secure hashes, not plaintext.
-- Sensitive actions must combine state change, history/audit, and related notifications atomically in future service code.
+- Implemented Brick 6D events combine the successful job/quotation state
+  change, existing history/audit, and recipient notifications in one database
+  transaction. Future events must preserve this boundary.
 - Production builds use Next.js’s webpack backend because the managed environment blocks Turbopack’s internal localhost binding.
 
 ## 9. Deferred implementation
 
-Full role dashboards, pricing communication and quotation acceptance,
+Full role dashboards, general pricing communication,
 queue/assignment claiming, messaging UI/transport, attachment
-replacement, notification delivery, transactional email, secure
+replacement, transactional email/external notification delivery, secure
 pickup-code generation, payments, stars, and ecommerce remain deliberately
 deferred.

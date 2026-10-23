@@ -10,6 +10,7 @@ import {
 import { Prisma } from "@/generated/prisma/client";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { prisma } from "@/server/db/prisma";
+import { notifyCustomerOfJobStatus } from "@/server/notifications/events";
 
 import { StaffJobOperationError } from "./errors";
 
@@ -82,7 +83,13 @@ export async function startStaffJobReview(
               businessId: actor.businessId,
               publicReference,
             },
-            select: { currentStatus: true, id: true, version: true },
+            select: {
+              currentStatus: true,
+              customer: { select: { userId: true } },
+              id: true,
+              publicReference: true,
+              version: true,
+            },
           });
           if (!job) {
             throw new StaffJobOperationError("NOT_FOUND");
@@ -116,7 +123,7 @@ export async function startStaffJobReview(
             throw new StaffJobOperationError("STALE_UPDATE");
           }
 
-          await transaction.jobStatusHistory.create({
+          const history = await transaction.jobStatusHistory.create({
             data: {
               actorMembershipId: actor.membershipId,
               actorUserId: actor.userId,
@@ -137,6 +144,14 @@ export async function startStaffJobReview(
               targetId: job.id,
               targetType: "Job",
             },
+          });
+          await notifyCustomerOfJobStatus(transaction, {
+            businessId: actor.businessId,
+            customerUserId: job.customer?.userId ?? null,
+            historyId: history.id,
+            jobId: job.id,
+            publicReference: job.publicReference,
+            status: "UNDER_REVIEW",
           });
 
           return { reviewedAt, version: input.expectedVersion + 1 };

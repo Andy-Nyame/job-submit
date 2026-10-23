@@ -135,6 +135,8 @@ enum StaffAttachmentKind {
 
 enum NotificationType {
   JOB_SUBMITTED
+  COSTING_REQUIRED
+  JOB_STATUS_UPDATED
   JOB_ACCEPTED
   JOB_DECLINED
   CLARIFICATION_REQUESTED
@@ -151,6 +153,14 @@ enum NotificationType {
   STAR_BONUS
   STAR_CORRECTION
   NEW_STAFF_MESSAGE
+  QUOTATION_ISSUED
+  QUOTATION_REVISED
+  QUOTATION_WITHDRAWN
+  QUOTATION_ACCEPTED
+  QUOTATION_DECLINED
+  QUOTATION_EXPIRED
+  COUNTEROFFER_SUBMITTED
+  COUNTEROFFER_DECLINED
 }
 
 enum PickupCodeStatus {
@@ -834,12 +844,14 @@ model Notification {
   targetType      String?          @db.VarChar(80)
   targetId        String?          @db.VarChar(100)
   href            String?          @db.VarChar(500)
+  eventKey        String?          @db.VarChar(180)
   readAt          DateTime?        @db.Timestamptz(3)
   createdAt       DateTime         @default(now()) @db.Timestamptz(3)
 
   business  Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
   recipient BusinessMembership @relation(fields: [businessId, recipientUserId], references: [businessId, userId], onDelete: Restrict)
 
+  @@unique([businessId, recipientUserId, eventKey])
   @@index([businessId, recipientUserId, readAt, createdAt])
   @@index([businessId, type, createdAt])
   @@index([targetType, targetId])
