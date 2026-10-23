@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/class-names";
 
 export const fieldClassName =
-  "min-h-11 w-full rounded-lg border border-input-border bg-input px-3 text-sm text-foreground outline-none transition-[background-color,border-color,box-shadow] placeholder:text-muted/75 hover:border-primary/70 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled disabled:text-disabled-foreground";
+  "min-h-11 w-full rounded-lg border border-input-border bg-input px-3 text-base text-foreground outline-none transition-[background-color,border-color,box-shadow] placeholder:text-muted/75 hover:border-primary/70 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:border-disabled disabled:bg-disabled disabled:text-disabled-foreground lg:text-sm";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(fieldClassName, className)} {...props} />;

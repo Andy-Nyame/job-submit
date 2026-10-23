@@ -162,6 +162,10 @@ Charcoal anchors typography and dark surfaces. Accessible light and dark
 palettes are centralized through semantic tokens rather than scattered raw
 brand colours. The shared theme control preserves the System default and lets
 visitors choose the opposite applied mode without a hydration flash.
+Authenticated navigation uses a role-aware desktop sidebar and an accessible
+mobile drawer backed by one navigation definition. Shared text-entry controls
+remain at least 16px on mobile and tablet widths to avoid iOS Safari focus zoom
+without restricting user-controlled pinch-to-zoom.
 
 ## Project separation
 

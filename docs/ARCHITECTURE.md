@@ -21,6 +21,9 @@ live messaging, delivery mechanisms, or later business workflows.
 - `src/domain` contains pure, framework-independent rules.
 - `src/server` is an explicit server-only boundary. Database access imports `server-only` and must never enter a client bundle.
 - `prisma` owns the persistence model, migrations, and development seed.
+- Authenticated routes use one role-aware navigation definition. A persistent
+  desktop sidebar and accessible mobile drawer render the same permitted links;
+  visibility is a convenience layer and never replaces server authorization.
 - The public homepage remains a Server Component. Its catalogue query selects
   only active, non-archived services for the active Capt. Bob business and
   exposes no membership, customer, worker, job, or infrastructure data. A small
@@ -112,6 +115,11 @@ The public welcome page uses the same semantic tokens in both system light and
 dark modes. Its abstract print-production artwork is implemented with HTML,
 CSS, and accessible text rather than an invented company logo or unverified
 stock imagery.
+
+All mobile text-entry controls must maintain a computed font-size of at least
+16px to avoid unwanted iOS Safari focus zoom. User-controlled pinch-to-zoom
+must remain available. Shared form controls enforce this below the desktop
+breakpoint; the viewport never disables scaling.
 
 ## 6. Permanent lifecycle principle
 
