@@ -6,10 +6,11 @@ JobSubmit is a standalone product for Capt. Bob Cedi’s Artworks. Its source, G
 
 Brick 6A adds authenticated customer job submission, immutable configured-
 service snapshots, private reference-file handling, and customer-owned job
-visibility on top of the Brick 5.2 service contracts. It does not add
-quotation negotiation or acceptance, job claiming,
-assignment enforcement, live messaging, delivery mechanisms, or later business
-workflows.
+visibility on top of the Brick 5.2 service contracts. Brick 6B adds the
+business-scoped staff inbox, snapshot-based staff detail, internal notes, and
+the single controlled `SUBMITTED → UNDER_REVIEW` transition. It does not add
+quotation negotiation or acceptance, job claiming, assignment enforcement,
+live messaging, delivery mechanisms, or later business workflows.
 
 ## 2. Application shape
 
@@ -74,6 +75,11 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
   page, Server Action, upload-token request, private download, and database query
   rechecks the Supabase identity and active Neon membership. `WORKER`, `ADMIN`,
   and `OWNER` roles do not gain customer ownership implicitly.
+- Staff job access is restricted to active `WORKER`, `ADMIN`, and `OWNER`
+  memberships. Every inbox/detail read, Server Action, transition, note write,
+  and staff file download rechecks the Supabase identity and current Neon
+  membership, then scopes the resource to the same active business. Customers
+  cannot access staff routes or notes.
 - Worker access begins with a server-created invitation. The raw 256-bit token
   is carried in a URL fragment, retained only temporarily in the browser during
   authentication, submitted over the Server Action request, and never stored
@@ -166,8 +172,8 @@ classes have render regression coverage.
 
 ## 9. Deferred implementation
 
-Full role dashboards, staff job review, pricing communication and quotation
-acceptance, queue/assignment claiming, messaging UI/transport, attachment
+Full role dashboards, pricing communication and quotation acceptance,
+queue/assignment claiming, messaging UI/transport, attachment
 replacement, notification delivery, transactional email, secure
 pickup-code generation, payments, stars, and ecommerce remain deliberately
 deferred.

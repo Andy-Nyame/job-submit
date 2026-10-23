@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/layout/container";
+import { canManageStaffJobs } from "@/domain/staff-job-policy";
 import {
   ApplicationAccessDeniedError,
   AuthenticationRequiredError,
@@ -66,13 +67,14 @@ export default async function ApplicationPage() {
                 <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-semibold outline-none transition-colors hover:border-primary/45 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs">View my jobs</Link>
               </div>
             </div>
-          ) : (
-            <p className="mt-5 border-t pt-5 text-sm leading-6 text-muted">
-              OWNER and ADMIN accounts can manage services and workers from the
-              workspace navigation. Customer submission is available only to
-              active CUSTOMER memberships; staff production workflows remain deferred.
-            </p>
-          )}
+          ) : canManageStaffJobs(principal.role) ? (
+            <div className="mt-5 border-t pt-5">
+              <p className="text-sm leading-6 text-muted">
+                Review customer submissions, identify Express and quotation-pending work, add internal notes, and begin the controlled review stage.
+              </p>
+              <Link className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring" href="/app/staff/jobs">Open staff job inbox</Link>
+            </div>
+          ) : null}
         </Card>
       </Container>
     </main>

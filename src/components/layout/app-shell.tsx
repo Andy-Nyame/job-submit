@@ -5,6 +5,7 @@ import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { canManageStaffJobs } from "@/domain/staff-job-policy";
 import { Container } from "./container";
 
 export function AppShell({
@@ -55,6 +56,14 @@ export function AppShell({
                     My jobs
                   </Link>
                 </>
+              ) : null}
+              {canManageStaffJobs(principal.role) ? (
+                <Link
+                  className="rounded-md px-3 py-2 text-sm text-muted outline-none hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  href="/app/staff/jobs"
+                >
+                  Jobs
+                </Link>
               ) : null}
               {principal.role === "ADMIN" || principal.role === "OWNER" ? (
                 <>

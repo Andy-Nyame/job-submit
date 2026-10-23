@@ -44,7 +44,10 @@ test("private upload and download routes enforce identity, ownership, and nosnif
   assert.match(upload, /requireCustomer\(\)/u);
   assert.match(upload, /allowedContentTypes/u);
   assert.match(upload, /maximumSizeInBytes/u);
+  assert.match(download, /requireBusinessMembership\(\)/u);
+  assert.match(download, /canManageStaffJobs\(actor\.role\)/u);
   assert.match(download, /customer: \{ userId: actor\.userId \}/u);
+  assert.match(download, /businessId: actor\.businessId/u);
   assert.match(download, /access: "private"/u);
   assert.match(download, /X-Content-Type-Options/u);
   assert.doesNotMatch(download, /publicReference\s*\)\s*\{/u);
@@ -55,4 +58,5 @@ test("customer details route does not expose staff notes or other customer data"
   assert.doesNotMatch(detail, /jobNotes|notes:/u);
   assert.doesNotMatch(detail, /customer\.email|customer\.phone/u);
   assert.match(detail, /Quotation pending/u);
+  assert.match(detail, /Status updates/u);
 });

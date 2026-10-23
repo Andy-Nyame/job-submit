@@ -1,7 +1,8 @@
 import { get } from "@vercel/blob";
 
 import { isUuid } from "@/domain/job-attachments";
-import { requireCustomer } from "@/server/jobs/authorization";
+import { canManageStaffJobs } from "@/domain/staff-job-policy";
+import { requireBusinessMembership } from "@/server/auth/authorization";
 import { prisma } from "@/server/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +18,14 @@ export async function GET(
   context: { params: Promise<{ attachmentId: string; publicReference: string }> },
 ) {
   try {
-    const actor = await requireCustomer();
+    const actor = await requireBusinessMembership();
     const { attachmentId, publicReference } = await context.params;
-    if (!isUuid(attachmentId) || publicReference.length > 32) {
+    const customer = actor.role === "CUSTOMER";
+    if (
+      (!customer && !canManageStaffJobs(actor.role)) ||
+      !isUuid(attachmentId) ||
+      publicReference.length > 32
+    ) {
       return new Response("Not found", { status: 404 });
     }
     const attachment = await prisma.jobAttachment.findFirst({
@@ -28,8 +34,8 @@ export async function GET(
         id: attachmentId,
         job: {
           archivedAt: null,
-          customer: { userId: actor.userId },
           publicReference,
+          ...(customer ? { customer: { userId: actor.userId } } : {}),
         },
         removedAt: null,
       },

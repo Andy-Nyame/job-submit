@@ -80,6 +80,15 @@ export async function getCustomerJob(publicReference: string) {
       priority: true,
       publicReference: true,
       service: { select: { name: true } },
+      statusHistory: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          createdAt: true,
+          fromStatus: true,
+          id: true,
+          toStatus: true,
+        },
+      },
       submissionSnapshot: true,
       title: true,
     },

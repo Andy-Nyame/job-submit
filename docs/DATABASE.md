@@ -65,6 +65,13 @@ classification. Every customer submission begins at `SUBMITTED`, with an
 append-only initial history row and a `job.customer_submitted` audit event in
 the same serializable transaction.
 
+Brick 6B reuses the existing `Job`, `JobStatusHistory`, and `JobNote` models;
+no schema migration is required. Active WORKER, ADMIN, and OWNER memberships
+may read only jobs in their own active business. Inbox filtering and pagination
+run in PostgreSQL rather than loading the complete job set into the browser.
+Staff details read the immutable `submissionSnapshot`, so later service edits
+cannot rewrite historical quantities, options, or pricing treatment.
+
 The primary statuses are:
 
 ```text
@@ -73,6 +80,13 @@ SUBMITTED → UNDER_REVIEW → ACCEPTED → QUEUED → PROCESSING
 ```
 
 Side states are `WAITING_FOR_CUSTOMER`, `AWAITING_CUSTOMER_APPROVAL`, `DECLINED`, and `CANCELLED`. Future server transition policy is authoritative. Each accepted transition must append `JobStatusHistory`; database triggers prevent normal update/delete of that history.
+
+Brick 6B deliberately enables only `SUBMITTED → UNDER_REVIEW`. The serializable
+mutation compares `Job.version` and the current status, writes the review actor
+and timestamp, increments the version, appends status history, and creates an
+audit event in one transaction. Repeated, stale, and unsupported transitions
+fail closed. Customer details expose only status names and timestamps, never
+staff actors, reasons, or notes.
 
 `Job.version` enables optimistic concurrency where appropriate. Important dates, review/accept actors, requested/promised times, and archive metadata are separate from the append-only transition history.
 
@@ -122,6 +136,11 @@ reference before the private blob is streamed as an attachment with `nosniff`.
 ### Customer ↔ shop job communication
 
 `JobMessage` belongs to a job and records whether the sender is a customer, staff member, or system process. `JobMessageAttachment` links only attachment metadata belonging to that same job. Staff-only `JobNote` is deliberately separate and must never be exposed through customer-facing queries.
+
+Brick 6B creates bounded, non-empty `JobNote` entries with the active staff
+membership as author and an audit event containing only the new note ID, not
+the note body. There is no edit, deletion, archive, customer-message, or
+notification UI in this milestone.
 
 ### Staff Messages
 

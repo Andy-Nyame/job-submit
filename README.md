@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 6A
+## Current scope: Brick 6B
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -51,11 +51,19 @@ and team/worker foundation:
   progress, expiring pre-job ownership reservations, and owner-scoped downloads
 - customer-scoped `/app/jobs` history and `/app/jobs/[reference]` details;
   references alone never grant access
+- a business-scoped staff inbox at `/app/staff/jobs` for active WORKER, ADMIN,
+  and OWNER memberships, with server-side search, filters, sorting, and pagination
+- secure staff job details sourced from immutable submission snapshots, including
+  customer context, private attachments, pricing treatment, and status history
+- the controlled `SUBMITTED → UNDER_REVIEW` transition with optimistic
+  concurrency, append-only history, actor/timestamp attribution, and audit logging
+- staff-only internal job notes with bounded input, authorship, and audit events;
+  customer queries never select note data
 
 Fixed pricing uses integer pesewas and configured quantity steps; it does not
 confirm a job quotation or record payment. Price on Request performs no
 automatic calculation, and the Owner currently handles individual costing.
-Brick 6A does **not** implement pricing chat, quotation acceptance or price
+Brick 6B does **not** implement pricing chat, quotation issuance/acceptance or price
 confirmation, queue claiming or assignment
 enforcement, live messaging, notification delivery, pickup-code generation,
 payments, stars, or other later business workflows.
@@ -90,7 +98,8 @@ Set the required values in the ignored `.env.local` file. Prisma tooling loads
 
 Supabase owns authentication identity only; Neon remains authoritative for
 JobSubmit application data. Vercel Blob holds private customer reference files,
-and every file route rechecks authenticated customer ownership. Never
+and every file route rechecks authenticated customer ownership or current
+business-scoped staff authority. Never
 point these values at another project’s infrastructure. No credentials are
 committed.
 
@@ -126,6 +135,7 @@ src/
   components/
     layout/              Structural presentation components
     jobs/                Customer job-submission interaction
+    staff-jobs/          Staff review and internal-note interactions
     services/            Service-management forms and interactions
     ui/                  Small reusable UI primitives
   config/                Factual product and site configuration
@@ -137,6 +147,7 @@ docs/
   AUTHENTICATION.md       Auth flows, locked bootstrap, and manual configuration
   DATABASE.md             Domain model, integrity, lifecycle, and transactions
   JOB_SUBMISSION.md       Brick 6A customer submission, uploads, pricing, and boundaries
+  STAFF_JOBS.md           Brick 6B staff inbox, review, notes, and authorization
   SERVICES.md             Service catalogue, lifecycle, pricing boundary, and audit policy
   TEAM.md                 Worker invitation, access, capacity, and audit policy
 ```
