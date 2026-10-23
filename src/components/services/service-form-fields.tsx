@@ -25,6 +25,7 @@ import {
 } from "@/domain/service-policy";
 
 export interface ServiceFormValues {
+  allowPriceNegotiation: boolean;
   additionalStepPrice: string;
   artworkRequirement: string;
   customDimensionUnits: string[];
@@ -351,7 +352,13 @@ export function ServiceFormFields({
             <option value="FIXED">Fixed pricing</option>
           </Select>
           {pricingMode === "ON_REQUEST" ? (
-            <p className="mt-3 rounded-md border bg-surface-muted p-3 text-xs leading-5 text-muted">No automatic total will be shown. The Owner currently confirms pricing after reviewing the job.</p>
+            <div className="mt-3 space-y-3 rounded-md border bg-surface-muted p-3">
+              <p className="text-xs leading-5 text-muted">No automatic total will be shown. Authorized management confirms pricing after reviewing the job.</p>
+              <label className="flex items-start gap-3 text-sm">
+                <input className={checkboxClassName} defaultChecked={values.allowPriceNegotiation} name="allowPriceNegotiation" type="checkbox" />
+                <span><span className="font-medium">Allow price negotiation</span><span className="mt-1 block text-xs leading-5 text-muted">Off by default. When enabled, customers may propose a counteroffer on an issued manual quotation; management must still issue and the customer must accept the final price.</span></span>
+              </label>
+            </div>
           ) : (
             <div className="mt-5 space-y-5 rounded-lg border bg-surface p-4">
               <p className="text-xs leading-5 text-muted">Fixed pricing uses the quantity multiple above. Mixed sizes or printing options are sent for individual pricing.</p>

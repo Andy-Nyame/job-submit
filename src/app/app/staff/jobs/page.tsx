@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/form-controls";
 import { isJobSubmissionSnapshot } from "@/domain/job-submission";
+import { canManageQuotations, effectiveQuotationStatus } from "@/domain/quotation-policy";
 import {
   canManageStaffJobs,
   parseStaffJobInboxFilters,
   STAFF_JOB_STATUSES,
+  STAFF_JOB_PRICING_FILTERS,
   StaffJobPolicyError,
   type StaffJobInboxFilters,
 } from "@/domain/staff-job-policy";
@@ -35,13 +37,25 @@ function formatStatus(value: string) {
     .replace(/^./u, (character) => character.toUpperCase());
 }
 
-function pricingLabel(snapshotValue: unknown) {
+function pricingLabel(snapshotValue: unknown, quotations: Array<{ counteroffers: Array<{ id: string }>; expiresAt: Date; status: "DRAFT" | "ISSUED" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "SUPERSEDED" | "WITHDRAWN" }>) {
   if (!isJobSubmissionSnapshot(snapshotValue)) {
     return "Pricing unavailable";
   }
-  return snapshotValue.pricing.mode === "FIXED"
-    ? formatGhanaCediMinor(BigInt(snapshotValue.pricing.totalMinor))
-    : "Quotation pending";
+  if (snapshotValue.pricing.mode === "FIXED") return formatGhanaCediMinor(BigInt(snapshotValue.pricing.totalMinor));
+  const quotation = quotations[0];
+  if (!quotation) return "Awaiting costing";
+  const status = effectiveQuotationStatus(quotation.status, quotation.expiresAt);
+  if (status === "DRAFT") return "Draft quotation";
+  if (status === "ISSUED" && quotation.counteroffers.length > 0) return "Counteroffer pending";
+  if (status === "ISSUED") return "Awaiting customer";
+  if (status === "ACCEPTED") return "Price agreed";
+  if (status === "DECLINED") return "Quotation declined";
+  if (status === "EXPIRED") return "Quotation expired";
+  return "Quotation withdrawn / superseded";
+}
+
+function pricingFilterLabel(value: string) {
+  return value.toLowerCase().replaceAll("_", " ").replace(/^./u, (character) => character.toUpperCase());
 }
 
 function customerLabel(customer: {
@@ -61,6 +75,7 @@ function inboxHref(
   if (next.status) query.set("status", next.status);
   if (next.serviceId) query.set("service", next.serviceId);
   if (next.priority) query.set("priority", next.priority);
+  if (next.pricing) query.set("pricing", next.pricing);
   if (next.sort !== "NEWEST") query.set("sort", next.sort);
   if (next.page > 1) query.set("page", String(next.page));
   const value = query.toString();
@@ -116,7 +131,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
             </div>
           </div>
 
-          <form className="mt-5 grid gap-3 rounded-2xl border bg-surface p-4 shadow-[0_16px_44px_-38px_var(--shadow-color)] sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1.4fr)_repeat(4,minmax(9rem,1fr))_auto]">
+          <form className="mt-5 grid gap-3 rounded-2xl border bg-surface p-4 shadow-[0_16px_44px_-38px_var(--shadow-color)] sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1.4fr)_repeat(5,minmax(8rem,1fr))_auto]">
             <div>
               <label className="sr-only" htmlFor="job-search">Search reference or customer</label>
               <Input defaultValue={data.filters.query} id="job-search" maxLength={100} name="q" placeholder="Reference or customer" type="search" />
@@ -151,6 +166,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
                 <option value="UPDATED">Recently updated</option>
               </Select>
             </div>
+            {canManageQuotations(data.principal.role) ? <div><label className="sr-only" htmlFor="job-pricing">Filter by pricing state</label><Select defaultValue={data.filters.pricing ?? "ALL"} id="job-pricing" name="pricing"><option value="ALL">All pricing states</option>{STAFF_JOB_PRICING_FILTERS.map((value) => <option key={value} value={value}>{pricingFilterLabel(value)}</option>)}</Select></div> : null}
             <button className="min-h-11 rounded-lg border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:border-primary-hover hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" type="submit">
               Apply
             </button>
@@ -164,7 +180,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
           ) : (
             <div className="mt-5 grid gap-4">
               {data.jobs.map((job) => {
-                const price = pricingLabel(job.submissionSnapshot);
+                const price = pricingLabel(job.submissionSnapshot, job.quotations);
                 return (
                   <article className="rounded-2xl border bg-surface p-5 shadow-[0_16px_44px_-38px_var(--shadow-color)] sm:p-6" key={job.publicReference}>
                     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -176,7 +192,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
                       <div className="flex flex-wrap gap-2">
                         <Badge>{formatStatus(job.currentStatus)}</Badge>
                         <Badge className={job.priority === "EXPRESS" ? "border-destructive/45 bg-destructive-surface text-destructive" : undefined}>{job.priority === "EXPRESS" ? "Express / Urgent" : "Regular"}</Badge>
-                        {price === "Quotation pending" ? <Badge>Quotation pending</Badge> : null}
+                        {isJobSubmissionSnapshot(job.submissionSnapshot) && job.submissionSnapshot.pricing.mode === "ON_REQUEST" ? <Badge>{price}</Badge> : null}
                       </div>
                     </div>
                     <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">

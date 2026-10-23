@@ -20,6 +20,16 @@ export const STAFF_JOB_STATUSES = [
 
 export const STAFF_JOB_PRIORITIES = ["REGULAR", "EXPRESS"] as const;
 export const STAFF_JOB_SORTS = ["NEWEST", "OLDEST", "UPDATED"] as const;
+export const STAFF_JOB_PRICING_FILTERS = [
+  "FIXED_CONFIRMED",
+  "AWAITING_COSTING",
+  "DRAFT",
+  "AWAITING_CUSTOMER",
+  "COUNTEROFFER",
+  "ACCEPTED",
+  "DECLINED",
+  "EXPIRED",
+] as const;
 export const STAFF_JOB_PAGE_SIZE = 20;
 export const MAX_STAFF_JOB_SEARCH_LENGTH = 100;
 export const MAX_INTERNAL_NOTE_LENGTH = 2_000;
@@ -27,10 +37,12 @@ export const MAX_INTERNAL_NOTE_LENGTH = 2_000;
 export type StaffJobStatus = (typeof STAFF_JOB_STATUSES)[number];
 export type StaffJobPriority = (typeof STAFF_JOB_PRIORITIES)[number];
 export type StaffJobSort = (typeof STAFF_JOB_SORTS)[number];
+export type StaffJobPricingFilter = (typeof STAFF_JOB_PRICING_FILTERS)[number];
 
 export interface StaffJobInboxFilters {
   page: number;
   priority: StaffJobPriority | null;
+  pricing: StaffJobPricingFilter | null;
   query: string;
   serviceId: string | null;
   sort: StaffJobSort;
@@ -122,6 +134,7 @@ export function parseStaffJobInboxFilters(input: Record<string, unknown>): Staff
   return {
     page,
     priority: optionalChoice(input.priority, STAFF_JOB_PRIORITIES),
+    pricing: optionalChoice(input.pricing, STAFF_JOB_PRICING_FILTERS),
     query: normalizeStaffJobSearch(input.q),
     serviceId: serviceValue || null,
     sort: sortValue as StaffJobSort,

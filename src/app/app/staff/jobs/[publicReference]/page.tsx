@@ -5,14 +5,18 @@ import { notFound, redirect } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { AddInternalNoteForm } from "@/components/staff-jobs/add-internal-note-form";
 import { StartJobReviewForm } from "@/components/staff-jobs/start-job-review-form";
+import { QuotationDraftForm } from "@/components/quotations/quotation-draft-form";
+import { CreateRevisionForm, DeclineCounterofferForm, IssueQuotationForm, WithdrawQuotationForm } from "@/components/quotations/management-quotation-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { isJobSubmissionSnapshot, type JobSubmissionSnapshot } from "@/domain/job-submission";
+import { canManageQuotations, effectiveQuotationStatus, expressSurchargeLabel, readQuotationLineItems } from "@/domain/quotation-policy";
 import { readSpecificationConfiguration } from "@/domain/service-configuration";
-import { formatGhanaCediMinor } from "@/domain/service-pricing";
+import { formatGhanaCediMinor, formatMoneyInput } from "@/domain/service-pricing";
 import { canManageStaffJobs } from "@/domain/staff-job-policy";
 import { requireBusinessMembership } from "@/server/auth/authorization";
 import { getStaffJobDetail } from "@/server/staff-jobs/queries";
+import { getManagementQuotationData } from "@/server/quotations/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Staff job review" };
@@ -53,10 +57,17 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
   const { publicReference } = await params;
   const { job } = await getStaffJobDetail(publicReference);
   if (!job) notFound();
+  const managementJob = canManageQuotations(principal.role)
+    ? (await getManagementQuotationData(publicReference)).job
+    : null;
 
   const snapshot = isJobSubmissionSnapshot(job.submissionSnapshot) ? job.submissionSnapshot : null;
   const labels = snapshot ? fieldLabels(snapshot) : new Map<string, string>();
   const customerName = job.customer?.displayName ?? job.customer?.email ?? "Customer details unavailable";
+  const quotationDraft = managementJob?.quotations.find((quotation) => quotation.status === "DRAFT") ?? null;
+  const acceptedQuotation = managementJob?.quotations.find((quotation) => quotation.status === "ACCEPTED") ?? null;
+  const publicQuotation = job.quotations[0] ?? null;
+  const publicQuotationStatus = publicQuotation ? effectiveQuotationStatus(publicQuotation.status, publicQuotation.expiresAt) : null;
 
   return (
     <main className="py-10 sm:py-14" id="main-content">
@@ -101,6 +112,37 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
               )}
             </Card>
 
+            {snapshot?.pricing.mode === "ON_REQUEST" && managementJob ? (
+              <Card className="p-5 sm:p-7">
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">Management costing</h2><p className="mt-2 text-sm leading-6 text-muted">Draft financial terms remain management-only. Issuing freezes the amount, validity, and current service negotiation policy.</p></div><Badge>{managementJob.service.allowPriceNegotiation ? "Negotiation allowed" : "Negotiation off"}</Badge></div>
+
+                {quotationDraft ? (
+                  <div className="mt-6 space-y-5 rounded-xl border bg-surface-muted p-4 sm:p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">Draft {quotationDraft.publicReference} · Version {quotationDraft.quotationVersion}</p><p className="mt-2 text-xl font-semibold">{formatGhanaCediMinor(quotationDraft.totalMinor)}</p></div><Badge>Private draft</Badge></div>
+                    <QuotationDraftForm initialCustomerNote={quotationDraft.customerNote ?? ""} initialItems={readQuotationLineItems(quotationDraft.lineItems).map((item) => ({ amount: formatMoneyInput(item.amountMinor), description: item.description, kind: item.kind }))} initialValidityDays={quotationDraft.validityDays} priority={managementJob.priority} publicReference={job.publicReference} quotationId={quotationDraft.id} rowVersion={quotationDraft.rowVersion} />
+                    <div className="grid gap-4 border-t pt-5 sm:grid-cols-2"><IssueQuotationForm publicReference={job.publicReference} quotationId={quotationDraft.id} rowVersion={quotationDraft.rowVersion} /><WithdrawQuotationForm publicReference={job.publicReference} quotationId={quotationDraft.id} rowVersion={quotationDraft.rowVersion} /></div>
+                  </div>
+                ) : !acceptedQuotation ? (
+                  <div className="mt-6"><QuotationDraftForm priority={managementJob.priority} publicReference={job.publicReference} /></div>
+                ) : (
+                  <p className="mt-5 rounded-lg border border-success/40 bg-success/10 p-4 text-sm leading-6">The customer accepted quotation version {acceptedQuotation.quotationVersion}. Its amount is the agreed job price; no production or payment state changed automatically.</p>
+                )}
+
+                {managementJob.quotations.filter((quotation) => quotation.status !== "DRAFT").length > 0 ? (
+                  <div className="mt-8 border-t pt-6"><h3 className="font-semibold">Quotation history</h3><ol className="mt-4 space-y-4">{managementJob.quotations.filter((quotation) => quotation.status !== "DRAFT").map((quotation) => {
+                    const state = effectiveQuotationStatus(quotation.status, quotation.expiresAt);
+                    const items = readQuotationLineItems(quotation.lineItems);
+                    const pendingCounteroffer = quotation.counteroffers.find((offer) => offer.status === "PENDING");
+                    return <li className="rounded-xl border bg-surface p-4" key={quotation.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">{quotation.publicReference} · Version {quotation.quotationVersion}</p><p className="mt-2 text-lg font-semibold">{formatGhanaCediMinor(quotation.totalMinor)}</p></div><Badge>{formatStatus(state)}</Badge></div><dl className="mt-4 space-y-2 text-sm">{items.map((item, index) => <div className="flex justify-between gap-4" key={`${item.description}-${index}`}><dt className="text-muted">{item.description}</dt><dd>{formatGhanaCediMinor(BigInt(item.amountMinor))}</dd></div>)}<div className="flex justify-between gap-4 border-t pt-2"><dt className="text-muted">Subtotal</dt><dd>{formatGhanaCediMinor(quotation.subtotalMinor)}</dd></div>{quotation.expressSurchargeMinor > 0n ? <div className="flex justify-between gap-4"><dt className="text-muted">{expressSurchargeLabel(quotation.expressSurchargeBasisPoints)}</dt><dd>{formatGhanaCediMinor(quotation.expressSurchargeMinor)}</dd></div> : null}</dl><p className="mt-3 text-xs leading-5 text-muted">Issued {quotation.issuedAt ? formatDate(quotation.issuedAt) : "not issued"} · Valid until {formatDate(quotation.expiresAt)} · Negotiation {quotation.negotiationAllowed ? "allowed" : "off"}</p>
+                    {pendingCounteroffer ? <div className="mt-4 rounded-lg border border-accent/45 bg-accent/10 p-4"><p className="font-semibold">Customer counteroffer: {formatGhanaCediMinor(pendingCounteroffer.amountMinor)}</p>{pendingCounteroffer.customerNote ? <p className="mt-2 whitespace-pre-wrap text-sm text-muted">{pendingCounteroffer.customerNote}</p> : null}<div className="mt-4 grid gap-4 sm:grid-cols-2"><DeclineCounterofferForm counterofferId={pendingCounteroffer.id} publicReference={job.publicReference} />{!quotationDraft ? <CreateRevisionForm publicReference={job.publicReference} quotationId={quotation.id} rowVersion={quotation.rowVersion} /> : null}</div></div> : null}
+                    {!quotationDraft && ["ISSUED", "DECLINED", "EXPIRED", "WITHDRAWN"].includes(state) && !pendingCounteroffer ? <div className="mt-4"><CreateRevisionForm publicReference={job.publicReference} quotationId={quotation.id} rowVersion={quotation.rowVersion} /></div> : null}
+                    {state === "ISSUED" ? <div className="mt-4"><WithdrawQuotationForm publicReference={job.publicReference} quotationId={quotation.id} rowVersion={quotation.rowVersion} /></div> : null}
+                    </li>;
+                  })}</ol></div>
+                ) : null}
+              </Card>
+            ) : null}
+
             <Card className="p-5 sm:p-7">
               <h2 className="text-xl font-semibold">Status history</h2>
               {job.statusHistory.length > 0 ? (
@@ -141,7 +183,7 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
               {snapshot?.pricing.mode === "FIXED" ? (
                 <><p className="mt-3 text-2xl font-semibold">{formatGhanaCediMinor(BigInt(snapshot.pricing.totalMinor))}</p><dl className="mt-4 space-y-2 text-sm"><div className="flex justify-between gap-4"><dt className="text-muted">Base</dt><dd>{formatGhanaCediMinor(BigInt(snapshot.pricing.basePriceMinor))}</dd></div>{snapshot.request.priority === "EXPRESS" ? <div className="flex justify-between gap-4"><dt className="text-muted">Express surcharge</dt><dd>{formatGhanaCediMinor(BigInt(snapshot.pricing.expressSurchargeMinor))}</dd></div> : null}</dl><p className="mt-4 text-xs leading-5 text-muted">Authoritative calculation saved at submission. No payment is recorded.</p></>
               ) : snapshot?.pricing.mode === "ON_REQUEST" ? (
-                <><p className="mt-3 font-semibold">Quotation pending</p><p className="mt-2 text-sm leading-6 text-muted">No amount has been fabricated or confirmed. Quotation issuance is a later milestone.</p></>
+                <><p className="mt-3 font-semibold">{publicQuotationStatus === "ISSUED" ? "Awaiting customer decision" : publicQuotationStatus === "ACCEPTED" ? "Price agreed" : publicQuotationStatus === "DECLINED" ? "Quotation declined" : publicQuotationStatus === "EXPIRED" ? "Quotation expired" : "Awaiting costing"}</p><p className="mt-2 text-sm leading-6 text-muted">{canManageQuotations(principal.role) ? "Use the management costing section to prepare and manage versioned quotations." : "Only Owner/Admin can access manual costing amounts and quotation controls."}</p></>
               ) : <p className="mt-3 text-sm text-muted">No submission pricing snapshot is available.</p>}
             </Card>
 

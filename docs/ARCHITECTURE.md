@@ -8,9 +8,12 @@ Brick 6A adds authenticated customer job submission, immutable configured-
 service snapshots, private reference-file handling, and customer-owned job
 visibility on top of the Brick 5.2 service contracts. Brick 6B adds the
 business-scoped staff inbox, snapshot-based staff detail, internal notes, and
-the single controlled `SUBMITTED → UNDER_REVIEW` transition. It does not add
-quotation negotiation or acceptance, job claiming, assignment enforcement,
-live messaging, delivery mechanisms, or later business workflows.
+the single controlled `SUBMITTED → UNDER_REVIEW` transition. Brick 6C adds
+fixed-price confirmation messaging and a separate, versioned manual quotation
+lifecycle with explicit customer decisions. Negotiation is service-specific,
+defaults off, and is frozen when management issues a quote. It does not add
+payment, general pricing chat, job claiming, assignment enforcement, live
+messaging, delivery mechanisms, or later business workflows.
 
 ## 2. Application shape
 
@@ -83,6 +86,11 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
   and staff file download rechecks the Supabase identity and current Neon
   membership, then scopes the resource to the same active business. Customers
   cannot access staff routes or notes.
+- Quotation costing authority is restricted to active `OWNER` and `ADMIN`
+  memberships. `WORKER` retains operational job review but cannot read draft
+  amounts, issue/revise prices, change negotiation policy, or decide customer
+  proposals. Customer quote reads and decisions require ownership of the
+  associated job in the same active business.
 - Worker access begins with a server-created invitation. The raw 256-bit token
   is carried in a URL fragment, retained only temporarily in the browser during
   authentication, submitted over the Server Action request, and never stored
@@ -136,9 +144,11 @@ Services choose Fixed Pricing or Price on Request. Fixed pricing stores exact
 integer-pesewa inputs and applies only to valid quantity steps and uniform
 specifications. Price on Request never calculates a total. Legacy indicative
 range columns remain preserved but hidden; they are not converted into fixed
-prices. The Owner currently handles individual costing. Position-based pricing
-authority, pricing chat, and customer quotation acceptance remain future
-workflow concerns.
+prices. Manual quotations are issued only by OWNER/ADMIN; service negotiation
+is a separate boolean that defaults off and is valid only with Price on Request.
+Issued financial terms and the negotiation policy are immutable. A changed
+amount requires a new version, and customer acceptance records the agreed
+version without starting production or recording payment.
 
 Quantity, pricing, and specification settings are versioned, strictly validated
 JSON contracts. Specification version 2 adds five explicit size modes, bounded

@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
+import { CustomerCounterofferForm, CustomerQuotationDecisionForm } from "@/components/quotations/customer-quotation-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { isJobSubmissionSnapshot } from "@/domain/job-submission";
+import { effectiveQuotationStatus, expressSurchargeLabel, readQuotationLineItems } from "@/domain/quotation-policy";
 import { formatGhanaCediMinor } from "@/domain/service-pricing";
 import { getCustomerJob } from "@/server/jobs/queries";
 
@@ -37,6 +39,12 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
     notFound();
   }
   const snapshot = isJobSubmissionSnapshot(job.submissionSnapshot) ? job.submissionSnapshot : null;
+  const quotation = job.quotations[0] ?? null;
+  const quotationStatus = quotation
+    ? effectiveQuotationStatus(quotation.status, quotation.expiresAt)
+    : null;
+  const quoteItems = quotation ? readQuotationLineItems(quotation.lineItems) : [];
+  const pendingCounteroffer = quotation?.counteroffers.find((offer) => offer.status === "PENDING") ?? null;
 
   return (
     <main className="py-10 sm:py-14" id="main-content">
@@ -72,10 +80,33 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
           </Card>
 
           <aside className="space-y-6">
-            <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">Pricing</h2>{snapshot?.pricing.mode === "FIXED" ? <><p className="mt-3 text-xl font-semibold">{formatGhanaCediMinor(BigInt(snapshot.pricing.totalMinor))}</p><p className="mt-2 text-sm leading-6 text-muted">Calculated from the service configuration at submission. No payment is recorded.</p></> : <><p className="mt-3 font-semibold">Quotation pending</p><p className="mt-2 text-sm leading-6 text-muted">Pricing will be confirmed after the team reviews the request. This is not a GH₵0 quotation.</p></>}</Card>
+            <Card className="p-5 sm:p-6">
+              <h2 className="text-lg font-semibold">Pricing</h2>
+              {snapshot?.pricing.mode === "FIXED" ? (
+                <><p className="mt-3 text-xl font-semibold">{formatGhanaCediMinor(BigInt(snapshot.pricing.totalMinor))}</p><Badge className="mt-3">Price confirmed</Badge><p className="mt-3 text-sm leading-6 text-muted">This authoritative price was calculated and saved at submission. Operational review is separate, production has not automatically started, and no payment is recorded.</p></>
+              ) : quotation && quotationStatus ? (
+                <div className="mt-4 space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">{quotation.publicReference} · Version {quotation.quotationVersion}</p><p className="mt-2 text-2xl font-semibold">{formatGhanaCediMinor(quotation.totalMinor)}</p></div><Badge>{quotationStatus === "ISSUED" ? "Decision required" : quotationStatus === "ACCEPTED" ? "Price agreed" : formatStatus(quotationStatus)}</Badge></div>
+                  <dl className="space-y-2 border-t pt-4 text-sm">
+                    {quoteItems.map((item, index) => <div className="flex justify-between gap-4" key={`${item.description}-${index}`}><dt className="text-muted">{item.description}{item.kind === "ADDITIONAL" ? " · Additional" : ""}</dt><dd className="font-medium">{formatGhanaCediMinor(BigInt(item.amountMinor))}</dd></div>)}
+                    <div className="flex justify-between gap-4 border-t pt-2"><dt className="text-muted">Subtotal</dt><dd className="font-medium">{formatGhanaCediMinor(quotation.subtotalMinor)}</dd></div>
+                    {quotation.expressSurchargeMinor > 0n ? <div className="flex justify-between gap-4"><dt className="text-muted">{expressSurchargeLabel(quotation.expressSurchargeBasisPoints)}</dt><dd className="font-medium">{formatGhanaCediMinor(quotation.expressSurchargeMinor)}</dd></div> : null}
+                    <div className="flex justify-between gap-4 text-base"><dt className="font-semibold">Final total</dt><dd className="font-semibold">{formatGhanaCediMinor(quotation.totalMinor)}</dd></div>
+                  </dl>
+                  <p className="text-xs leading-5 text-muted">{quotationStatus === "EXPIRED" ? "This quotation has expired and cannot be accepted." : `Valid until ${formatDate(quotation.expiresAt)}.`} No payment is recorded and acceptance does not start production automatically.</p>
+                  {quotation.customerNote ? <div className="rounded-lg border bg-surface-muted p-3 text-sm leading-6"><p className="font-medium">Management note</p><p className="mt-1 whitespace-pre-wrap text-muted">{quotation.customerNote}</p></div> : null}
+                  {pendingCounteroffer ? <div className="rounded-lg border border-accent/45 bg-accent/10 p-4"><p className="font-semibold">Counteroffer awaiting management</p><p className="mt-1 text-sm text-muted">Proposed amount: {formatGhanaCediMinor(pendingCounteroffer.amountMinor)}. This is not an approved price.</p></div> : null}
+                  {quotationStatus === "ISSUED" && !pendingCounteroffer ? <CustomerQuotationDecisionForm publicReference={job.publicReference} quotationId={quotation.id} rowVersion={quotation.rowVersion} /> : null}
+                  {quotationStatus === "ISSUED" && quotation.negotiationAllowed && !pendingCounteroffer ? <CustomerCounterofferForm publicReference={job.publicReference} quotationId={quotation.id} rowVersion={quotation.rowVersion} /> : null}
+                  {quotationStatus === "ISSUED" && !quotation.negotiationAllowed ? <p className="rounded-lg border bg-surface-muted p-3 text-xs leading-5 text-muted">Price negotiation is not enabled for this quotation. You may accept or decline the quoted amount.</p> : null}
+                </div>
+              ) : (
+                <><p className="mt-3 font-semibold">Quotation pending</p><Badge className="mt-3">Awaiting costing</Badge><p className="mt-3 text-sm leading-6 text-muted">Authorized management will review the submitted requirements and issue a quotation. This is not a GH₵0 quotation.</p></>
+              )}
+            </Card>
             <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">Status updates</h2>{job.statusHistory.length > 0 ? <ol className="mt-4 space-y-3 border-l border-border-strong pl-4">{job.statusHistory.map((entry) => <li key={entry.id}><p className="text-sm font-medium">{entry.fromStatus ? `${formatStatus(entry.fromStatus)} → ` : ""}{formatStatus(entry.toStatus)}</p><p className="mt-1 text-xs text-muted">{formatDate(entry.createdAt)}</p></li>)}</ol> : <p className="mt-3 text-sm text-muted">No status updates are available.</p>}</Card>
             <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">Reference files</h2>{job.attachments.length > 0 ? <ul className="mt-3 space-y-3">{job.attachments.map((attachment) => <li key={attachment.id}><Link className="block rounded-md border p-3 text-sm outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring" href={`/api/jobs/${encodeURIComponent(job.publicReference)}/attachments/${attachment.id}`}><span className="block truncate font-medium">{attachment.originalFilename}</span><span className="mt-1 block text-xs text-muted">{formatBytes(attachment.byteSize)} · Private download</span></Link></li>)}</ul> : <p className="mt-3 text-sm text-muted">No files were attached.</p>}</Card>
-            <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">What happens next</h2><p className="mt-2 text-sm leading-6 text-muted">The job is submitted for staff review. Quotation acceptance, detailed production tracking, messages, notifications, and pickup verification are not part of Brick 6A.</p></Card>
+            <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">What happens next</h2><p className="mt-2 text-sm leading-6 text-muted">The job remains in operational staff review. A fixed price or accepted quotation records the agreed price only; production and payment do not start automatically. Messages, external notifications, payment, and pickup verification remain future milestones.</p></Card>
           </aside>
         </div>
       </Container>

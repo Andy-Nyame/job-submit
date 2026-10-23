@@ -29,6 +29,7 @@ export async function getServicesPageData(input: {
     },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     select: {
+      allowPriceNegotiation: true,
       description: true,
       id: true,
       isActive: true,

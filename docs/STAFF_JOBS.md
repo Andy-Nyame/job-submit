@@ -24,10 +24,10 @@ and version, quantity, dimensions, materials, finishing, custom fields,
 variations, priority, customer instructions, and saved pricing treatment.
 Current Service configuration is not used to reconstruct an old request.
 
-Fixed totals and the saved Express surcharge are display-only submission
+Fixed totals and the saved Express surcharge remain immutable submission
 snapshots; they are not recalculated. Price on Request remains “Quotation
-pending” and creates no amount, `JobPricing` revision, payment, or implied
-GH₵0 quotation.
+pending” until Brick 6C management issues a separate versioned quotation. No
+missing amount is represented as GH₵0 and no payment is implied.
 
 ## Review transition and history
 
@@ -59,6 +59,6 @@ Storage paths are never returned as authorization credentials.
 
 ## Deferred
 
-Quotation issuance/acceptance, payments, staff-customer messaging,
-notifications, acceptance/decline, queueing, assignment, production statuses,
+Payments, staff-customer messaging, external notifications, queueing,
+assignment, production statuses,
 proof approval, pickup verification, and completion remain later milestones.

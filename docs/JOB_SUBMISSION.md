@@ -29,9 +29,10 @@ Fixed pricing uses exact integer-pesewa arithmetic and the authoritative saved
 starting quantity, starting price, quantity step, and additional-step price.
 Express adds exactly 40% to that base. If a fixed configuration does not apply,
 the submission falls back to Price on Request rather than showing a misleading
-total. Price on Request stores no fabricated price and the customer sees
-“Quotation pending,” never GH₵0. Brick 6A does not create a confirmed
-`JobPricing` revision, accept a quotation, or record payment.
+total. Price on Request stores no fabricated submission price and the customer
+sees “Quotation pending,” never GH₵0. Brick 6C can later attach a separately
+versioned management quotation to that canonical job; the immutable submission
+snapshot itself is never rewritten. No payment is recorded.
 
 ## Atomic persistence and duplicate protection
 
@@ -66,8 +67,9 @@ attachment is active. Responses are private, non-cacheable downloads with
 
 ## Deliberately deferred
 
-Brick 6A does not implement staff review screens, quotation communication or
-acceptance, payments, queueing, assignment, customer/staff messages,
+Brick 6A does not implement staff review screens. Brick 6B adds staff review and
+Brick 6C adds in-app quotation issuance and customer price decisions. Payments,
+queueing, assignment, customer/staff messages,
 notifications, proofs/approval, production transitions, pickup codes, stars,
 or attachment replacement. Submitted jobs use the existing operational model
 so those later bricks can build on one canonical record.

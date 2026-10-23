@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 6B
+## Current scope: Brick 6C
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -59,12 +59,20 @@ and team/worker foundation:
   concurrency, append-only history, actor/timestamp attribution, and audit logging
 - staff-only internal job notes with bounded input, authorship, and audit events;
   customer queries never select note data
+- OWNER/ADMIN manual costing for Price on Request jobs with private drafts,
+  immutable issued terms, seven-day default validity, safe withdrawal, and
+  versioned revisions
+- customer quotation acceptance/decline plus optional counteroffers only when
+  management deliberately enables negotiation for that service
+- fixed-price submissions remain immediately confirmed from their immutable
+  server-calculated snapshot and never enter manual quotation
 
-Fixed pricing uses integer pesewas and configured quantity steps; it does not
-confirm a job quotation or record payment. Price on Request performs no
-automatic calculation, and the Owner currently handles individual costing.
-Brick 6B does **not** implement pricing chat, quotation issuance/acceptance or price
-confirmation, queue claiming or assignment
+Fixed pricing uses integer pesewas and configured quantity steps and remains
+confirmed at submission. Price on Request performs no automatic calculation;
+OWNER/ADMIN issue a versioned GHS quotation that the customer must explicitly
+accept or decline. Negotiation is independently configured per manual-price
+service and defaults OFF. Brick 6C does **not** implement payment, general
+pricing chat, queue claiming or assignment
 enforcement, live messaging, notification delivery, pickup-code generation,
 payments, stars, or other later business workflows.
 
@@ -136,6 +144,7 @@ src/
     layout/              Structural presentation components
     jobs/                Customer job-submission interaction
     staff-jobs/          Staff review and internal-note interactions
+    quotations/          Management costing and customer quotation interactions
     services/            Service-management forms and interactions
     ui/                  Small reusable UI primitives
   config/                Factual product and site configuration
@@ -148,6 +157,7 @@ docs/
   DATABASE.md             Domain model, integrity, lifecycle, and transactions
   JOB_SUBMISSION.md       Brick 6A customer submission, uploads, pricing, and boundaries
   STAFF_JOBS.md           Brick 6B staff inbox, review, notes, and authorization
+  PRICING_AND_QUOTATIONS.md Brick 6C fixed/manual pricing and approval workflow
   SERVICES.md             Service catalogue, lifecycle, pricing boundary, and audit policy
   TEAM.md                 Worker invitation, access, capacity, and audit policy
 ```

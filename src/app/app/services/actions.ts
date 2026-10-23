@@ -55,6 +55,7 @@ function readServiceSettings(formData: FormData): ServiceSettingsInput | null {
   }
 
   return {
+    allowPriceNegotiation: formData.get("allowPriceNegotiation") === "on",
     defaultComplexity: readComplexity(formData),
     description: readText(formData, "description"),
     isActive: formData.get("isActive") === "on",

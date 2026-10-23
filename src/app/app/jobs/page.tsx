@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { effectiveQuotationStatus } from "@/domain/quotation-policy";
+import { isJobSubmissionSnapshot } from "@/domain/job-submission";
 import { getCustomerJobs } from "@/server/jobs/queries";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,20 @@ function formatDate(value: Date) {
 
 function formatStatus(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/^./u, (character) => character.toUpperCase());
+}
+
+function pricingStatus(job: Awaited<ReturnType<typeof getCustomerJobs>>["jobs"][number]) {
+  const snapshot = isJobSubmissionSnapshot(job.submissionSnapshot) ? job.submissionSnapshot : null;
+  if (snapshot?.pricing.mode === "FIXED") return "Price confirmed";
+  const quotation = job.quotations[0];
+  if (!quotation) return "Awaiting costing";
+  const status = effectiveQuotationStatus(quotation.status, quotation.expiresAt);
+  if (status === "ISSUED" && quotation.counteroffers.some((offer) => offer.status === "PENDING")) return "Counteroffer awaiting management";
+  if (status === "ISSUED") return "Quotation available · response required";
+  if (status === "ACCEPTED") return "Price agreed";
+  if (status === "DECLINED") return "Quotation declined";
+  if (status === "EXPIRED") return "Quotation expired";
+  return "Awaiting updated quotation";
 }
 
 export default async function CustomerJobsPage() {
@@ -45,7 +61,7 @@ export default async function CustomerJobsPage() {
               <Link className="rounded-2xl border bg-surface p-5 shadow-[0_16px_44px_-38px_var(--shadow-color)] outline-none transition-[background-color,border-color,box-shadow] hover:border-primary/45 hover:bg-primary-surface/35 focus-visible:ring-2 focus-visible:ring-ring sm:p-6" href={`/app/jobs/${encodeURIComponent(job.publicReference)}`} key={job.publicReference}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">{job.publicReference}</p><h2 className="mt-2 text-lg font-semibold">{job.title}</h2><p className="mt-2 text-sm text-muted">{job.service.name} · {formatDate(job.createdAt)}</p></div>
-                  <div className="flex flex-wrap gap-2"><Badge>{formatStatus(job.currentStatus)}</Badge><Badge>{job.priority === "EXPRESS" ? "Express" : "Regular"}</Badge></div>
+                  <div className="flex flex-wrap gap-2"><Badge>{formatStatus(job.currentStatus)}</Badge><Badge>{job.priority === "EXPRESS" ? "Express" : "Regular"}</Badge><Badge>{pricingStatus(job)}</Badge></div>
                 </div>
               </Link>
             ))}

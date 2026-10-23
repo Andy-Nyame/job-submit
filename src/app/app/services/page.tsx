@@ -125,7 +125,11 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                       </div>
                       <Badge>{service.isActive ? "ACTIVE" : "INACTIVE"}</Badge>
                     </div>
-                    <dl className="mt-4 grid gap-2 text-xs text-muted sm:grid-cols-3">
+                    <dl className="mt-4 grid gap-2 text-xs text-muted sm:grid-cols-2 lg:grid-cols-4">
+                      <div>
+                        <dt className="font-medium text-foreground">Negotiation</dt>
+                        <dd>{service.allowPriceNegotiation ? "Allowed for manual quotations" : "Off"}</dd>
+                      </div>
                       <div>
                         <dt className="font-medium text-foreground">Online</dt>
                         <dd>

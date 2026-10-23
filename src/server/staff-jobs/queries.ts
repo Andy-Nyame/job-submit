@@ -4,6 +4,7 @@ import {
   STAFF_JOB_PAGE_SIZE,
   type StaffJobInboxFilters,
 } from "@/domain/staff-job-policy";
+import { canManageQuotations } from "@/domain/quotation-policy";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/prisma";
 
@@ -19,6 +20,9 @@ function inboxWhere(
     ...(filters.priority ? { priority: filters.priority } : {}),
     ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
     ...(filters.status ? { currentStatus: filters.status } : {}),
+    ...(filters.pricing
+      ? { AND: [pricingWhere(filters.pricing)] }
+      : {}),
     ...(filters.query
       ? {
           OR: [
@@ -50,6 +54,83 @@ function inboxWhere(
   };
 }
 
+function pricingWhere(
+  pricing: NonNullable<StaffJobInboxFilters["pricing"]>,
+): Prisma.JobWhereInput {
+  const manual = {
+    submissionSnapshot: { path: ["pricing", "mode"], equals: "ON_REQUEST" },
+  } satisfies Prisma.JobWhereInput;
+  if (pricing === "FIXED_CONFIRMED") {
+    return {
+      submissionSnapshot: { path: ["pricing", "mode"], equals: "FIXED" },
+    };
+  }
+  if (pricing === "AWAITING_COSTING") {
+    return { AND: [manual, { quotations: { none: {} } }] };
+  }
+  if (pricing === "DRAFT") {
+    return { AND: [manual, { quotations: { some: { status: "DRAFT" } } }] };
+  }
+  if (pricing === "AWAITING_CUSTOMER") {
+    return {
+      AND: [
+        manual,
+        {
+          quotations: {
+            some: {
+              counteroffers: { none: { status: "PENDING" } },
+              expiresAt: { gt: new Date() },
+              status: "ISSUED",
+            },
+          },
+        },
+      ],
+    };
+  }
+  if (pricing === "COUNTEROFFER") {
+    return {
+      AND: [
+        manual,
+        {
+          quotations: {
+            some: {
+              counteroffers: { some: { status: "PENDING" } },
+              status: "ISSUED",
+            },
+          },
+        },
+      ],
+    };
+  }
+  if (pricing === "EXPIRED") {
+    return {
+      AND: [
+        manual,
+        {
+          quotations: {
+            some: {
+              OR: [
+                { status: "EXPIRED" },
+                { expiresAt: { lte: new Date() }, status: "ISSUED" },
+              ],
+            },
+          },
+        },
+      ],
+    };
+  }
+  return {
+    AND: [
+      manual,
+      {
+        quotations: {
+          some: { status: pricing === "ACCEPTED" ? "ACCEPTED" : "DECLINED" },
+        },
+      },
+    ],
+  };
+}
+
 function inboxOrderBy(filters: StaffJobInboxFilters): Prisma.JobOrderByWithRelationInput[] {
   if (filters.sort === "OLDEST") {
     return [{ createdAt: "asc" }, { id: "asc" }];
@@ -62,7 +143,10 @@ function inboxOrderBy(filters: StaffJobInboxFilters): Prisma.JobOrderByWithRelat
 
 export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
   const principal = await requireStaffJobAccess();
-  const where = inboxWhere(principal.businessId, filters);
+  const effectiveFilters = canManageQuotations(principal.role)
+    ? filters
+    : { ...filters, pricing: null };
+  const where = inboxWhere(principal.businessId, effectiveFilters);
   const [services, totalJobs] = await Promise.all([
     prisma.service.findMany({
       where: { archivedAt: null, businessId: principal.businessId },
@@ -88,6 +172,20 @@ export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
       publicReference: true,
       quantity: true,
       service: { select: { name: true } },
+      quotations: {
+        where: canManageQuotations(principal.role)
+          ? undefined
+          : { status: { not: "DRAFT" } },
+        orderBy: { quotationVersion: "desc" },
+        select: {
+          counteroffers: {
+            where: { status: "PENDING" },
+            select: { id: true },
+          },
+          expiresAt: true,
+          status: true,
+        },
+      },
       submissionSnapshot: true,
       title: true,
       updatedAt: true,
@@ -95,7 +193,7 @@ export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
   });
 
   return {
-    filters: { ...filters, page },
+    filters: { ...effectiveFilters, page },
     jobs,
     principal,
     services,
@@ -152,6 +250,11 @@ export async function getStaffJobDetail(publicReference: string) {
       priority: true,
       publicReference: true,
       quantity: true,
+      quotations: {
+        where: { status: { not: "DRAFT" } },
+        orderBy: { quotationVersion: "desc" },
+        select: { expiresAt: true, status: true },
+      },
       reviewedAt: true,
       service: { select: { id: true, name: true } },
       source: true,

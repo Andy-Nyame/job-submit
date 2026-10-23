@@ -21,6 +21,7 @@ export function CreateServiceForm() {
         includeActiveState
         prefix="create-service"
         values={{
+          allowPriceNegotiation: false,
           additionalStepPrice: "",
           artworkRequirement: "",
           customDimensionUnits: [],

@@ -88,6 +88,7 @@ async function mutateService<T>(
 }
 
 function auditSnapshot(service: {
+  allowPriceNegotiation: boolean;
   defaultComplexity: string | null;
   defaultWorkloadClass: string | null;
   description: string | null;
@@ -104,6 +105,7 @@ function auditSnapshot(service: {
   specificationConfiguration: unknown;
 }): Prisma.InputJsonObject {
   return {
+    allowPriceNegotiation: service.allowPriceNegotiation,
     defaultComplexity: service.defaultComplexity,
     defaultWorkloadClass: service.defaultWorkloadClass,
     description: service.description,
@@ -161,6 +163,7 @@ export async function createService(
 
     const service = await transaction.service.create({
       data: {
+        allowPriceNegotiation: settings.allowPriceNegotiation,
         businessId: actor.businessId,
         defaultComplexity: settings.defaultComplexity,
         defaultWorkloadClass: settings.defaultWorkloadClass,
@@ -261,6 +264,7 @@ export async function updateService(
         version: input.expectedVersion,
       },
       data: {
+        allowPriceNegotiation: updatedSettings.allowPriceNegotiation,
         defaultComplexity: updatedSettings.defaultComplexity,
         defaultWorkloadClass: updatedSettings.defaultWorkloadClass,
         description: updatedSettings.description,

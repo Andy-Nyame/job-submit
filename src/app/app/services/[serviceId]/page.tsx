@@ -79,6 +79,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
               <EditServiceForm
                 serviceId={service.id}
                 values={{
+                  allowPriceNegotiation: service.allowPriceNegotiation,
                   additionalStepPrice: pricing.fixed
                     ? formatMoneyInput(pricing.fixed.additionalStepPriceMinor)
                     : "",

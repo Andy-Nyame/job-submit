@@ -57,11 +57,13 @@ export const SERVICE_EDITABLE_FIELDS = [
   "quantityConfiguration",
   "specificationConfiguration",
   "pricingConfiguration",
+  "allowPriceNegotiation",
   "defaultComplexity",
   "defaultWorkloadClass",
 ] as const;
 
 export interface ServiceSettingsInput {
+  allowPriceNegotiation: boolean;
   defaultComplexity: ServiceComplexityDefault | null;
   description: string;
   isActive: boolean;
@@ -195,6 +197,9 @@ export function validateServiceSettings(
   }
 
   return {
+    allowPriceNegotiation:
+      pricingConfiguration.mode === "ON_REQUEST" &&
+      input.allowPriceNegotiation,
     defaultComplexity: input.defaultComplexity,
     defaultWorkloadClass: serviceDifficultyDefaults(input.defaultComplexity).workload,
     description: normalizeServiceDescription(input.description),

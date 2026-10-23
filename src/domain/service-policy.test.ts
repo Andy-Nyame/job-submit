@@ -25,6 +25,7 @@ import {
 } from "./service-seed";
 
 const validSettings: ServiceSettingsInput = {
+  allowPriceNegotiation: false,
   defaultComplexity: null,
   description: "  Public   summary  ",
   isActive: true,
@@ -80,6 +81,34 @@ test("service input is normalized while advanced settings remain optional", () =
   assert.equal(service.quantityConfiguration, null);
   assert.equal(service.specificationConfiguration, null);
   assert.equal(service.pricingConfiguration.mode, "ON_REQUEST");
+  assert.equal(service.allowPriceNegotiation, false);
+});
+
+test("negotiation is opt-in for manual pricing and cannot attach to fixed pricing", () => {
+  assert.equal(
+    validateServiceSettings({ ...validSettings, allowPriceNegotiation: true })
+      .allowPriceNegotiation,
+    true,
+  );
+  const fixed = validateServiceSettings({
+    ...validSettings,
+    allowPriceNegotiation: true,
+    pricing: {
+      additionalStepPrice: "2.00",
+      coverage: "Configured work",
+      mode: "FIXED",
+      startingPrice: "10.00",
+      startingQuantity: "5",
+    },
+    quantity: {
+      increment: "5",
+      maximum: "",
+      minimum: "5",
+      presets: "5, 10",
+      unit: "pieces",
+    },
+  });
+  assert.equal(fixed.allowPriceNegotiation, false);
 });
 
 test("display order is not part of the manager-editable contract", () => {

@@ -11,6 +11,7 @@ import { priceOnRequestConfiguration, validatePricingConfiguration } from "./ser
 import { validateQuantityConfiguration } from "./service-configuration";
 
 const blankValues: ServiceFormValues = {
+  allowPriceNegotiation: false,
   additionalStepPrice: "",
   artworkRequirement: "",
   customDimensionUnits: [],
@@ -46,6 +47,7 @@ test("simplified service form uses manager-friendly sections and hides retired c
   const markup = renderToStaticMarkup(createElement(ServiceFormFields, { includeActiveState: true, prefix: "test-service", values: blankValues }));
   for (const heading of ["Basic Information", "Quantity &amp; Pricing", "Sizes &amp; Printing Options", "Customer Information", "Job Difficulty", "Availability"]) assert.match(markup, new RegExp(heading));
   assert.match(markup, /Price on request/);
+  assert.match(markup, /Allow price negotiation/);
   assert.match(markup, /Add customer field/);
   assert.doesNotMatch(markup, /Display order|Proof Requirement|Indicative price|Estimated price|Workload class/i);
 });

@@ -69,6 +69,22 @@ enum JobPricingStatus {
   CONFIRMED
 }
 
+enum JobQuotationStatus {
+  DRAFT
+  ISSUED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  SUPERSEDED
+  WITHDRAWN
+}
+
+enum QuotationCounterofferStatus {
+  PENDING
+  DECLINED
+  SUPERSEDED
+}
+
 enum QueueOverrideDirection {
   PROMOTE
   DEMOTE
@@ -161,29 +177,31 @@ model Business {
   createdAt       DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
 
-  memberships         BusinessMembership[]
-  services            Service[]
-  workerProfiles      WorkerProfile[]
-  workerServiceSkills WorkerServiceSkill[]
-  workerInvitations   WorkerInvitation[]
-  jobs                Job[]
-  jobCustomers        JobCustomer[]
-  jobStatusHistory    JobStatusHistory[]
-  jobPricing          JobPricing[]
-  jobQueueOverrides   JobQueueOverride[]
-  jobAssignments      JobAssignment[]
-  jobAttachments      JobAttachment[]
-  customerUploads     CustomerUpload[]
-  jobMessages         JobMessage[]
-  jobNotes            JobNote[]
-  staffConversations  StaffConversation[]
-  staffParticipants   StaffConversationParticipant[]
-  staffMessages       StaffMessage[]
-  staffAttachments    StaffMessageAttachment[]
-  notifications       Notification[]
-  pickupVerifications PickupVerification[]
-  starLedger          StarLedger[]
-  auditLogs           AuditLog[]
+  memberships            BusinessMembership[]
+  services               Service[]
+  workerProfiles         WorkerProfile[]
+  workerServiceSkills    WorkerServiceSkill[]
+  workerInvitations      WorkerInvitation[]
+  jobs                   Job[]
+  jobCustomers           JobCustomer[]
+  jobStatusHistory       JobStatusHistory[]
+  jobPricing             JobPricing[]
+  jobQuotations          JobQuotation[]
+  quotationCounteroffers QuotationCounteroffer[]
+  jobQueueOverrides      JobQueueOverride[]
+  jobAssignments         JobAssignment[]
+  jobAttachments         JobAttachment[]
+  customerUploads        CustomerUpload[]
+  jobMessages            JobMessage[]
+  jobNotes               JobNote[]
+  staffConversations     StaffConversation[]
+  staffParticipants      StaffConversationParticipant[]
+  staffMessages          StaffMessage[]
+  staffAttachments       StaffMessageAttachment[]
+  notifications          Notification[]
+  pickupVerifications    PickupVerification[]
+  starLedger             StarLedger[]
+  auditLogs              AuditLog[]
 
   @@index([isActive, archivedAt])
 }
@@ -204,6 +222,8 @@ model User {
   customerUploads        CustomerUpload[]
   sentJobMessages        JobMessage[]
   auditLogs              AuditLog[]
+  quotationDecisions     JobQuotation[]          @relation("QuotationCustomerDecision")
+  quotationCounteroffers QuotationCounteroffer[] @relation("CounterofferCustomer")
 }
 
 model BusinessMembership {
@@ -227,6 +247,10 @@ model BusinessMembership {
   archivedJobs                 Job[]                          @relation("JobArchivedBy")
   jobStatusChanges             JobStatusHistory[]             @relation("StatusChangedByMembership")
   confirmedPricing             JobPricing[]                   @relation("PricingConfirmedBy")
+  quotationsCreated            JobQuotation[]                 @relation("QuotationCreatedBy")
+  quotationsIssued             JobQuotation[]                 @relation("QuotationIssuedBy")
+  quotationsWithdrawn          JobQuotation[]                 @relation("QuotationWithdrawnBy")
+  counteroffersReviewed        QuotationCounteroffer[]        @relation("CounterofferReviewedBy")
   queueOverridesCreated        JobQueueOverride[]             @relation("QueueOverrideCreatedBy")
   queueOverridesRevoked        JobQueueOverride[]             @relation("QueueOverrideRevokedBy")
   workerAssignments            JobAssignment[]                @relation("AssignedWorker")
@@ -294,6 +318,7 @@ model Service {
   indicativePriceDescription String?        @db.VarChar(500)
   isActive                   Boolean        @default(true)
   onlineSubmissionEnabled    Boolean        @default(false)
+  allowPriceNegotiation      Boolean        @default(false)
   sortOrder                  Int            @default(0)
   defaultComplexity          JobComplexity?
   defaultWorkloadClass       WorkloadClass?
@@ -399,6 +424,7 @@ model Job {
   customer            JobCustomer?
   statusHistory       JobStatusHistory[]
   pricing             JobPricing[]
+  quotations          JobQuotation[]
   queueOverrides      JobQueueOverride[]
   assignments         JobAssignment[]
   attachments         JobAttachment[]
@@ -505,6 +531,77 @@ model JobPricing {
   @@unique([jobId, revision])
   @@index([businessId, jobId, status, revision])
   @@index([businessId, confirmedAt])
+}
+
+model JobQuotation {
+  id                          String             @id @default(uuid()) @db.Uuid
+  businessId                  String             @db.Uuid
+  jobId                       String             @db.Uuid
+  publicReference             String             @unique @db.VarChar(32)
+  quotationVersion            Int
+  status                      JobQuotationStatus @default(DRAFT)
+  priority                    JobPriority
+  lineItems                   Json
+  subtotalMinor               BigInt
+  expressSurchargeBasisPoints Int                @default(0)
+  expressSurchargeMinor       BigInt
+  totalMinor                  BigInt
+  currency                    String             @db.Char(3)
+  customerNote                String?            @db.VarChar(2000)
+  negotiationAllowed          Boolean            @default(false)
+  validityDays                Int                @default(7)
+  expiresAt                   DateTime           @db.Timestamptz(3)
+  createdByMembershipId       String             @db.Uuid
+  issuedByMembershipId        String?            @db.Uuid
+  issuedAt                    DateTime?          @db.Timestamptz(3)
+  decidedByUserId             String?            @db.Uuid
+  acceptedAt                  DateTime?          @db.Timestamptz(3)
+  declinedAt                  DateTime?          @db.Timestamptz(3)
+  supersededAt                DateTime?          @db.Timestamptz(3)
+  withdrawnAt                 DateTime?          @db.Timestamptz(3)
+  withdrawnByMembershipId     String?            @db.Uuid
+  withdrawalReason            String?            @db.VarChar(500)
+  replacesQuotationId         String?            @db.Uuid
+  rowVersion                  Int                @default(1)
+  createdAt                   DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt                   DateTime           @updatedAt @db.Timestamptz(3)
+
+  business      Business                @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  job           Job                     @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  createdBy     BusinessMembership      @relation("QuotationCreatedBy", fields: [businessId, createdByMembershipId], references: [businessId, id], onDelete: Restrict)
+  issuedBy      BusinessMembership?     @relation("QuotationIssuedBy", fields: [businessId, issuedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  withdrawnBy   BusinessMembership?     @relation("QuotationWithdrawnBy", fields: [businessId, withdrawnByMembershipId], references: [businessId, id], onDelete: Restrict)
+  decidedBy     User?                   @relation("QuotationCustomerDecision", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  replaces      JobQuotation?           @relation("QuotationRevision", fields: [businessId, replacesQuotationId], references: [businessId, id], onDelete: Restrict)
+  replacements  JobQuotation[]          @relation("QuotationRevision")
+  counteroffers QuotationCounteroffer[]
+
+  @@unique([businessId, id])
+  @@unique([jobId, quotationVersion])
+  @@index([businessId, jobId, status, quotationVersion])
+  @@index([businessId, status, expiresAt])
+}
+
+model QuotationCounteroffer {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  businessId             String                      @db.Uuid
+  quotationId            String                      @db.Uuid
+  amountMinor            BigInt
+  customerNote           String?                     @db.VarChar(1000)
+  status                 QuotationCounterofferStatus @default(PENDING)
+  submittedByUserId      String                      @db.Uuid
+  reviewedByMembershipId String?                     @db.Uuid
+  respondedAt            DateTime?                   @db.Timestamptz(3)
+  createdAt              DateTime                    @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime                    @updatedAt @db.Timestamptz(3)
+
+  business    Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  quotation   JobQuotation        @relation(fields: [businessId, quotationId], references: [businessId, id], onDelete: Restrict)
+  submittedBy User                @relation("CounterofferCustomer", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  reviewedBy  BusinessMembership? @relation("CounterofferReviewedBy", fields: [businessId, reviewedByMembershipId], references: [businessId, id], onDelete: Restrict)
+
+  @@unique([businessId, id])
+  @@index([businessId, quotationId, status, createdAt])
 }
 
 model JobQueueOverride {

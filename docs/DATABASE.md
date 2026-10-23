@@ -44,6 +44,10 @@ integer-pesewa strings inside JSON and validated before persistence. The fixed
 formula uses the saved starting quantity, saved quantity step, starting price,
 and additional-step price; mixed specifications are not eligible.
 
+`allowPriceNegotiation` is a separate service setting with a database default
+of `false`. A database check permits it only for Price on Request configuration;
+the migration leaves every existing service disabled.
+
 Brick 5.1 indicative price columns remain constrained and preserved for
 historical compatibility, but ordinary management and public queries do not
 read them. No migration converts ranges to fixed prices. The existing
@@ -93,6 +97,14 @@ staff actors, reasons, or notes.
 ## Priority, pricing, and queue
 
 Priority is `REGULAR` or `EXPRESS`. Express means priority handling, never guaranteed instant completion. Future job-specific confirmed prices use integer minor units (`BigInt`), never floating-point arithmetic. A confirmed Express snapshot is exactly the individually confirmed base price plus a 4,000-basis-point (40%) surcharge, rounded half up to the nearest minor unit. Confirmed Regular pricing has zero surcharge. Database checks enforce the calculation and confirmed pricing rows become immutable; a commercial change creates a new revision. Service fixed pricing can propose an eligible base total, but it does not create or confirm a `JobPricing` record by itself.
+
+Brick 6C adds `JobQuotation` and `QuotationCounteroffer` specifically for manual
+Price on Request costing. Quote amounts use integer minor units, itemized JSON
+validated before persistence, business-scoped relationships, one draft and one
+actionable issued version per job, and one pending counteroffer per quote.
+PostgreSQL checks enforce the 40% Express calculation once. Triggers reject
+deletion, illegal state changes, and changes to issued financial terms. Quote
+versions and append-only `AuditLog` entries preserve the commercial history.
 
 `queueEnteredAt`, not `createdAt`, is the FIFO foundation. Future selection logic will order eligible Express and Regular groups explicitly, expose old Regular work for anti-starvation handling, and exclude paused/customer-waiting work. Re-entry policy must explicitly preserve or replace queue time. `JobQueueOverride` requires a reason; a partial unique index permits one live override per job, and future service code must add an `AuditLog` entry atomically.
 

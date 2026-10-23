@@ -26,6 +26,7 @@ test("staff inbox filters normalize supported values", () => {
   assert.deepEqual(
     parseStaffJobInboxFilters({
       page: "2",
+      pricing: "counteroffer",
       priority: "express",
       q: "  JS-2026   Customer  ",
       service: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -34,6 +35,7 @@ test("staff inbox filters normalize supported values", () => {
     }),
     {
       page: 2,
+      pricing: "COUNTEROFFER",
       priority: "EXPRESS",
       query: "JS-2026 Customer",
       serviceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -46,6 +48,7 @@ test("staff inbox filters normalize supported values", () => {
 test("empty filters use bounded defaults", () => {
   assert.deepEqual(parseStaffJobInboxFilters({}), {
     page: 1,
+    pricing: null,
     priority: null,
     query: "",
     serviceId: null,
@@ -58,6 +61,7 @@ test("malformed, duplicate, and excessive filters fail closed", () => {
   for (const input of [
     { page: "0" },
     { priority: "IMMEDIATE" },
+    { pricing: "FREE" },
     { q: ["one", "two"] },
     { q: "x".repeat(101) },
     { service: "not-a-uuid" },
