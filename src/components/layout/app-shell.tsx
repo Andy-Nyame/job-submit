@@ -16,7 +16,7 @@ export function AppShell({
 }) {
   return (
     <div className="min-h-dvh">
-      <header className="border-b bg-background/95">
+      <header className="border-b bg-surface/95 shadow-[0_12px_32px_-30px_var(--shadow-color)] backdrop-blur-xl">
         <Container className="flex min-h-20 flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-5">
             <Link

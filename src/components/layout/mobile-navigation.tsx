@@ -59,7 +59,7 @@ export function MobileNavigation({
         aria-controls="mobile-navigation"
         aria-expanded={open}
         aria-label={open ? "Close navigation menu" : "Open navigation menu"}
-        className="grid size-11 place-items-center rounded-full border bg-surface text-foreground outline-none transition-colors hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="grid size-11 place-items-center rounded-full border border-border-strong bg-surface text-foreground outline-none transition-colors hover:border-primary/50 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
@@ -90,7 +90,7 @@ export function MobileNavigation({
         ref={menuRef}
         aria-label="Mobile navigation"
         className={cn(
-          "absolute inset-x-0 top-full border-b bg-background px-5 py-5 shadow-[0_18px_35px_-30px_rgba(0,0,0,0.45)] sm:px-8",
+          "absolute inset-x-0 top-full border-b bg-surface px-5 py-5 shadow-[0_18px_42px_-30px_var(--shadow-color)] sm:px-8",
           open ? "block" : "hidden",
         )}
         id="mobile-navigation"
@@ -114,7 +114,7 @@ export function MobileNavigation({
           <div className="my-3 border-t" />
           {isAuthenticated ? (
             <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_8px_22px_-16px_var(--shadow-color)] outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               href="/app"
               onClick={closeMenu}
             >
@@ -123,14 +123,14 @@ export function MobileNavigation({
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border bg-surface px-5 text-sm font-semibold outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong bg-surface px-5 text-sm font-semibold outline-none transition-colors hover:border-primary/45 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 href="/login"
                 onClick={closeMenu}
               >
                 Sign In
               </Link>
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_8px_22px_-16px_var(--shadow-color)] outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 href="/signup"
                 onClick={closeMenu}
               >

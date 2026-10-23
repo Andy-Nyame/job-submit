@@ -19,7 +19,7 @@ export function SiteHeader({
   isAuthenticated: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b bg-surface/92 shadow-[0_12px_32px_-30px_var(--shadow-color)] backdrop-blur-xl">
       <Container className="flex min-h-20 items-center justify-between gap-6 py-3">
         <Link
           href="/"
@@ -57,7 +57,7 @@ export function SiteHeader({
 
           {isAuthenticated ? (
             <Link
-              className="inline-flex min-h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="inline-flex min-h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_8px_22px_-16px_var(--shadow-color)] outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               href="/app"
             >
               Open workspace
@@ -71,7 +71,7 @@ export function SiteHeader({
                 Sign In
               </Link>
               <Link
-                className="inline-flex min-h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex min-h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_8px_22px_-16px_var(--shadow-color)] outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 href="/signup"
               >
                 Get Started

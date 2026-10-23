@@ -31,7 +31,7 @@ export default async function CustomerJobsPage() {
             <h1 className="mt-2 text-3xl font-semibold tracking-tight">My jobs</h1>
             <p className="mt-3 text-sm leading-6 text-muted">Requests submitted from your account. Production tracking and job messaging will expand in later bricks.</p>
           </div>
-          <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs/new">Submit a job</Link>
+          <Link className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs/new">Submit a job</Link>
         </header>
 
         {jobs.length === 0 ? (
@@ -42,7 +42,7 @@ export default async function CustomerJobsPage() {
         ) : (
           <div className="mt-8 grid gap-4">
             {jobs.map((job) => (
-              <Link className="rounded-xl border bg-surface p-5 outline-none transition-colors hover:border-accent focus-visible:ring-2 focus-visible:ring-ring sm:p-6" href={`/app/jobs/${encodeURIComponent(job.publicReference)}`} key={job.publicReference}>
+              <Link className="rounded-2xl border bg-surface p-5 shadow-[0_16px_44px_-38px_var(--shadow-color)] outline-none transition-[background-color,border-color,box-shadow] hover:border-primary/45 hover:bg-primary-surface/35 focus-visible:ring-2 focus-visible:ring-ring sm:p-6" href={`/app/jobs/${encodeURIComponent(job.publicReference)}`} key={job.publicReference}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted">{job.publicReference}</p><h2 className="mt-2 text-lg font-semibold">{job.title}</h2><p className="mt-2 text-sm text-muted">{job.service.name} · {formatDate(job.createdAt)}</p></div>
                   <div className="flex flex-wrap gap-2"><Badge>{formatStatus(job.currentStatus)}</Badge><Badge>{job.priority === "EXPRESS" ? "Express" : "Regular"}</Badge></div>

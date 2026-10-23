@@ -8,8 +8,8 @@ import {
 } from "./theme";
 
 const themeColors = {
-  dark: "#24272d",
-  light: "#f7f8fa",
+  dark: "#181c23",
+  light: "#f5f7fb",
 } as const;
 
 let browserThemeStore: ThemeStore | undefined;

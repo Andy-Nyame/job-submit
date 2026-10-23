@@ -160,7 +160,7 @@ export const themeInitializationScript = `(() => {
   root.dataset.theme = resolved;
   root.style.colorScheme = resolved;
   document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
-    meta.setAttribute("content", resolved === "dark" ? "#24272d" : "#f7f8fa");
+    meta.setAttribute("content", resolved === "dark" ? "#181c23" : "#f5f7fb");
   });
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-changing")));
 })();`;

@@ -102,7 +102,7 @@ export function RedeemInvitationPanel({
       <div>
         <FormMessage message={state.message} status={state.status} />
         <Link
-          className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md border border-primary bg-primary px-5 text-sm font-medium text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg border border-primary bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:border-primary-hover hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           href="/app/profile"
           onClick={() => {
             window.sessionStorage.removeItem(SESSION_KEY);

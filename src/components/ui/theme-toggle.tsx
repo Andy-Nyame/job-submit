@@ -75,7 +75,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       aria-label={label}
       className={cn(
-        "grid size-11 shrink-0 place-items-center rounded-full border bg-surface text-foreground outline-none transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "grid size-11 shrink-0 place-items-center rounded-full border border-border-strong bg-surface text-foreground outline-none transition-colors hover:border-primary/50 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className,
       )}
       onClick={toggleBrowserTheme}

@@ -62,8 +62,8 @@ export default async function ApplicationPage() {
                 job details from this workspace.
               </p>
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs/new">Submit a job</Link>
-                <Link className="inline-flex min-h-11 items-center justify-center rounded-md border px-4 text-sm font-semibold outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs">View my jobs</Link>
+                <Link className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs/new">Submit a job</Link>
+                <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-semibold outline-none transition-colors hover:border-primary/45 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs">View my jobs</Link>
               </div>
             </div>
           ) : (

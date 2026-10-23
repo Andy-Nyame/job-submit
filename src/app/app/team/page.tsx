@@ -112,7 +112,7 @@ export default async function TeamPage({ searchParams }: TeamPageProps) {
                   </Select>
                 </div>
                 <button
-                  className="min-h-11 rounded-md border bg-primary px-4 text-sm font-medium text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="min-h-11 rounded-lg border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:border-primary-hover hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   type="submit"
                 >
                   Apply

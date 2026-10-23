@@ -16,13 +16,17 @@ layouts into Client Components.
 
 ## Palette and token conventions
 
-Light uses `#F7F8FA` for the page, `#FFFFFF` for cards, `#24272D` for primary
-text, and `#B58A35` for gold accents. Dark uses `#24272D` for the page,
-`#343840` for cards, `#3B4048`–`#484D55` for inset and hover surfaces,
-`#F4F4F5` for primary text, and `#D2A64B` for gold accents.
+JobSubmit's identity is Royal Blue, Metallic Gold, and Soft Charcoal. Light
+uses `#F5F7FB` for the page, `#FFFFFF` for cards, `#262B34` for primary text,
+`#2452A2` for primary actions, and `#C49A45` for restrained gold accents. Dark
+uses `#181C23` for the page, `#252B35`–`#394351` for cards and interactive
+surfaces, `#F4F7FB` for primary text, an accessible `#77A5F2` blue for primary
+actions, and `#D5AD5B` for gold accents.
 
 Future UI must consume the semantic variables mapped in `globals.css`, such as
 `background`, `foreground`, `surface`, `surface-muted`, `surface-hover`,
-`input`, `border`, `muted`, `primary`, `accent`, `disabled`, `destructive`, and
-`success`. Add or refine a semantic token when a new visual role is needed;
-do not place theme palette values in individual components.
+`input`, `input-border`, `border`, `muted`, `primary`, `primary-hover`,
+`primary-surface`, `accent`, `disabled`, `destructive`, and `success`. Gold is
+an accent rather than the default action colour. Add or refine a semantic token
+when a new visual role is needed; do not place theme palette values in
+individual components.

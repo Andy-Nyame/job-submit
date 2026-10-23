@@ -8,6 +8,7 @@ import {
   signupWithPassword,
 } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
+import { fieldClassName } from "@/components/ui/form-controls";
 import {
   INITIAL_AUTH_ACTION_STATE,
   type AuthActionState,
@@ -18,9 +19,6 @@ interface PasswordAuthFormProps {
   mode: "login" | "signup";
   nextPath?: string;
 }
-
-const inputClassName =
-  "min-h-11 w-full rounded-md border bg-input px-3 text-sm text-foreground outline-none transition-[background-color,box-shadow] placeholder:text-muted/75 hover:border-border-strong focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-foreground";
 
 function FieldError({ message }: { message?: string }) {
   return message ? (
@@ -46,7 +44,7 @@ export function PasswordAuthForm({ mode, nextPath }: PasswordAuthFormProps) {
             aria-describedby={state.fieldErrors?.name ? "name-error" : undefined}
             aria-invalid={Boolean(state.fieldErrors?.name)}
             autoComplete="name"
-            className={`${inputClassName} mt-2`}
+            className={`${fieldClassName} mt-2`}
             disabled={pending}
             id="name"
             maxLength={160}
@@ -69,7 +67,7 @@ export function PasswordAuthForm({ mode, nextPath }: PasswordAuthFormProps) {
           aria-invalid={Boolean(state.fieldErrors?.email)}
           autoCapitalize="none"
           autoComplete="email"
-          className={`${inputClassName} mt-2`}
+          className={`${fieldClassName} mt-2`}
           disabled={pending}
           id="email"
           maxLength={320}
@@ -93,7 +91,7 @@ export function PasswordAuthForm({ mode, nextPath }: PasswordAuthFormProps) {
           }
           aria-invalid={Boolean(state.fieldErrors?.password)}
           autoComplete={mode === "login" ? "current-password" : "new-password"}
-          className={`${inputClassName} mt-2`}
+          className={`${fieldClassName} mt-2`}
           disabled={pending}
           id="password"
           minLength={8}

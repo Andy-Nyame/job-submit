@@ -145,7 +145,12 @@ The generated Prisma client lives under `src/generated/prisma` and is intentiona
 
 ## Visual and theme direction
 
-The visual foundation remains premium, modern, clean, and restrained. Black and white carry the interface; gold (`#D4AF37`) and goldenrod (`#DAA520`) are deliberate accents. Components consume semantic tokens rather than scattering raw brand colors. Final role-specific theme controls remain deferred.
+The visual foundation is premium, modern, clean, and restrained. Royal Blue
+drives primary actions, Metallic Gold provides selective accents, and Soft
+Charcoal anchors typography and dark surfaces. Accessible light and dark
+palettes are centralized through semantic tokens rather than scattered raw
+brand colours. The shared theme control preserves the System default and lets
+visitors choose the opposite applied mode without a hydration flash.
 
 ## Project separation
 

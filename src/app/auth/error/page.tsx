@@ -28,7 +28,7 @@ export default async function AuthErrorPage({
   return (
     <AuthShell description={message} heading="Sign-in problem">
       <Link
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-border bg-surface px-5 text-sm font-medium text-foreground outline-none transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border-strong bg-surface px-5 text-sm font-semibold text-foreground outline-none transition-colors hover:border-primary/45 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         href="/login"
       >
         Return to sign in

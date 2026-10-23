@@ -121,10 +121,10 @@ const frequentlyAskedQuestions = [
 ] as const;
 
 const primaryLinkClassName =
-  "inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground outline-none transition-[opacity,transform] hover:-translate-y-0.5 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_-16px_var(--shadow-color)] outline-none transition-[background-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const secondaryLinkClassName =
-  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full border bg-surface px-6 text-sm font-semibold outline-none transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-border-strong bg-surface px-6 text-sm font-semibold outline-none transition-[background-color,border-color,color,transform] hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function ArrowIcon() {
   return (
@@ -482,7 +482,7 @@ export default async function HomePage() {
                     <p className="mt-6 text-xl font-semibold tracking-tight">
                       Verified contact options are coming.
                     </p>
-                    <p className="mt-3 text-sm leading-6 text-primary-foreground/65">
+                    <p className="mt-3 text-sm leading-6 text-primary-foreground/80">
                       They will be published here only after the business confirms
                       the correct public channel.
                     </p>
