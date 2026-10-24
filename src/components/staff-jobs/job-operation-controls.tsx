@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import {
   assignJobAction,
   changeProductionStatusAction,
+  clearDesignDependencyAction,
   INITIAL_STAFF_JOB_ACTION_STATE,
   overrideQueueAction,
   reassignJobAction,
@@ -48,6 +49,20 @@ export function ReleaseJobForm({ publicReference, version }: { publicReference: 
       <HiddenJob publicReference={publicReference} version={version} />
       <p className="text-sm leading-6 text-muted">This confirms operational approval. It does not start production or record payment.</p>
       <Button disabled={pending} type="submit">{pending ? "Releasing…" : "Release to production queue"}</Button>
+      <Feedback state={state} />
+    </form>
+  );
+}
+
+export function ClearDesignDependencyForm({ publicReference, version }: { publicReference: string; version: number }) {
+  const [state, action, pending] = useActionState(clearDesignDependencyAction, INITIAL_STAFF_JOB_ACTION_STATE);
+  return (
+    <form action={action} className="space-y-3 rounded-xl border border-accent/40 bg-accent/10 p-4">
+      <HiddenJob publicReference={publicReference} version={version} />
+      <p className="text-sm leading-6">Confirm only after the linked design is complete and its use for printing has been authorized.</p>
+      <label className="text-sm font-medium" htmlFor="dependency-reason">Approval note</label>
+      <Textarea id="dependency-reason" maxLength={500} minLength={5} name="reason" required />
+      <Button disabled={pending} type="submit" variant="outline">{pending ? "Recording…" : "Confirm design is ready"}</Button>
       <Feedback state={state} />
     </form>
   );

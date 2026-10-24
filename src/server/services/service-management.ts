@@ -9,6 +9,11 @@ import {
   type ServiceSettingsInput,
   validateServiceSettings,
 } from "@/domain/service-policy";
+import {
+  profilesForService,
+  SERVICE_BLUEPRINTS,
+  type ServiceConfigurationProfile,
+} from "@/domain/service-blueprints";
 import { Prisma } from "@/generated/prisma/client";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { prisma } from "@/server/db/prisma";
@@ -305,6 +310,105 @@ export async function updateService(
     return transaction.service.findFirstOrThrow({
       where: { businessId: actor.businessId, id: current.id },
     });
+  });
+}
+
+export async function updateServiceFromProfile(
+  actor: ApplicationPrincipal,
+  input: {
+    allowPriceNegotiation: boolean;
+    configurationProfile: ServiceConfigurationProfile;
+    description: string;
+    expectedVersion: number;
+    name: string;
+    onlineSubmissionEnabled: boolean;
+    serviceId: string;
+  },
+) {
+  if (!input.serviceId || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 1) {
+    throw new ServiceOperationError("VALIDATION");
+  }
+
+  return mutateService(actor, async (transaction) => {
+    const current = await transaction.service.findFirst({
+      where: { archivedAt: null, businessId: actor.businessId, id: input.serviceId },
+    });
+    if (!current) throw new ServiceOperationError("NOT_FOUND");
+    if (current.version !== input.expectedVersion) throw new ServiceOperationError("STALE_UPDATE");
+    if (!profilesForService(current.slug).includes(input.configurationProfile)) {
+      throw new ServiceOperationError("INVALID_PRICING_CONFIGURATION");
+    }
+
+    const blueprint = SERVICE_BLUEPRINTS[input.configurationProfile];
+    const settings = validateInput({
+      allowPriceNegotiation: input.allowPriceNegotiation,
+      defaultComplexity: current.defaultComplexity,
+      description: input.description,
+      isActive: current.isActive,
+      name: input.name,
+      onlineSubmissionEnabled: input.onlineSubmissionEnabled,
+      pricing: { additionalStepPrice: "", coverage: "", mode: "ON_REQUEST", startingPrice: "", startingQuantity: "" },
+      quantity: { increment: "", maximum: "", minimum: "", presets: "", unit: "" },
+      specification: {
+        artworkRequirement: "",
+        customDimensionUnits: [],
+        customFields: [],
+        customInstructions: "",
+        finishingOptions: "",
+        finishingRequired: false,
+        fixedSizeHeight: "",
+        fixedSizeUnit: "",
+        fixedSizeWidth: "",
+        materialOptions: "",
+        materialsRequired: false,
+        sizeMode: "NO_SIZE",
+        standardSizeOptions: "",
+        variationsEnabled: false,
+      },
+    });
+    settings.pricingConfiguration = blueprint.pricing;
+    settings.quantityConfiguration = blueprint.quantity;
+    settings.specificationConfiguration = blueprint.specification;
+    settings.allowPriceNegotiation =
+      blueprint.pricing.mode === "ON_REQUEST" && input.allowPriceNegotiation;
+
+    const conflict = await transaction.service.findFirst({
+      where: { businessId: actor.businessId, id: { not: current.id }, name: { equals: settings.name, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (conflict) throw new ServiceOperationError("DUPLICATE_SERVICE");
+
+    const before = auditSnapshot(current);
+    const afterSettings = { ...current, ...settings, isActive: current.isActive, sortOrder: current.sortOrder };
+    const after = auditSnapshot(afterSettings);
+    if (JSON.stringify(before) === JSON.stringify(after)) return current;
+
+    const updated = await transaction.service.updateMany({
+      where: { archivedAt: null, businessId: actor.businessId, id: current.id, version: input.expectedVersion },
+      data: {
+        allowPriceNegotiation: afterSettings.allowPriceNegotiation,
+        description: afterSettings.description,
+        name: afterSettings.name,
+        onlineSubmissionEnabled: afterSettings.onlineSubmissionEnabled,
+        pricingConfiguration: jsonDatabaseValue(afterSettings.pricingConfiguration),
+        quantityConfiguration: jsonDatabaseValue(afterSettings.quantityConfiguration),
+        specificationConfiguration: jsonDatabaseValue(afterSettings.specificationConfiguration),
+        version: { increment: 1 },
+      },
+    });
+    if (updated.count !== 1) throw new ServiceOperationError("STALE_UPDATE");
+    await transaction.auditLog.create({
+      data: {
+        action: SERVICE_AUDIT_ACTIONS.UPDATED,
+        actorMembershipId: actor.membershipId,
+        actorUserId: actor.userId,
+        businessId: actor.businessId,
+        metadata: { after, before, configurationProfile: input.configurationProfile },
+        targetId: current.id,
+        targetType: "Service",
+      },
+    });
+    return transaction.service.findFirstOrThrow({ where: { businessId: actor.businessId, id: current.id } });
   });
 }
 

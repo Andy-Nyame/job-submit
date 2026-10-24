@@ -12,6 +12,10 @@ import {
   calculateFixedPrice,
   readPricingConfiguration,
 } from "./service-pricing";
+import {
+  calculateStrategyPrice,
+  readStrategyPricingConfiguration,
+} from "./service-pricing-strategies";
 import { calculateExpressPrice } from "./job-rules";
 import {
   isUuid,
@@ -50,6 +54,7 @@ export interface SubmissionService {
 export interface JobSubmissionPayload {
   attachments: CustomerUploadReference[];
   idempotencyKey: string;
+  linkedDesignServiceId?: string;
   instructions: string;
   priority: "EXPRESS" | "REGULAR";
   quantity: string;
@@ -77,6 +82,7 @@ export interface JobSubmissionPayload {
 export type SubmissionPricingSnapshot =
   | {
       basePriceMinor: string;
+      calculation?: Record<string, number | string>;
       configuredMode: "FIXED";
       coverage: string;
       currency: "GHS";
@@ -220,7 +226,7 @@ function validatePayloadShape(payload: unknown): asserts payload is JobSubmissio
   if (containsPricingKey(payload)) {
     throw new JobSubmissionValidationError("TAMPERED_PRICE");
   }
-  if (!hasOnlyKeys(payload, ["attachments", "idempotencyKey", "instructions", "priority", "quantity", "selection", "serviceId", "title"])) {
+  if (!hasOnlyKeys(payload, ["attachments", "idempotencyKey", "instructions", "linkedDesignServiceId", "priority", "quantity", "selection", "serviceId", "title"])) {
     throw new JobSubmissionValidationError("MALFORMED_PAYLOAD");
   }
   if (
@@ -233,6 +239,9 @@ function validatePayloadShape(payload: unknown): asserts payload is JobSubmissio
     !Array.isArray(payload.attachments) ||
     !isRecord(payload.selection)
   ) {
+    throw new JobSubmissionValidationError("MALFORMED_PAYLOAD");
+  }
+  if (payload.linkedDesignServiceId !== undefined && typeof payload.linkedDesignServiceId !== "string") {
     throw new JobSubmissionValidationError("MALFORMED_PAYLOAD");
   }
   const selection = payload.selection;
@@ -343,7 +352,8 @@ export function validateJobSubmission(
 
   if (
     specification?.artworkRequirement === "CUSTOMER_PROVIDED" &&
-    attachments.length === 0
+    attachments.length === 0 &&
+    !payload.linkedDesignServiceId
   ) {
     throw new JobSubmissionValidationError("ATTACHMENTS");
   }
@@ -395,7 +405,7 @@ export function validateJobSubmission(
     throw new JobSubmissionValidationError("VARIATIONS");
   }
 
-  const jobFields = (() => {
+  let jobFields = (() => {
     try {
       return validateCustomerFieldValues(
         specification?.customerFields ?? [],
@@ -406,6 +416,17 @@ export function validateJobSubmission(
       throw new JobSubmissionValidationError("CUSTOM_FIELDS");
     }
   })();
+
+  const strategyConfiguration = readStrategyPricingConfiguration(
+    service.pricingConfiguration,
+  );
+  if (strategyConfiguration?.profile === "CONTAINER_NUMBER") {
+    const number = jobFields["container-number"]?.trim().toUpperCase() ?? "";
+    if (!/^[A-Z]\d{3}$/u.test(number)) {
+      throw new JobSubmissionValidationError("CUSTOM_FIELDS");
+    }
+    jobFields = { ...jobFields, "container-number": number };
+  }
 
   const material = validateChoice(
     payload.selection.material,
@@ -463,14 +484,36 @@ export function validateJobSubmission(
     throw new JobSubmissionValidationError("SIZE");
   }
 
+  const strategyPrice = quantity === null || !strategyConfiguration
+    ? null
+    : calculateStrategyPrice(strategyConfiguration, {
+        jobFields,
+        quantity,
+        size,
+      });
+  if (strategyConfiguration && !strategyPrice) {
+    const irregularLabel =
+      jobFields["sticker-product"] === "Labels" &&
+      jobFields["label-shape"] === "Custom / irregular";
+    const missingLabelShape =
+      jobFields["sticker-product"] === "Labels" &&
+      !jobFields["label-shape"];
+    if (!irregularLabel) {
+      throw new JobSubmissionValidationError(
+        strategyConfiguration.profile === "CONTAINER_NUMBER" || missingLabelShape
+          ? "CUSTOM_FIELDS"
+          : "QUANTITY",
+      );
+    }
+  }
   const basePrice = quantity === null
     ? null
-    : calculateFixedPrice(pricingConfiguration, quantityConfiguration, {
+    : strategyPrice?.basePriceMinor ?? calculateFixedPrice(pricingConfiguration, quantityConfiguration, {
         hasMixedSpecifications,
         totalQuantity: quantity,
       });
   let pricing: SubmissionPricingSnapshot;
-  if (pricingConfiguration.mode === "FIXED" && pricingConfiguration.fixed && basePrice !== null) {
+  if (pricingConfiguration.mode === "FIXED" && basePrice !== null) {
     const calculated = payload.priority === "EXPRESS"
       ? calculateExpressPrice(basePrice)
       : {
@@ -481,8 +524,9 @@ export function validateJobSubmission(
         };
     pricing = {
       basePriceMinor: calculated.basePriceMinor.toString(),
+      ...(strategyPrice ? { calculation: strategyPrice.internalCalculation } : {}),
       configuredMode: "FIXED",
-      coverage: pricingConfiguration.fixed.coverage,
+      coverage: strategyPrice?.coverage ?? pricingConfiguration.fixed?.coverage ?? "Configured service requirements",
       currency: "GHS",
       expressSurchargeBasisPoints: Number(calculated.surchargeBasisPoints),
       expressSurchargeMinor: calculated.surchargeMinor.toString(),

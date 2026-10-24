@@ -201,6 +201,8 @@ export async function releaseJobForProduction(
       where: { archivedAt: null, businessId: actor.businessId, publicReference },
       select: {
         currentStatus: true,
+        dependencyClearedAt: true,
+        dependsOnJobId: true,
         id: true,
         quotations: { where: { status: "ACCEPTED" }, select: { id: true }, take: 1 },
         submissionSnapshot: true,
@@ -210,6 +212,9 @@ export async function releaseJobForProduction(
     if (!job) throw new StaffJobOperationError("NOT_FOUND");
     if (job.version !== input.expectedVersion) throw new StaffJobOperationError("STALE_UPDATE");
     if (job.currentStatus !== "UNDER_REVIEW") throw new StaffJobOperationError("INVALID_TRANSITION");
+    if (job.dependsOnJobId && !job.dependencyClearedAt) {
+      throw new StaffJobOperationError("DEPENDENCY_PENDING");
+    }
     if (!hasConfirmedOperationalPrice({
       acceptedQuotationExists: job.quotations.length > 0,
       submissionSnapshot: job.submissionSnapshot,
@@ -250,6 +255,35 @@ export async function releaseJobForProduction(
         targetId: job.id,
         targetType: "Job",
       },
+    });
+    return { version: input.expectedVersion + 1 };
+  });
+}
+
+export async function clearDesignDependency(
+  actor: ApplicationPrincipal,
+  input: { expectedVersion: number; publicReference: string; reason: string },
+) {
+  try { assertCanManageOperations(actor.role); } catch (error) { policyError(error); }
+  let reason: string;
+  try { reason = normalizeOperationReason(input.reason); } catch (error) { policyError(error); }
+  return transactionWithRetry(async (transaction) => {
+    await ensureActiveStaff(transaction, actor);
+    const job = await transaction.job.findFirst({
+      where: { archivedAt: null, businessId: actor.businessId, publicReference: reference(input.publicReference) },
+      select: { dependencyClearedAt: true, dependsOnJobId: true, id: true, version: true },
+    });
+    if (!job) throw new StaffJobOperationError("NOT_FOUND");
+    if (job.version !== input.expectedVersion) throw new StaffJobOperationError("STALE_UPDATE");
+    if (!job.dependsOnJobId || job.dependencyClearedAt) throw new StaffJobOperationError("INVALID_TRANSITION");
+    const now = new Date();
+    const updated = await transaction.job.updateMany({
+      where: { businessId: actor.businessId, dependencyClearedAt: null, dependsOnJobId: job.dependsOnJobId, id: job.id, version: input.expectedVersion },
+      data: { dependencyClearedAt: now, dependencyClearedByMembershipId: actor.membershipId, version: { increment: 1 } },
+    });
+    if (updated.count !== 1) throw new StaffJobOperationError("STALE_UPDATE");
+    await transaction.auditLog.create({
+      data: { action: "job.design_dependency_cleared", actorMembershipId: actor.membershipId, actorUserId: actor.userId, businessId: actor.businessId, metadata: { prerequisiteJobId: job.dependsOnJobId, reason }, targetId: job.id, targetType: "Job" },
     });
     return { version: input.expectedVersion + 1 };
   });

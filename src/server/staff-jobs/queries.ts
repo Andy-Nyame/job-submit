@@ -284,6 +284,13 @@ export async function getStaffJobDetail(publicReference: string) {
       },
       createdAt: true,
       currentStatus: true,
+      dependencyClearedAt: true,
+      dependsOn: {
+        select: { publicReference: true, service: { select: { name: true } } },
+      },
+      dependentJobs: {
+        select: { publicReference: true, service: { select: { name: true } } },
+      },
       customer: {
         select: { displayName: true, email: true, phone: true },
       },
@@ -352,6 +359,7 @@ export async function getStaffJobDetail(publicReference: string) {
         },
       },
       submissionSnapshot: true,
+      submissionGroupReference: true,
       title: true,
       updatedAt: true,
       version: true,

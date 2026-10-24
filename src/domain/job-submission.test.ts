@@ -6,6 +6,7 @@ import {
   validateSpecificationConfiguration,
 } from "./service-configuration";
 import { validatePricingConfiguration } from "./service-pricing";
+import { SERVICE_BLUEPRINTS } from "./service-blueprints";
 import {
   assertCanSubmitCustomerJob,
   JobSubmissionValidationError,
@@ -276,4 +277,48 @@ test("duplicate upload references and malformed idempotency keys are rejected", 
   assert.throws(() =>
     validateJobSubmission(payload({ idempotencyKey: "not-a-uuid" }), service()),
   );
+});
+
+test("approved For Sale pricing is server-authoritative and preserves printed leading zeros", () => {
+  const blueprint = SERVICE_BLUEPRINTS.FOR_SALE_STICKERS;
+  const result = validateJobSubmission(
+    payload({
+      quantity: "4",
+      selection: {
+        ...payload().selection,
+        jobFields: {
+          "printed-contact-1": "0240012345",
+          "printed-contact-count": "1",
+        },
+        size: { height: "", kind: "PRESET", option: "A4", unit: "", width: "" },
+      },
+    }),
+    service({
+      pricingConfiguration: blueprint.pricing,
+      quantityConfiguration: blueprint.quantity,
+      specificationConfiguration: blueprint.specification,
+    }),
+  );
+  assert.equal(result.snapshot.pricing.mode, "FIXED");
+  assert.equal(result.snapshot.pricing.mode === "FIXED" && result.snapshot.pricing.totalMinor, "4000");
+  assert.equal(result.snapshot.request.jobFields["printed-contact-1"], "0240012345");
+});
+
+test("linked Designing safely replaces the initial finished-artwork requirement", () => {
+  const blueprint = SERVICE_BLUEPRINTS.BANNER_PRINTING;
+  const configured = service({
+    pricingConfiguration: blueprint.pricing,
+    quantityConfiguration: blueprint.quantity,
+    specificationConfiguration: blueprint.specification,
+  });
+  const request = payload({
+    linkedDesignServiceId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    quantity: "1",
+    selection: {
+      ...payload().selection,
+      size: { height: "3", kind: "CUSTOM", option: "", unit: "FEET", width: "2" },
+    },
+  });
+  assert.doesNotThrow(() => validateJobSubmission(request, configured));
+  assert.throws(() => validateJobSubmission({ ...request, linkedDesignServiceId: undefined }, configured));
 });

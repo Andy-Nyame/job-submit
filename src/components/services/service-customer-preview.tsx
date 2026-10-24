@@ -19,6 +19,7 @@ const dimensionLabels = {
   CM: "cm",
   FEET: "feet",
   INCHES: "inches",
+  METERS: "metres",
   MM: "mm",
 } as const;
 
@@ -102,13 +103,10 @@ export function ServiceCustomerPreview({
           </>
         ) : null}
 
-        {pricing.mode === "FIXED" && pricing.fixed ? (
+        {pricing.mode === "FIXED" ? (
           <div className="rounded-lg border border-accent/35 bg-accent/10 p-4">
             <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Fixed pricing</dt>
-            <dd className="mt-2 font-semibold">{pricing.fixed.startingQuantity.toLocaleString("en-US")} {quantity?.unit ?? "units"}: {formatGhanaCediMinor(BigInt(pricing.fixed.startingPriceMinor))}</dd>
-            <dd className="mt-1 text-sm">Each additional {pricing.fixed.quantityStep.toLocaleString("en-US")}: +{formatGhanaCediMinor(BigInt(pricing.fixed.additionalStepPriceMinor))}</dd>
-            <dd className="mt-2 text-xs leading-5 text-muted">Covers: {pricing.fixed.coverage}</dd>
-            <dd className="mt-2 text-xs font-medium leading-5">Different sizes, materials, or finishes require individual review.</dd>
+            {pricing.fixed ? <><dd className="mt-2 font-semibold">{pricing.fixed.startingQuantity.toLocaleString("en-US")} {quantity?.unit ?? "units"}: {formatGhanaCediMinor(BigInt(pricing.fixed.startingPriceMinor))}</dd><dd className="mt-1 text-sm">Each additional {pricing.fixed.quantityStep.toLocaleString("en-US")}: +{formatGhanaCediMinor(BigInt(pricing.fixed.additionalStepPriceMinor))}</dd><dd className="mt-2 text-xs leading-5 text-muted">Covers: {pricing.fixed.coverage}</dd></> : <dd className="mt-2 text-sm leading-6">The final price is calculated from the customer&apos;s approved size, quantity, and service choices.</dd>}
           </div>
         ) : (
           <div className="rounded-lg border bg-surface-muted p-4">

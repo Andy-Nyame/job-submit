@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { isJobSubmissionSnapshot } from "@/domain/job-submission";
 import { customerJobStatusLabel } from "@/domain/customer-language";
 import { effectiveQuotationStatus, expressSurchargeLabel, readQuotationLineItems } from "@/domain/quotation-policy";
+import { readSpecificationConfiguration } from "@/domain/service-configuration";
 import { formatGhanaCediMinor } from "@/domain/service-pricing";
 import { getCustomerJob } from "@/server/jobs/queries";
 import { getCustomerPickupCredential } from "@/server/job-operations/management";
@@ -43,6 +44,7 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
     notFound();
   }
   const snapshot = isJobSubmissionSnapshot(job.submissionSnapshot) ? job.submissionSnapshot : null;
+  const snapshotSpecification = readSpecificationConfiguration(snapshot?.service.specificationConfiguration);
   const quotation = job.quotations[0] ?? null;
   const quotationStatus = quotation
     ? effectiveQuotationStatus(quotation.status, quotation.expiresAt)
@@ -67,7 +69,7 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
         ) : null}
         <Link className="text-sm font-medium text-muted underline decoration-accent underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/app/jobs">Back to my jobs</Link>
         <header className="mt-6 flex flex-wrap items-start justify-between gap-4">
-          <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-muted">Job number {job.publicReference}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{job.title}</h1><p className="mt-2 text-sm text-muted">{job.service.name} · Sent {formatDate(job.createdAt)}</p></div>
+          <div><p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-muted">Job number {job.publicReference}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{job.title}</h1><p className="mt-2 text-sm text-muted">{job.service.name} · Sent {formatDate(job.createdAt)}{job.submissionGroupReference ? ` · Linked request ${job.submissionGroupReference}` : ""}</p></div>
           <div className="flex gap-2"><Badge>{customerJobStatusLabel(job.currentStatus)}</Badge><Badge>{job.priority === "EXPRESS" ? "Express" : "Regular"}</Badge></div>
         </header>
 
@@ -83,7 +85,7 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
                   {snapshot.request.finishing ? <div><dt className="text-muted">Finishing</dt><dd className="mt-1 font-medium">{snapshot.request.finishing}</dd></div> : null}
                 </dl>
                 <div><h3 className="font-medium text-muted">Instructions</h3><p className="mt-2 whitespace-pre-wrap leading-6">{snapshot.request.instructions || "No additional instructions."}</p></div>
-                {Object.keys(snapshot.request.jobFields).length > 0 ? <div><h3 className="font-medium text-muted">Service information</h3><dl className="mt-2 grid gap-3 sm:grid-cols-2">{Object.entries(snapshot.request.jobFields).map(([key, value]) => <div key={key}><dt className="font-mono text-xs text-muted">{key}</dt><dd className="mt-1 whitespace-pre-wrap">{value}</dd></div>)}</dl></div> : null}
+                {Object.keys(snapshot.request.jobFields).length > 0 ? <div><h3 className="font-medium text-muted">Service information</h3><dl className="mt-2 grid gap-3 sm:grid-cols-2">{Object.entries(snapshot.request.jobFields).map(([key, value]) => <div key={key}><dt className="text-xs font-medium text-muted">{snapshotSpecification?.customerFields.find((field) => field.id === key)?.label ?? "Service detail"}</dt><dd className="mt-1 whitespace-pre-wrap">{value}</dd></div>)}</dl></div> : null}
                 {snapshot.request.variations.length > 0 ? <div><h3 className="font-medium text-muted">Variations</h3><ol className="mt-2 space-y-3">{snapshot.request.variations.map((variation, index) => <li className="rounded-lg border bg-surface-muted p-4" key={variation.id}><p className="font-medium">Variation {index + 1}: {variation.quantity.toLocaleString("en-US")}</p>{Object.entries(variation.fieldValues).map(([key, value]) => <p className="mt-1 text-muted" key={key}>{key}: <span className="text-foreground">{value}</span></p>)}</li>)}</ol></div> : null}
               </div>
             ) : <p className="mt-4 text-sm text-muted">This legacy job does not contain a Brick 6A submission snapshot.</p>}

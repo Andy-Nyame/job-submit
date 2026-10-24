@@ -74,11 +74,9 @@ export function PublicServiceCard({ index, service }: { index: number; service: 
           {quantitySummary}{quantitySummary && specificationSummary.length > 0 ? " · " : null}{specificationSummary.length > 0 ? `Options for ${specificationSummary.join(", ")}` : null}
         </p>
       ) : null}
-      {pricing.mode === "FIXED" && pricing.fixed ? (
+      {pricing.mode === "FIXED" ? (
         <div className="mt-4 rounded-lg border border-accent/35 bg-accent/10 p-3">
-          <p className="text-sm font-semibold">From {formatGhanaCediMinor(BigInt(pricing.fixed.startingPriceMinor))} for {pricing.fixed.startingQuantity.toLocaleString("en-US")} {quantity?.unit ?? "units"}</p>
-          <p className="mt-1 text-xs leading-5 text-muted">Each additional {pricing.fixed.quantityStep.toLocaleString("en-US")}: +{formatGhanaCediMinor(BigInt(pricing.fixed.additionalStepPriceMinor))}.</p>
-          <p className="mt-1 text-xs leading-5 text-muted">Covers: {pricing.fixed.coverage}</p>
+          {pricing.fixed ? <><p className="text-sm font-semibold">From {formatGhanaCediMinor(BigInt(pricing.fixed.startingPriceMinor))} for {pricing.fixed.startingQuantity.toLocaleString("en-US")} {quantity?.unit ?? "units"}</p><p className="mt-1 text-xs leading-5 text-muted">Each additional {pricing.fixed.quantityStep.toLocaleString("en-US")}: +{formatGhanaCediMinor(BigInt(pricing.fixed.additionalStepPriceMinor))}.</p><p className="mt-1 text-xs leading-5 text-muted">Covers: {pricing.fixed.coverage}</p></> : <p className="text-sm font-semibold">Price calculated from your choices</p>}
         </div>
       ) : <p className="mt-4 text-sm font-semibold">Price on request</p>}
       <p className="mt-4 border-t pt-3 text-xs font-medium leading-5 text-muted">{service.onlineSubmissionEnabled ? "Available for authenticated online job requests." : "Available in the public catalogue; online submission is not enabled."}</p>

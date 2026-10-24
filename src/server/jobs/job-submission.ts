@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 import {
   JobSubmissionValidationError,
@@ -29,6 +29,14 @@ function generateJobReference(now = new Date()) {
     REFERENCE_ALPHABET[byte % REFERENCE_ALPHABET.length],
   ).join("");
   return `JS-${date}-${token}`;
+}
+
+function linkedSubmissionKey(value: string) {
+  const bytes = createHash("sha256").update(`jobsubmit-design:${value}`).digest().subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 function isRetryable(error: unknown) {
@@ -151,17 +159,80 @@ async function createInTransaction(
       if (!service) {
         throw new JobOperationError("SERVICE_UNAVAILABLE");
       }
+      const designService = payload.linkedDesignServiceId
+        ? await transaction.service.findFirst({
+            where: {
+              archivedAt: null,
+              businessId: actor.businessId,
+              id: payload.linkedDesignServiceId,
+              isActive: true,
+              onlineSubmissionEnabled: true,
+              slug: "designing",
+            },
+            select: serviceSelection(),
+          })
+        : null;
+      if (
+        payload.linkedDesignServiceId &&
+        (!designService || !["sav-sticker-printing", "flexi-banner-printing"].includes(service.slug))
+      ) {
+        throw new JobOperationError("SERVICE_UNAVAILABLE");
+      }
       const submission = validate(payload, service);
+      const groupReference = designService ? generateJobReference().replace("JS-", "JG-") : null;
+      let designJob: { id: string; publicReference: string } | null = null;
+      if (designService) {
+        const designPayload: JobSubmissionPayload = {
+          attachments: payload.attachments,
+          idempotencyKey: linkedSubmissionKey(payload.idempotencyKey),
+          instructions: payload.instructions,
+          priority: payload.priority,
+          quantity: "",
+          selection: {
+            finishing: "",
+            jobFields: {},
+            material: "",
+            size: { height: "", kind: "NONE", option: "", unit: "", width: "" },
+            variations: [],
+          },
+          serviceId: designService.id,
+          title: `${submission.title} — Design`.slice(0, 200),
+        };
+        const designSubmission = validate(designPayload, designService);
+        designJob = await transaction.job.create({
+          data: {
+            businessId: actor.businessId,
+            complexity: designSubmission.complexity,
+            instructions: designSubmission.instructions,
+            priority: designSubmission.priority,
+            publicReference: generateJobReference(),
+            serviceId: designService.id,
+            source: "CUSTOMER_PORTAL",
+            submissionGroupReference: groupReference,
+            submissionKey: designPayload.idempotencyKey,
+            submissionSnapshot: jsonValue(designSubmission.snapshot),
+            title: designSubmission.title,
+            workloadClass: designSubmission.workloadClass,
+          },
+          select: { id: true, publicReference: true },
+        });
+        await transaction.jobCustomer.create({ data: { businessId: actor.businessId, displayName: actor.displayName, email: actor.email, jobId: designJob.id, userId: actor.userId } });
+        await transaction.jobStatusHistory.create({ data: { actorMembershipId: actor.membershipId, actorUserId: actor.userId, businessId: actor.businessId, jobId: designJob.id, reason: "Customer submitted linked design work.", toStatus: "SUBMITTED" } });
+        await transaction.auditLog.create({ data: { action: "job.customer_submitted", actorMembershipId: actor.membershipId, actorUserId: actor.userId, businessId: actor.businessId, metadata: { linkedPrintServiceId: service.id, pricingMode: designSubmission.snapshot.pricing.mode, submissionGroupReference: groupReference }, targetId: designJob.id, targetType: "Job" } });
+        await notifyManagementOfNewJob(transaction, { businessId: actor.businessId, jobId: designJob.id, pricingMode: designSubmission.snapshot.pricing.mode, priority: designSubmission.priority, publicReference: designJob.publicReference, serviceName: designService.name });
+      }
       const job = await transaction.job.create({
         data: {
           businessId: actor.businessId,
           complexity: submission.complexity,
+          dependsOnJobId: designJob?.id,
           instructions: submission.instructions,
           priority: submission.priority,
           publicReference: generateJobReference(),
           quantity: submission.quantity,
           serviceId: service.id,
           source: "CUSTOMER_PORTAL",
+          submissionGroupReference: groupReference,
           submissionKey: payload.idempotencyKey,
           submissionSnapshot: jsonValue(submission.snapshot),
           title: submission.title,
@@ -203,7 +274,7 @@ async function createInTransaction(
           data: {
             byteSize: BigInt(upload.byteSize),
             claimedAt: now,
-            jobId: job.id,
+            jobId: designJob?.id ?? job.id,
             mimeType: upload.mimeType,
             status: "CLAIMED",
             storageKey: upload.pathname,
@@ -217,7 +288,7 @@ async function createInTransaction(
           data: {
             businessId: actor.businessId,
             byteSize: BigInt(upload.byteSize),
-            jobId: job.id,
+            jobId: designJob?.id ?? job.id,
             mimeType: upload.mimeType,
             originalFilename: upload.originalFilename,
             purpose: "CUSTOMER_ORIGINAL",

@@ -135,3 +135,26 @@ pricing, derived workload, and preserved legacy values.
 Future Brick 6A must copy the applicable configuration and entered values into
 an immutable job snapshot. Later service edits must never alter historical job
 specifications or prices.
+
+## Brick 7.1 recovery profiles
+
+The six original services now use a small, approved profile editor instead of
+exposing raw JSON-style configuration. A manager chooses only business-facing
+options, reviews the resulting customer experience, and saves through an
+authenticated, business-scoped route handler. Shop availability and service
+updates retain serializable transactions, optimistic version checks, and audit
+records. The route-handler boundary also avoids deployment-stale Server Action
+identifiers on these critical recovery controls.
+
+The approved profiles are deliberately narrow: Price on Request, For Sale
+stickers, custom stickers, labels, standard posters, flexi/banner area pricing,
+and container-head/batch-number printing. Calculations use integer pesewas and
+exact rational arithmetic. Label sheet printing and cutting are rounded to the
+next GH₵5 separately. Container numbers remain text, including leading zeroes.
+No migration enables online submission; an Owner or Admin must review and
+enable each suitable service while the shop is open.
+
+Production deployments must configure a stable
+`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` so Server Action references remain valid
+across rolling instances. It must be a private base64-encoded 32-byte value and
+must never be committed.

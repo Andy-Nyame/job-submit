@@ -23,7 +23,7 @@ export const ARTWORK_REQUIREMENTS = [
   "EITHER",
   "NOT_REQUIRED",
 ] as const;
-export const DIMENSION_UNITS = ["MM", "CM", "INCHES", "FEET"] as const;
+export const DIMENSION_UNITS = ["MM", "CM", "INCHES", "FEET", "METERS"] as const;
 export const SIZE_MODES = [
   "NO_SIZE",
   "FIXED",

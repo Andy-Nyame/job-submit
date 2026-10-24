@@ -212,6 +212,16 @@ classes have render regression coverage.
   events while the app is visible, and never claims closed-tab/background
   delivery. Initial loads do not replay old notifications.
 - Production builds use Next.js’s webpack backend because the managed environment blocks Turbopack’s internal localhost binding.
+- Critical shop and service settings use authenticated JSON route handlers so a
+  browser holding an older deployment cannot fail at the framework boundary
+  before domain validation. All authorization and transaction rules remain on
+  the server. A stable deployment-only `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`
+  additionally keeps Server Action identifiers consistent across rolling
+  instances; the value is never stored in Git.
+- Brick 7.1 service pricing is a versioned strategy contract. Exact server-side
+  calculations and the inputs used are copied into the immutable job snapshot.
+  Design-plus-print requests create two canonical jobs atomically with a
+  business-scoped dependency gate rather than hiding two workflows in one row.
 
 ## 9. Deferred implementation
 

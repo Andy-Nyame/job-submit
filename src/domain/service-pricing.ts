@@ -2,6 +2,10 @@ import {
   isQuantityAllowed,
   type ServiceQuantityConfiguration,
 } from "./service-configuration";
+import {
+  readStrategyPricingConfiguration,
+  type StrategyPricingConfiguration,
+} from "./service-pricing-strategies";
 
 export const PRICING_CONFIGURATION_VERSION = 1 as const;
 export const PRICING_MODES = ["FIXED", "ON_REQUEST"] as const;
@@ -18,7 +22,7 @@ export interface PricingConfigurationInput {
   startingQuantity: string;
 }
 
-export interface ServicePricingConfiguration {
+export interface LegacyServicePricingConfiguration {
   fixed: {
     additionalStepPriceMinor: string;
     coverage: string;
@@ -30,6 +34,10 @@ export interface ServicePricingConfiguration {
   mode: PricingMode;
   version: typeof PRICING_CONFIGURATION_VERSION;
 }
+
+export type ServicePricingConfiguration =
+  | LegacyServicePricingConfiguration
+  | StrategyPricingConfiguration;
 
 export class ServicePricingError extends Error {
   constructor(
@@ -172,6 +180,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function readPricingConfiguration(value: unknown): ServicePricingConfiguration {
+  const strategy = readStrategyPricingConfiguration(value);
+  if (strategy) {
+    return strategy;
+  }
   if (!isRecord(value) || value.version !== PRICING_CONFIGURATION_VERSION) {
     return priceOnRequestConfiguration();
   }

@@ -86,6 +86,7 @@ export async function getCustomerJobs() {
       priority: true,
       publicReference: true,
       service: { select: { name: true } },
+      submissionGroupReference: true,
       title: true,
     },
   });
@@ -119,6 +120,7 @@ export async function getCustomerJob(publicReference: string) {
       priority: true,
       publicReference: true,
       service: { select: { name: true } },
+      submissionGroupReference: true,
       statusHistory: {
         orderBy: { createdAt: "asc" },
         select: {

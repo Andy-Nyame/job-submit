@@ -10,6 +10,7 @@ import {
 } from "@/server/staff-jobs/management";
 import {
   assignProductionJob,
+  clearDesignDependency,
   changeProductionStatus,
   overrideQueueOrder,
   reassignProductionJob,
@@ -46,6 +47,8 @@ function actionError(error: unknown): StaffJobActionState {
         "That pickup code is invalid, expired, or already used.",
       CREDENTIAL_UNAVAILABLE:
         "A pickup credential is not available for this job.",
+      DEPENDENCY_PENDING:
+        "This printing job is waiting for its linked design to be completed and approved.",
       INVALID_INPUT: "Check the submitted information and try again.",
       INVALID_TRANSITION:
         "That action is not available at the job's current stage.",
@@ -80,6 +83,25 @@ export async function releaseJobAction(
     });
     revalidateJobPages(publicReference);
     return { message: "Job released and ready for an eligible worker.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function clearDesignDependencyAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    await clearDesignDependency(actor, {
+      expectedVersion: Number(readText(formData, "version")),
+      publicReference,
+      reason: readText(formData, "reason"),
+    });
+    revalidateJobPages(publicReference);
+    return { message: "Design dependency cleared. The printing job can now follow the normal release checks.", status: "success" };
   } catch (error) {
     return actionError(error);
   }

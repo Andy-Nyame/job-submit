@@ -61,6 +61,19 @@ Each job saves an immutable versioned snapshot of the applicable service
 configuration, exact entered values, service version, and pricing treatment.
 Later service edits therefore do not rewrite historical requirements.
 
+When a customer asks the business to create artwork for a sticker or banner,
+the server creates a Design job and its dependent Print job in the same
+serializable transaction. The pair receives a shared group reference while
+keeping separate job numbers, immutable snapshots, histories, audit events,
+and notifications. Uploaded source files belong to the Design job. Repeating
+the same idempotency key returns the original pair rather than creating more
+jobs. The Print job cannot enter production until its Design dependency is
+cleared; Owner/Admin may explicitly clear the gate with a recorded reason.
+
+This linkage does not make technical proof mandatory, does not merge the two
+jobs, and does not change pricing authority. Services must still be active,
+online-enabled, and available while the shop is open at final submission.
+
 ## Private uploads
 
 Uploads use the existing private `job-submit-media` Vercel Blob store. Before a

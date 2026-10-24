@@ -7,6 +7,7 @@ import { AddInternalNoteForm } from "@/components/staff-jobs/add-internal-note-f
 import {
   AssignJobForm,
   ClaimJobForm,
+  ClearDesignDependencyForm,
   PackageCountForm,
   ProductionStatusForm,
   QueueOverrideForm,
@@ -114,6 +115,7 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
           <div className="space-y-6">
             <Card className="p-5 sm:p-7">
               <h2 className="text-xl font-semibold">Submitted job details</h2>
+              {job.submissionGroupReference ? <div className="mt-4 rounded-lg border bg-surface-muted p-4 text-sm"><p className="font-medium">Linked request group {job.submissionGroupReference}</p>{job.dependsOn ? <p className="mt-2 text-muted">Waiting on <Link className="font-medium text-primary underline" href={`/app/staff/jobs/${encodeURIComponent(job.dependsOn.publicReference)}`}>{job.dependsOn.service.name} · {job.dependsOn.publicReference}</Link>{job.dependencyClearedAt ? " · dependency cleared" : " · confirmation still required"}</p> : null}{job.dependentJobs.map((dependent) => <p className="mt-2 text-muted" key={dependent.publicReference}>Linked printing job: <Link className="font-medium text-primary underline" href={`/app/staff/jobs/${encodeURIComponent(dependent.publicReference)}`}>{dependent.service.name} · {dependent.publicReference}</Link></p>)}</div> : null}
               {snapshot ? (
                 <div className="mt-5 space-y-6 text-sm">
                   <dl className="grid gap-4 sm:grid-cols-2">
@@ -210,6 +212,7 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
                 {job.queueEnteredAt ? <div><dt className="text-muted">Entered queue</dt><dd className="mt-1 font-medium">{formatDate(job.queueEnteredAt)}</dd></div> : null}
               </dl>
               <div className="mt-5 space-y-4 border-t pt-5">
+                {manager && job.dependsOn && !job.dependencyClearedAt ? <ClearDesignDependencyForm publicReference={job.publicReference} version={job.version} /> : null}
                 {manager && job.currentStatus === "UNDER_REVIEW" ? <ReleaseJobForm publicReference={job.publicReference} version={job.version} /> : null}
                 {job.currentStatus === "ACCEPTED" && manager ? <AssignJobForm publicReference={job.publicReference} version={job.version} workers={operationWorkers} /> : null}
                 {job.currentStatus === "ACCEPTED" && principal.role === "WORKER" ? <ClaimJobForm publicReference={job.publicReference} version={job.version} /> : null}

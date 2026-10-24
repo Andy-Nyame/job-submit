@@ -1,38 +1,47 @@
 "use client";
 
-import { useActionState } from "react";
-
-import {
-  initialShopStatusActionState,
-  setShopStatusAction,
-} from "@/app/app/services/actions";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form-controls";
 
 export function ShopStatusForm({ open }: { open: boolean }) {
-  const [state, action, pending] = useActionState(
-    setShopStatusAction,
-    initialShopStatusActionState,
-  );
+  const router = useRouter();
+  const [state, setState] = useState<{ message: string; status: "error" | "idle" | "success" }>({ message: "", status: "idle" });
+  const [pending, setPending] = useState(false);
   const nextOpen = !open;
 
   return (
     <form
-      action={action}
       className="mt-5"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
+        event.preventDefault();
         if (
           open &&
           !window.confirm(
             "Close the shop to new customer jobs? Existing jobs and staff tools will keep working.",
           )
         ) {
-          event.preventDefault();
+          return;
+        }
+        setPending(true);
+        setState({ message: "", status: "idle" });
+        try {
+          const response = await fetch("/api/management/shop", {
+            body: JSON.stringify({ acceptingNewJobs: nextOpen, expectedState: open }),
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+          });
+          const result = await response.json() as { message?: string };
+          setState({ message: result.message ?? "The shop status could not be saved.", status: response.ok ? "success" : "error" });
+          if (response.ok) router.refresh();
+        } catch {
+          setState({ message: "The shop status could not be saved. Check your connection and try again.", status: "error" });
+        } finally {
+          setPending(false);
         }
       }}
     >
-      <input name="acceptingNewJobs" type="hidden" value={String(nextOpen)} />
-      <input name="expectedState" type="hidden" value={String(open)} />
       <p className="text-sm leading-6 text-muted">
         {open
           ? "Customers can submit through services that are separately enabled online."

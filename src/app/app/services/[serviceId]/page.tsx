@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
-import { EditServiceForm } from "@/components/services/edit-service-form";
+import { ApprovedServiceForm } from "@/components/services/approved-service-form";
 import { ServiceCustomerPreview } from "@/components/services/service-customer-preview";
 import { ServiceStatusForm } from "@/components/services/service-status-form";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +12,7 @@ import {
   readQuantityConfiguration,
   readSpecificationConfiguration,
 } from "@/domain/service-configuration";
-import {
-  formatMoneyInput,
-  readPricingConfiguration,
-} from "@/domain/service-pricing";
+import { readPricingConfiguration } from "@/domain/service-pricing";
 import { requireBusinessMembership } from "@/server/auth/authorization";
 import { getManagedService } from "@/server/services/queries";
 
@@ -76,64 +73,14 @@ export default async function ServicePage({ params }: ServicePageProps) {
               an individual job&apos;s final classification or customer price.
             </p>
             <div className="mt-6">
-              <EditServiceForm
+              <ApprovedServiceForm
+                allowPriceNegotiation={service.allowPriceNegotiation}
+                description={service.description ?? ""}
+                name={service.name}
+                onlineSubmissionEnabled={service.onlineSubmissionEnabled}
+                pricingConfiguration={service.pricingConfiguration}
                 serviceId={service.id}
-                values={{
-                  allowPriceNegotiation: service.allowPriceNegotiation,
-                  additionalStepPrice: pricing.fixed
-                    ? formatMoneyInput(pricing.fixed.additionalStepPriceMinor)
-                    : "",
-                  artworkRequirement:
-                    specification?.artworkRequirement ?? "",
-                  customDimensionUnits:
-                    specification?.sizes.customUnits ?? [],
-                  customFields:
-                    specification?.customerFields.map((field) => ({
-                      helpText: field.helpText ?? "",
-                      id: field.id,
-                      label: field.label,
-                      maxLength: field.maxLength?.toString() ?? "",
-                      options: field.options.join("\n"),
-                      required: field.required,
-                      scope: field.scope,
-                      type: field.type,
-                    })) ?? [],
-                  customInstructions:
-                    specification?.customInstructions ?? "",
-                  defaultComplexity: service.defaultComplexity,
-                  description: service.description ?? "",
-                  finishingOptions:
-                    specification?.finishing.options.join("\n") ?? "",
-                  finishingRequired:
-                    specification?.finishing.required ?? false,
-                  fixedPriceCoverage: pricing.fixed?.coverage ?? "",
-                  fixedSizeHeight: specification?.sizes.fixed?.height ?? "",
-                  fixedSizeUnit: specification?.sizes.fixed?.unit ?? "",
-                  fixedSizeWidth: specification?.sizes.fixed?.width ?? "",
-                  isActive: service.isActive,
-                  materialOptions:
-                    specification?.materials.options.join("\n") ?? "",
-                  materialsRequired:
-                    specification?.materials.required ?? false,
-                  name: service.name,
-                  onlineSubmissionEnabled: service.onlineSubmissionEnabled,
-                  pricingMode: pricing.mode,
-                  quantityIncrement: quantity?.increment?.toString() ?? "",
-                  quantityMaximum: quantity?.maximum?.toString() ?? "",
-                  quantityMinimum: quantity?.minimum?.toString() ?? "",
-                  quantityPresets: quantity?.presets.join(", ") ?? "",
-                  quantityUnit: quantity?.unit ?? "",
-                  sizeMode: specification?.sizes.mode ?? "NO_SIZE",
-                  standardSizeOptions:
-                    specification?.sizes.options.join("\n") ?? "",
-                  startingPrice: pricing.fixed
-                    ? formatMoneyInput(pricing.fixed.startingPriceMinor)
-                    : "",
-                  startingQuantity:
-                    pricing.fixed?.startingQuantity.toString() ?? "",
-                  variationsEnabled:
-                    specification?.variations.enabled ?? false,
-                }}
+                slug={service.slug}
                 version={service.version}
               />
             </div>
