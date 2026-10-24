@@ -27,19 +27,19 @@ function text(formData: FormData, name: string) {
 function errorState(error: unknown): CustomerQuotationActionState {
   if (error instanceof QuotationOperationError) {
     const messages: Record<QuotationOperationError["code"], string> = {
-      BUSINESS_UNAVAILABLE: "Quotation access is currently unavailable.",
+      BUSINESS_UNAVAILABLE: "Your price details are unavailable right now.",
       COUNTEROFFER_NOT_ALLOWED:
-        "Price negotiation is not enabled for this quotation.",
+        "Price changes are not available for this offer.",
       DUPLICATE_OPERATION:
-        "A counteroffer is already awaiting management review.",
-      EXPIRED: "This quotation has expired and can no longer be accepted.",
+        "Your price suggestion is already waiting for management to review it.",
+      EXPIRED: "This price has expired and can no longer be accepted.",
       FIXED_PRICE_JOB: "This job already has confirmed fixed pricing.",
-      INVALID_INPUT: "Enter a valid proposed amount and optional note.",
+      INVALID_INPUT: "Enter a valid suggested amount and optional note.",
       INVALID_TRANSITION:
         "That action is unavailable while a response is pending.",
-      NOT_FOUND: "The quotation was not found for this job.",
+      NOT_FOUND: "The price offer was not found for this job.",
       STALE_UPDATE:
-        "The quotation changed. Refresh the page before responding.",
+        "The price changed. Refresh the page before responding.",
     };
     return { message: messages[error.code], status: "error" };
   }
@@ -76,8 +76,8 @@ export async function decideQuotationAction(
     return {
       message:
         decision === "ACCEPT"
-          ? "Quotation accepted. The agreed price is now recorded."
-          : "Quotation declined. The job remains available for management review.",
+          ? "Price accepted. The agreed price is now recorded."
+          : "Price declined. The job remains available for management review.",
       status: "success",
     };
   } catch (error) {
@@ -101,7 +101,7 @@ export async function submitCounterofferAction(
     revalidate(publicReference);
     return {
       message:
-        "Counteroffer sent for management review. It is not an approved price.",
+        "Price suggestion sent for management review. It is not an approved price.",
       status: "success",
     };
   } catch (error) {

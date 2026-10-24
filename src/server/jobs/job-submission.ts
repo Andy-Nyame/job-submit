@@ -75,10 +75,13 @@ async function ensureActiveCustomer(
       status: "ACTIVE",
       user: { deactivatedAt: null, id: actor.userId },
     },
-    select: { id: true },
+    select: { business: { select: { acceptingNewJobs: true } }, id: true },
   });
   if (!membership) {
     throw new JobOperationError("BUSINESS_UNAVAILABLE");
+  }
+  if (!membership.business.acceptingNewJobs) {
+    throw new JobOperationError("SHOP_CLOSED");
   }
 }
 

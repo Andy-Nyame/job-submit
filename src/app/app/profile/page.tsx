@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
@@ -8,33 +7,36 @@ import { requireBusinessMembership } from "@/server/auth/authorization";
 import { getOwnWorkerProfile } from "@/server/team/queries";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "My worker profile" };
+export const metadata: Metadata = { title: "My Account" };
 
-export default async function WorkerProfilePage() {
+function roleLabel(role: string) {
+  return role === "CUSTOMER"
+    ? "Customer"
+    : role === "WORKER"
+      ? "Worker"
+      : role === "ADMIN"
+        ? "Administrator"
+        : "Owner";
+}
+
+export default async function AccountPage() {
   const principal = await requireBusinessMembership();
-  if (principal.role !== "WORKER") {
-    redirect("/app");
-  }
-
-  const { membership } = await getOwnWorkerProfile();
-  if (!membership?.workerProfile) {
-    redirect("/access-denied");
-  }
-  const profile = membership.workerProfile;
+  const worker =
+    principal.role === "WORKER" ? await getOwnWorkerProfile() : null;
+  const profile = worker?.membership?.workerProfile ?? null;
 
   return (
     <main id="main-content" className="py-10 sm:py-14">
       <Container className="max-w-4xl">
         <header className="max-w-2xl">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            Worker workspace
+            Account
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            My profile and capacity
+            My Account
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
-            These settings are managed by an administrator. This page does not
-            provide job claiming or permission changes.
+            Check the personal details and access connected to this signed-in account.
           </p>
         </header>
 
@@ -43,48 +45,73 @@ export default async function WorkerProfilePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">
-                  {membership.user.displayName ?? "Worker"}
+                  {principal.displayName ?? "Name not provided"}
                 </h2>
-                <p className="mt-1 text-sm text-muted">{membership.user.email}</p>
+                <p className="mt-1 break-all text-sm text-muted">{principal.email}</p>
               </div>
-              <Badge>{profile.isActive ? "AVAILABLE" : "INACTIVE"}</Badge>
+              <Badge>{roleLabel(principal.role)}</Badge>
             </div>
-            <dl className="mt-6 grid grid-cols-2 gap-4 border-t pt-5 text-sm">
-              <div>
-                <dt className="text-muted">QUICK limit</dt>
-                <dd className="mt-1 text-xl font-semibold">{profile.maxQuickWorkload}</dd>
-              </div>
-              <div>
-                <dt className="text-muted">STANDARD limit</dt>
-                <dd className="mt-1 text-xl font-semibold">
-                  {profile.maxStandardWorkload}
-                </dd>
-              </div>
-              <div className="col-span-2">
-                <dt className="text-muted">FOCUS eligibility</dt>
-                <dd className="mt-1 font-medium">
-                  {profile.canTakeFocus ? "Eligible" : "Not eligible"}
-                </dd>
-              </div>
-            </dl>
+            <p className="mt-5 border-t pt-5 text-sm leading-6 text-muted">
+              Your sign-in details are protected by the existing account system.
+              Contact authorized management if your business access needs to change.
+            </p>
           </Card>
 
-          <Card>
-            <h2 className="text-lg font-semibold">Qualified services</h2>
-            {profile.skills.length === 0 ? (
-              <p className="mt-4 text-sm text-muted">
-                No service skills have been configured yet.
+          {principal.role === "WORKER" ? (
+            <Card>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h2 className="text-lg font-semibold">Work settings</h2>
+                <Badge>{profile?.isActive ? "AVAILABLE" : "INACTIVE"}</Badge>
+              </div>
+              {profile ? (
+                <>
+                  <dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-5 text-sm">
+                    <div>
+                      <dt className="text-muted">Quick job limit</dt>
+                      <dd className="mt-1 text-xl font-semibold">{profile.maxQuickWorkload}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted">Standard job limit</dt>
+                      <dd className="mt-1 text-xl font-semibold">{profile.maxStandardWorkload}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-muted">Focus work</dt>
+                      <dd className="mt-1 font-medium">
+                        {profile.canTakeFocus ? "Eligible" : "Not eligible"}
+                      </dd>
+                    </div>
+                  </dl>
+                  <h3 className="mt-6 font-semibold">Services you can handle</h3>
+                  {profile.skills.length > 0 ? (
+                    <ul className="mt-3 space-y-2">
+                      {profile.skills.map((skill) => (
+                        <li className="rounded-md border bg-surface-muted p-3 text-sm" key={skill.id}>
+                          {skill.service.name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted">No service skills are set yet.</p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-4 text-sm text-muted">
+                  Your worker settings are not available. Ask an administrator for help.
+                </p>
+              )}
+              <p className="mt-5 text-xs leading-5 text-muted">
+                An Owner or Admin manages these limits and permissions.
               </p>
-            ) : (
-              <ul className="mt-4 space-y-2">
-                {profile.skills.map((skill) => (
-                  <li className="rounded-md border bg-surface-muted p-3 text-sm" key={skill.id}>
-                    {skill.service.name}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+            </Card>
+          ) : (
+            <Card>
+              <h2 className="text-lg font-semibold">Appearance</h2>
+              <p className="mt-3 text-sm leading-6 text-muted">
+                Use the theme control in the application menu to choose Light,
+                Dark, or System appearance on this device.
+              </p>
+            </Card>
+          )}
         </div>
       </Container>
     </main>

@@ -480,7 +480,7 @@ export function ServiceFormFields({
       <details className={sectionClassName} open>
         <summary className={summaryClassName}>F. Availability</summary>
         <div className="mt-5 space-y-4">
-          <label className="flex items-start gap-3 text-sm"><input className={checkboxClassName} defaultChecked={values.onlineSubmissionEnabled} name="onlineSubmissionEnabled" type="checkbox" /><span><span className="font-medium">Eligible for future online submission</span><span className="mt-1 block text-xs leading-5 text-muted">This does not launch customer submission by itself.</span></span></label>
+          <label className="flex items-start gap-3 text-sm"><input className={checkboxClassName} defaultChecked={values.onlineSubmissionEnabled} name="onlineSubmissionEnabled" type="checkbox" /><span><span className="font-medium">Available for online job requests</span><span className="mt-1 block text-xs leading-5 text-muted">Customers can choose this service while the shop is open. This setting does not open the shop by itself.</span></span></label>
           {includeActiveState ? <label className="flex items-start gap-3 text-sm"><input className={checkboxClassName} defaultChecked={values.isActive} name="isActive" type="checkbox" /><span><span className="font-medium">Active in public catalogue</span><span className="mt-1 block text-xs leading-5 text-muted">Inactive services stay in history but are hidden publicly.</span></span></label> : null}
         </div>
       </details>

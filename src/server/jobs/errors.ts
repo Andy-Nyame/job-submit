@@ -5,6 +5,7 @@ export type JobOperationErrorCode =
   | "BUSINESS_UNAVAILABLE"
   | "DUPLICATE_SUBMISSION"
   | "SERVICE_UNAVAILABLE"
+  | "SHOP_CLOSED"
   | "SUBMISSION_INVALID";
 
 export class JobOperationError extends Error {

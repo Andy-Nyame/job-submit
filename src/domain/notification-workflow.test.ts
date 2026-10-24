@@ -5,6 +5,7 @@ import test from "node:test";
 const files = {
   actions: new URL("../app/app/notifications/actions.ts", import.meta.url),
   bell: new URL("../components/notifications/notification-bell.tsx", import.meta.url),
+  sound: new URL("../components/notifications/notification-sound.tsx", import.meta.url),
   customerQuotation: new URL("../server/quotations/customer.ts", import.meta.url),
   events: new URL("../server/notifications/events.ts", import.meta.url),
   jobSubmission: new URL("../server/jobs/job-submission.ts", import.meta.url),
@@ -102,4 +103,20 @@ test("notification bell exposes accessible unread and panel state", async () => 
   assert.match(source, /View all/u);
   assert.match(source, /No notifications yet/u);
   assert.match(source, /openNotificationAction/u);
+  assert.match(source, /mode === "mobile"/u);
+  assert.match(source, /href="\/app\/notifications"/u);
+  assert.match(source, /className="absolute left-0/u);
+});
+
+test("notification sounds are opt-in, device-local, deduplicated, and visibility aware", async () => {
+  const source = await readFile(files.sound, "utf8");
+  assert.match(source, /localStorage\.getItem\(STORAGE_KEY\) === "on"/u);
+  assert.match(source, /useSyncExternalStore/u);
+  assert.match(source, /\(\) => false/u);
+  assert.match(source, /initialized\.current/u);
+  assert.match(source, /seenIds\.current/u);
+  assert.match(source, /document\.visibilityState === "visible"/u);
+  assert.match(source, /hasImportantNewNotification/u);
+  assert.match(source, /Test Sound/u);
+  assert.doesNotMatch(source, /WebSocket|setInterval|Notification\.requestPermission/u);
 });

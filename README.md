@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 6D
+## Current scope: Brick 6D.1
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -21,8 +21,8 @@ and team/worker foundation:
   Capt. Bob business membership resolution
 - public `CUSTOMER` onboarding, locked verified-email bootstrap for the initial
   `ADMIN` and `OWNER`, blocked-account enforcement, and reusable role guards
-- `/login`, `/signup`, `/access-denied`, and a minimal protected `/app`
-  verification screen
+- `/login`, `/signup`, and `/access-denied`, with `/app` redirecting each active
+  role directly to its useful starting page
 - secure, manually shareable worker invitations with random single-use tokens,
   database-only token hashes, verified-email redemption, expiry, revocation,
   and replacement links
@@ -71,12 +71,23 @@ and team/worker foundation:
 - an accessible notification bell plus `/app/notifications` action center with
   unread counts, newest-first bounded pagination, filtering, secure deep links,
   and idempotent individual/all read controls
+- simplified main navigation: CUSTOMER uses Submit a Job, My Jobs, and My
+  Account; OWNER/ADMIN use Jobs, Shop & Services, and Team; WORKER uses Jobs
+  and My Account. Notifications stay on the bell rather than the main menu
+- a business-scoped Shop Open/Closed control for OWNER/ADMIN that pauses only
+  new customer submissions, preserves existing work, and remains independent
+  from each service's online availability
+- a three-stage customer flow—Choose what you need, Tell us the details, and
+  Check and Submit—with plain customer-facing job and pricing language
+- mobile notification bells that open the full center directly, plus optional
+  device-local notification sounds that default OFF and respect browser audio
+  and page-visibility limits
 
 Fixed pricing uses integer pesewas and configured quantity steps and remains
 confirmed at submission. Price on Request performs no automatic calculation;
 OWNER/ADMIN issue a versioned GHS quotation that the customer must explicitly
 accept or decline. Negotiation is independently configured per manual-price
-service and defaults OFF. Brick 6D adds in-app notification delivery only; no
+service and defaults OFF. Brick 6D.1 keeps in-app notification delivery only; no
 transactional email provider is configured. It does **not** implement payment, general
 pricing chat, queue claiming or assignment
 enforcement, live messaging, external notifications, pickup-code generation,
@@ -178,8 +189,10 @@ Charcoal anchors typography and dark surfaces. Accessible light and dark
 palettes are centralized through semantic tokens rather than scattered raw
 brand colours. The shared theme control preserves the System default and lets
 visitors choose the opposite applied mode without a hydration flash.
-Authenticated navigation uses a role-aware desktop sidebar and an accessible
-mobile drawer backed by one navigation definition. Shared text-entry controls
+Authenticated navigation uses a simplified role-aware desktop sidebar and an
+accessible mobile drawer backed by one navigation definition. Notifications
+remain in the bell and My Account remains available without duplicating
+operational pages. Shared text-entry controls
 remain at least 16px on mobile and tablet widths to avoid iOS Safari focus zoom
 without restricting user-controlled pinch-to-zoom.
 

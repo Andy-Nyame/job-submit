@@ -42,16 +42,19 @@ function formatBellDate(value: string) {
 
 export function NotificationBell({
   className,
+  mode,
   notifications,
   unreadCount,
 }: {
   className?: string;
+  mode: "desktop" | "mobile";
   notifications: readonly ShellNotification[];
   unreadCount: number;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const panelId = useId();
 
   useEffect(() => {
@@ -75,35 +78,64 @@ export function NotificationBell({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current
+      ?.querySelector<HTMLElement>("a[href], button:not([disabled])")
+      ?.focus();
+  }, [open]);
+
+  const label =
+    unreadCount > 0
+      ? `Notifications, ${unreadCount} unread`
+      : "Notifications, none unread";
+  const bell = (
+    <>
+      <BellIcon />
+      {unreadCount > 0 ? (
+        <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full border-2 border-surface bg-primary px-1 text-[0.625rem] font-bold leading-none text-primary-foreground">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      ) : null}
+    </>
+  );
+
+  if (mode === "mobile") {
+    return (
+      <Link
+        aria-label={label}
+        className={cn(
+          "relative grid size-11 place-items-center rounded-lg border border-border-strong bg-surface text-foreground outline-none transition-colors hover:border-primary/50 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          className,
+        )}
+        href="/app/notifications"
+      >
+        {bell}
+      </Link>
+    );
+  }
+
   return (
     <div className={cn("relative", className)} ref={containerRef}>
       <button
         aria-controls={panelId}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={
-          unreadCount > 0
-            ? `Notifications, ${unreadCount} unread`
-            : "Notifications, none unread"
-        }
+        aria-label={label}
         className="relative grid size-11 place-items-center rounded-lg border border-border-strong bg-surface text-foreground outline-none transition-colors hover:border-primary/50 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={() => setOpen((current) => !current)}
         ref={buttonRef}
         type="button"
       >
-        <BellIcon />
-        {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full border-2 border-surface bg-primary px-1 text-[0.625rem] font-bold leading-none text-primary-foreground">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        ) : null}
+        {bell}
       </button>
 
       {open ? (
         <section
           aria-label="Recent notifications"
-          className="absolute right-0 z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border bg-surface shadow-[0_24px_60px_-28px_var(--shadow-color)]"
+          className="absolute left-0 z-50 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border bg-surface shadow-[0_24px_60px_-28px_var(--shadow-color)]"
           id={panelId}
+          ref={panelRef}
           role="dialog"
         >
           <div className="flex items-center justify-between gap-3 border-b px-4 py-3">

@@ -2,10 +2,8 @@ import type { ApplicationRole } from "./auth-policy";
 
 export type ApplicationNavigationIcon =
   | "briefcase"
-  | "dashboard"
   | "document-add"
   | "documents"
-  | "notifications"
   | "profile"
   | "services"
   | "team";
@@ -14,8 +12,7 @@ export type ApplicationNavigationGroup =
   | "Account"
   | "Administration"
   | "Customer jobs"
-  | "Operations"
-  | "Workspace";
+  | "Operations";
 
 export interface ApplicationNavigationItem {
   group: ApplicationNavigationGroup;
@@ -24,70 +21,56 @@ export interface ApplicationNavigationItem {
   label: string;
 }
 
-const OVERVIEW: ApplicationNavigationItem = {
-  group: "Workspace",
-  href: "/app",
-  icon: "dashboard",
-  label: "Overview",
-};
-
-const NOTIFICATIONS: ApplicationNavigationItem = {
-  group: "Workspace",
-  href: "/app/notifications",
-  icon: "notifications",
-  label: "Notifications",
-};
-
 const ROLE_NAVIGATION: Record<
   ApplicationRole,
   readonly ApplicationNavigationItem[]
 > = {
   CUSTOMER: [
-    OVERVIEW,
-    NOTIFICATIONS,
     {
       group: "Customer jobs",
       href: "/app/jobs/new",
       icon: "document-add",
-      label: "Submit a job",
+      label: "Submit a Job",
     },
     {
       group: "Customer jobs",
       href: "/app/jobs",
       icon: "documents",
-      label: "My jobs",
-    },
-  ],
-  WORKER: [
-    OVERVIEW,
-    NOTIFICATIONS,
-    {
-      group: "Operations",
-      href: "/app/staff/jobs",
-      icon: "briefcase",
-      label: "Staff jobs",
+      label: "My Jobs",
     },
     {
       group: "Account",
       href: "/app/profile",
       icon: "profile",
-      label: "My profile",
+      label: "My Account",
     },
   ],
-  ADMIN: [
-    OVERVIEW,
-    NOTIFICATIONS,
+  WORKER: [
     {
       group: "Operations",
       href: "/app/staff/jobs",
       icon: "briefcase",
-      label: "Staff jobs",
+      label: "Jobs",
+    },
+    {
+      group: "Account",
+      href: "/app/profile",
+      icon: "profile",
+      label: "My Account",
+    },
+  ],
+  ADMIN: [
+    {
+      group: "Operations",
+      href: "/app/staff/jobs",
+      icon: "briefcase",
+      label: "Jobs",
     },
     {
       group: "Administration",
       href: "/app/services",
       icon: "services",
-      label: "Services",
+      label: "Shop & Services",
     },
     {
       group: "Administration",
@@ -97,19 +80,17 @@ const ROLE_NAVIGATION: Record<
     },
   ],
   OWNER: [
-    OVERVIEW,
-    NOTIFICATIONS,
     {
       group: "Operations",
       href: "/app/staff/jobs",
       icon: "briefcase",
-      label: "Staff jobs",
+      label: "Jobs",
     },
     {
       group: "Administration",
       href: "/app/services",
       icon: "services",
-      label: "Services",
+      label: "Shop & Services",
     },
     {
       group: "Administration",

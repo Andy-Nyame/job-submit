@@ -129,12 +129,12 @@ export async function notifyCustomerOfJobStatus(
   },
 ) {
   await notifyCustomer(transaction, input.businessId, input.customerUserId, {
-    body: `${input.publicReference} is now being reviewed by the team. Pricing confirmation and production remain separate steps.`,
+    body: `We're checking ${input.publicReference}. Price confirmation and production are separate next steps.`,
     eventKey: notificationEventKey("job", input.historyId, "status-updated"),
     href: notificationJobHref("CUSTOMER", input.publicReference),
     targetId: input.jobId,
     targetType: "Job",
-    title: "Your job is under review",
+    title: "We're checking your job",
     type: "JOB_STATUS_UPDATED",
   });
 }
@@ -152,13 +152,13 @@ export async function notifyCustomerOfQuotationIssued(
   const revised = input.quotationVersion > 1;
   await notifyCustomer(transaction, input.businessId, input.customerUserId, {
     body: revised
-      ? `An updated quotation is ready for ${input.publicReference}. Review the current offer before responding.`
-      : `Pricing is ready for ${input.publicReference}. Review the quotation and accept or decline it.`,
+      ? `An updated price is ready for ${input.publicReference}. Check it before you respond.`
+      : `Your price is ready for ${input.publicReference}. Open the job to accept or decline it.`,
     eventKey: notificationEventKey("quotation", input.quotationId, "issued"),
     href: notificationJobHref("CUSTOMER", input.publicReference),
     targetId: input.quotationId,
     targetType: "JobQuotation",
-    title: revised ? "Revised quotation available" : "Quotation available",
+    title: revised ? "Your updated price is ready" : "Your price is ready",
     type: revised ? "QUOTATION_REVISED" : "QUOTATION_ISSUED",
   });
 }
@@ -175,18 +175,18 @@ export async function notifyCustomerOfQuotationOutcome(
 ) {
   const details = {
     COUNTEROFFER_DECLINED: {
-      body: `Management declined the counteroffer for ${input.publicReference}. The current issued quotation remains available.`,
-      title: "Counteroffer reviewed",
+      body: `Management declined your price suggestion for ${input.publicReference}. The current offered price is still available.`,
+      title: "Your price suggestion was reviewed",
       type: "COUNTEROFFER_DECLINED" as const,
     },
     EXPIRED: {
-      body: `The quotation for ${input.publicReference} has expired and is no longer actionable.`,
-      title: "Quotation expired",
+      body: `The offered price for ${input.publicReference} has expired and can no longer be accepted.`,
+      title: "Your price has expired",
       type: "QUOTATION_EXPIRED" as const,
     },
     WITHDRAWN: {
-      body: `The quotation for ${input.publicReference} was withdrawn and is no longer actionable.`,
-      title: "Quotation withdrawn",
+      body: `The offered price for ${input.publicReference} was withdrawn and can no longer be accepted.`,
+      title: "Your price was withdrawn",
       type: "QUOTATION_WITHDRAWN" as const,
     },
   }[input.outcome];

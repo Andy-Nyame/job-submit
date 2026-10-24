@@ -37,14 +37,6 @@ const NAVIGATION_ICON_PATHS: Record<ApplicationNavigationIcon, ReactNode> = {
       <path d="M4 11.5c2.4 1 5.1 1.5 8 1.5s5.6-.5 8-1.5M10.5 12.8v1.7h3v-1.7" />
     </>
   ),
-  dashboard: (
-    <>
-      <rect height="6" rx="1.2" width="6" x="4" y="4" />
-      <rect height="6" rx="1.2" width="6" x="14" y="4" />
-      <rect height="6" rx="1.2" width="6" x="4" y="14" />
-      <rect height="6" rx="1.2" width="6" x="14" y="14" />
-    </>
-  ),
   "document-add": (
     <>
       <path d="M7 3.5h6l4 4v13H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z" />
@@ -56,12 +48,6 @@ const NAVIGATION_ICON_PATHS: Record<ApplicationNavigationIcon, ReactNode> = {
       <path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h8A1.5 1.5 0 0 1 19 4.5v11a1.5 1.5 0 0 1-1.5 1.5H16" />
       <rect height="14" rx="1.5" width="11" x="5" y="7" />
       <path d="M8 11h5M8 15h5M8 18h3" />
-    </>
-  ),
-  notifications: (
-    <>
-      <path d="M18 9.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z" />
-      <path d="M9.8 21h4.4" />
     </>
   ),
   profile: (
@@ -85,7 +71,6 @@ const NAVIGATION_ICON_PATHS: Record<ApplicationNavigationIcon, ReactNode> = {
 };
 
 function NavigationIcon({ name }: { name: ApplicationNavigationIcon }) {
-
   return (
     <svg
       aria-hidden="true"
@@ -273,6 +258,7 @@ export function AppNavigation({
             <Brand />
           </Link>
           <NotificationBell
+            mode="desktop"
             notifications={notifications}
             unreadCount={unreadNotificationCount}
           />
@@ -299,6 +285,7 @@ export function AppNavigation({
         </Link>
         <div className="flex shrink-0 items-center gap-2">
           <NotificationBell
+            mode="mobile"
             notifications={notifications}
             unreadCount={unreadNotificationCount}
           />

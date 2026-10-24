@@ -38,6 +38,8 @@ function errorMessage(error: unknown) {
         "The request could not be safely completed. Refresh your jobs before trying again.",
       SERVICE_UNAVAILABLE:
         "That service is no longer available for online submission. Choose another service.",
+      SHOP_CLOSED:
+        "We're not taking new jobs right now. Your existing jobs are still available.",
       SUBMISSION_INVALID:
         "Review the highlighted job details and submit again.",
     };

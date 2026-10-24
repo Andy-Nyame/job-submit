@@ -7,6 +7,7 @@ import {
   openNotificationAction,
 } from "./actions";
 import { Container } from "@/components/layout/container";
+import { NotificationSoundControls } from "@/components/notifications/notification-sound";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -73,8 +74,7 @@ export default async function NotificationsPage({
               Notifications
             </h1>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Important job and quotation updates for your current business and
-              role. Domain actions remain protected on their destination pages.
+              See important updates and open the job that needs your attention.
             </p>
           </div>
           {data.unreadCount > 0 ? (
@@ -85,6 +85,10 @@ export default async function NotificationsPage({
             </form>
           ) : null}
         </header>
+
+        <div className="mt-7">
+          <NotificationSoundControls />
+        </div>
 
         {invalidFilters ? (
           <div className="mt-6 rounded-xl border border-destructive/45 bg-destructive-surface p-4 text-sm" role="alert">

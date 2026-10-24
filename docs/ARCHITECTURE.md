@@ -27,6 +27,11 @@ messaging, delivery mechanisms, or later business workflows.
 - Authenticated routes use one role-aware navigation definition. A persistent
   desktop sidebar and accessible mobile drawer render the same permitted links;
   visibility is a convenience layer and never replaces server authorization.
+- Main navigation is intentionally small: CUSTOMER has Submit a Job, My Jobs,
+  and My Account; OWNER/ADMIN have Jobs, Shop & Services, and Team; WORKER has
+  Jobs and My Account. `/app` sends CUSTOMER to `/app/jobs/new` and staff roles
+  to `/app/staff/jobs`. Explicit authorized deep links and notification links
+  remain unchanged, and notifications are reached through the bell.
 - The public homepage remains a Server Component. Its catalogue query selects
   only active, non-archived services for the active Capt. Bob business and
   exposes no membership, customer, worker, job, or infrastructure data. A small
@@ -81,6 +86,12 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
   page, Server Action, upload-token request, private download, and database query
   rechecks the Supabase identity and active Neon membership. `WORKER`, `ADMIN`,
   and `OWNER` roles do not gain customer ownership implicitly.
+- New customer intake additionally requires that the same active Business has
+  `acceptingNewJobs=true`. OWNER/ADMIN may change this business-scoped setting
+  through Shop & Services; the mutation is serializable and audited. Closing
+  intake does not deactivate the Business, change service flags, block sign-in,
+  or affect existing jobs and quotations. The final job transaction rechecks
+  the switch, so a form opened before closure cannot create a new job afterward.
 - Staff job access is restricted to active `WORKER`, `ADMIN`, and `OWNER`
   memberships. Every inbox/detail read, Server Action, transition, note write,
   and staff file download rechecks the Supabase identity and current Neon
@@ -128,6 +139,12 @@ All mobile text-entry controls must maintain a computed font-size of at least
 16px to avoid unwanted iOS Safari focus zoom. User-controlled pinch-to-zoom
 must remain available. Shared form controls enforce this below the desktop
 breakpoint; the viewport never disables scaling.
+
+The customer submission interface presents the existing service-driven form as
+three stages: Choose what you need, Tell us the details, and Check and Submit.
+State stays in one client form while moving backward and forward; all existing
+server validation, uploads, pricing, immutable snapshots, and idempotency remain
+authoritative.
 
 ## 6. Permanent lifecycle principle
 
@@ -188,12 +205,22 @@ classes have render regression coverage.
 - Implemented Brick 6D events combine the successful job/quotation state
   change, existing history/audit, and recipient notifications in one database
   transaction. Future events must preserve this boundary.
+- On mobile, the notification bell links directly to `/app/notifications`; the
+  desktop bell may show its bounded recent-notification panel. Optional sound is
+  OFF by default, device-local, plays only for important newly observed allowed
+  events while the app is visible, and never claims closed-tab/background
+  delivery. Initial loads do not replay old notifications.
 - Production builds use Next.js’s webpack backend because the managed environment blocks Turbopack’s internal localhost binding.
 
 ## 9. Deferred implementation
 
-Full role dashboards, general pricing communication,
+Standalone role dashboards, general pricing communication,
 queue/assignment claiming, messaging UI/transport, attachment
 replacement, transactional email/external notification delivery, secure
 pickup-code generation, payments, stars, and ecommerce remain deliberately
 deferred.
+
+The simplified navigation preserves integration points for the future Express-
+first/FIFO queue and assignment history, auditable worker-star ledger and
+leaderboard, production and pickup stages, and private staff text/voice/file
+messaging. Brick 6D.1 does not expose empty pages or fake controls for them.

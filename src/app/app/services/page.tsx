@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
 import { CreateServiceForm } from "@/components/services/create-service-form";
+import { ShopStatusForm } from "@/components/services/shop-status-form";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/form-controls";
@@ -14,7 +15,7 @@ import {
 } from "@/server/services/queries";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Services" };
+export const metadata: Metadata = { title: "Shop & Services" };
 
 const serviceFilters = new Set<ServiceListFilter>([
   "ALL",
@@ -51,19 +52,41 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
       <Container>
         <header className="max-w-3xl">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            Catalogue management
+            Business settings
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            Services
+            Shop &amp; Services
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Manage the service categories customers can discover, including
-            quantity, pricing, size, customer-information, and availability
-            rules in straightforward sections.
+            Control new-job intake and manage the services customers can choose.
+            Shop status and each service&apos;s online setting work independently.
           </p>
         </header>
 
         <div className="mt-8 space-y-10">
+          <section aria-labelledby="shop-status-heading">
+            <Card className="border-primary/25 p-5 sm:p-6 lg:p-8">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="max-w-2xl">
+                  <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                    New customer jobs
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold" id="shop-status-heading">
+                    {data.business?.acceptingNewJobs ? "SHOP OPEN" : "SHOP CLOSED"}
+                  </h2>
+                </div>
+                <Badge>{data.business?.acceptingNewJobs ? "OPEN" : "CLOSED"}</Badge>
+              </div>
+              {data.business ? (
+                <ShopStatusForm open={data.business.acceptingNewJobs} />
+              ) : (
+                <p className="mt-4 text-sm text-destructive" role="alert">
+                  Shop status is unavailable. No change can be made right now.
+                </p>
+              )}
+            </Card>
+          </section>
+
           <section aria-labelledby="service-list-heading">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-xl font-semibold" id="service-list-heading">

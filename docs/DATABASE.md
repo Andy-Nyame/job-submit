@@ -4,6 +4,15 @@
 
 Every operational record is rooted in a `Business`. Composite foreign keys carry `businessId` through relationships where cross-business linkage would be dangerous. The first seed creates only **Capt. Bob Cedi’s Artworks**, with `GHS` as its default currency, plus the six supplied service concepts. It invents no contact details, people, jobs, prices, or statistics.
 
+`Business.acceptingNewJobs` is an additive intake switch that defaults to true
+for safe rollout. It is not the same as `Business.isActive`: closing intake
+pauses only new customer job creation, while the authenticated application,
+existing jobs, quotations, and staff tools remain available. Service-level
+`onlineSubmissionEnabled` still applies independently. OWNER/ADMIN changes use
+a serializable compare-and-set mutation and append `business.shop_opened` or
+`business.shop_closed` to `AuditLog`; the customer job transaction reads the
+same Business row before inserting the canonical job.
+
 `User` is the global application identity. Its nullable, unique
 `supabaseAuthUserId` stores the stable Supabase user UUID; email remains a
 normalized contact/claim attribute and is not a foreign key. No access,

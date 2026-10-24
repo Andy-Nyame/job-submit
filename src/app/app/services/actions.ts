@@ -10,11 +10,23 @@ import type {
 } from "@/domain/service-policy";
 import { requireServiceManager } from "@/server/services/authorization";
 import { ServiceOperationError } from "@/server/services/errors";
+import { ShopOperationError } from "@/server/shop/errors";
+import { setShopOpenState } from "@/server/shop/management";
 import {
   createService,
   setServiceActiveState,
   updateService,
 } from "@/server/services/service-management";
+
+export interface ShopStatusActionState {
+  message: string;
+  status: "error" | "idle" | "success";
+}
+
+export const initialShopStatusActionState: ShopStatusActionState = {
+  message: "",
+  status: "idle",
+};
 
 function readText(formData: FormData, name: string) {
   const value = formData.get(name);
@@ -127,6 +139,53 @@ function revalidateServicePages(serviceId?: string) {
   revalidatePath("/app/services");
   if (serviceId) {
     revalidatePath(`/app/services/${serviceId}`);
+  }
+}
+
+export async function setShopStatusAction(
+  _state: ShopStatusActionState,
+  formData: FormData,
+): Promise<ShopStatusActionState> {
+  try {
+    const actor = await requireServiceManager();
+    const nextValue = readText(formData, "acceptingNewJobs");
+    const expectedValue = readText(formData, "expectedState");
+    if (
+      (nextValue !== "true" && nextValue !== "false") ||
+      (expectedValue !== "true" && expectedValue !== "false") ||
+      nextValue === expectedValue
+    ) {
+      return { message: "Refresh and try that change again.", status: "error" };
+    }
+
+    const acceptingNewJobs = nextValue === "true";
+    await setShopOpenState(actor, {
+      acceptingNewJobs,
+      expectedState: expectedValue === "true",
+    });
+    revalidatePath("/app/jobs/new");
+    revalidatePath("/app/staff/jobs");
+    revalidatePath("/app/services");
+    return {
+      message: acceptingNewJobs
+        ? "The shop is open for enabled online services."
+        : "The shop is closed to new customer jobs.",
+      status: "success",
+    };
+  } catch (error) {
+    if (error instanceof ShopOperationError) {
+      return {
+        message:
+          error.code === "STALE_UPDATE"
+            ? "The shop status changed in another session. Refresh before trying again."
+            : "The shop status cannot be changed while this business is unavailable.",
+        status: "error",
+      };
+    }
+    return {
+      message: "The shop status could not be saved safely. Please try again.",
+      status: "error",
+    };
   }
 }
 

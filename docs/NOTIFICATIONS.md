@@ -48,6 +48,20 @@ rows per page, newest first, with an unread filter. Only the recipient may mark
 one or all of their current-business notifications read. Read state never
 changes the underlying job, quotation, history, or audit record.
 
+On mobile, the bell navigates directly to `/app/notifications`; it does not open
+a floating panel over the page. Desktop retains a bounded recent-notification
+panel with Escape and outside-click closing. Notifications are not duplicated
+as a permanent main-navigation item.
+
+Notification sounds are optional and OFF by default. The preference is stored
+only in the current browser. After the user enables audio, one gentle chime may
+play for a batch of genuinely new, role-permitted important notifications while
+the app is active and visible. The first load seeds the seen set and never
+replays old notifications. Browser autoplay policy, device mute, suspended or
+closed tabs, and operating-system restrictions may prevent sound; JobSubmit does
+not promise background audio or push delivery. A Test Sound action lets the user
+check current browser behavior and the same control can mute sounds again.
+
 ## Delivery limits
 
 No transactional email provider is configured. Brick 6D provides complete

@@ -17,6 +17,7 @@ import {
   type StaffJobInboxFilters,
 } from "@/domain/staff-job-policy";
 import { formatGhanaCediMinor } from "@/domain/service-pricing";
+import { canManageShop } from "@/domain/shop-policy";
 import { requireBusinessMembership } from "@/server/auth/authorization";
 import { getStaffJobInbox } from "@/server/staff-jobs/queries";
 
@@ -111,11 +112,30 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-muted">
             Staff operations
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Job inbox</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Jobs</h1>
           <p className="mt-3 text-sm leading-6 text-muted">
             Review customer submissions for this business. Express work and quotation requests are clearly marked; later production stages remain outside this milestone.
           </p>
         </header>
+
+        {canManageShop(data.principal.role) ? (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/25 bg-primary-surface p-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                New customer jobs
+              </p>
+              <p className="mt-1 font-semibold">
+                {data.acceptingNewJobs ? "SHOP OPEN" : "SHOP CLOSED"}
+              </p>
+            </div>
+            <Link
+              className="inline-flex min-h-11 items-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-semibold outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring"
+              href="/app/services"
+            >
+              Change shop status
+            </Link>
+          </div>
+        ) : null}
 
         {filterError ? (
           <div className="mt-6 rounded-xl border border-destructive/45 bg-destructive-surface p-4 text-sm" role="alert">

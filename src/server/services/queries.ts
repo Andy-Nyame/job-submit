@@ -14,7 +14,16 @@ export async function getServicesPageData(input: {
   const query = input.query?.trim().slice(0, 160) ?? "";
   const status = input.status ?? "ALL";
 
-  const services = await prisma.service.findMany({
+  const [business, services] = await Promise.all([
+    prisma.business.findFirst({
+      where: {
+        archivedAt: null,
+        id: principal.businessId,
+        isActive: true,
+      },
+      select: { acceptingNewJobs: true },
+    }),
+    prisma.service.findMany({
     where: {
       archivedAt: null,
       businessId: principal.businessId,
@@ -41,9 +50,10 @@ export async function getServicesPageData(input: {
       updatedAt: true,
       version: true,
     },
-  });
+    }),
+  ]);
 
-  return { principal, services };
+  return { business, principal, services };
 }
 
 export async function getManagedService(serviceId: string) {

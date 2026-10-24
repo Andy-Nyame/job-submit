@@ -6,6 +6,18 @@ customer-owned list at `/app/jobs`, and protected details at
 these routes and mutations. Guest submission is not enabled. `WORKER`, `ADMIN`,
 and `OWNER` roles do not receive customer ownership merely through staff access.
 
+Brick 6D.1 presents the same authoritative workflow in three plain-language
+stages: **Choose what you need**, **Tell us the details**, and **Check and
+Submit**. Back and Continue keep the in-progress answers in the same form. The
+presentation does not replace or weaken the Brick 6A server mutation.
+
+The Business-level `acceptingNewJobs` switch is separate from every service's
+`onlineSubmissionEnabled` setting. Both must permit intake. A closed shop shows
+a friendly pause message while existing jobs, quotations, accounts, and
+notifications remain accessible. An open shop with no enabled service shows a
+different message. The final serializable creation transaction rechecks shop
+status, covering a concurrent closure after the form was opened.
+
 ## Service-driven request contract
 
 The submission page reads active, non-archived services whose
@@ -30,7 +42,7 @@ starting quantity, starting price, quantity step, and additional-step price.
 Express adds exactly 40% to that base. If a fixed configuration does not apply,
 the submission falls back to Price on Request rather than showing a misleading
 total. Price on Request stores no fabricated submission price and the customer
-sees “Quotation pending,” never GH₵0. Brick 6C can later attach a separately
+sees “We’ll check your request and send you a price,” never GH₵0. Brick 6C attaches a separately
 versioned management quotation to that canonical job; the immutable submission
 snapshot itself is never rewritten. No payment is recorded.
 
@@ -67,8 +79,8 @@ attachment is active. Responses are private, non-cacheable downloads with
 
 ## Deliberately deferred
 
-Brick 6A does not implement staff review screens. Brick 6B adds staff review and
-Brick 6C adds in-app quotation issuance and customer price decisions. Payments,
+Brick 6B adds staff review and Brick 6C adds in-app quotation issuance and
+customer price decisions. Payments,
 queueing, assignment, customer/staff messages,
 notifications, proofs/approval, production transitions, pickup codes, stars,
 or attachment replacement. Submitted jobs use the existing operational model

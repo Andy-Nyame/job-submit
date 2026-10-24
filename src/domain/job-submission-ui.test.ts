@@ -13,13 +13,19 @@ const files = {
 
 test("submission UI includes conditional review, upload, pending, and accessible error states", async () => {
   const source = await readFile(files.component, "utf8");
-  assert.match(source, /Review job request/u);
+  assert.match(source, /Step 1 of 3/u);
+  assert.match(source, /Step 2 of 3/u);
+  assert.match(source, /Step 3 of 3/u);
+  assert.match(source, /Choose what you need/u);
+  assert.match(source, /Tell us the details/u);
+  assert.match(source, /Check and Submit/u);
+  assert.match(source, /Submit My Job/u);
   assert.match(source, /Preparing secure review/u);
   assert.match(source, /role="alert"/u);
   assert.match(source, /Technical proof is not required/u);
   assert.match(source, /onUploadProgress/u);
-  assert.match(source, /Price on request/u);
-  assert.match(source, /No GH₵0 quotation/u);
+  assert.match(source, /send you a price/u);
+  assert.match(source, /No GH₵0 price/u);
 });
 
 test("server submission reauthorizes customers and creates one atomic operational record", async () => {
@@ -57,6 +63,6 @@ test("customer details route does not expose staff notes or other customer data"
   const detail = await readFile(files.detail, "utf8");
   assert.doesNotMatch(detail, /jobNotes|notes:/u);
   assert.doesNotMatch(detail, /customer\.email|customer\.phone/u);
-  assert.match(detail, /Quotation pending/u);
-  assert.match(detail, /Status updates/u);
+  assert.match(detail, /send you a price soon/u);
+  assert.match(detail, /Job updates/u);
 });

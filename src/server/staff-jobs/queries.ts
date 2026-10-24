@@ -147,7 +147,11 @@ export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
     ? filters
     : { ...filters, pricing: null };
   const where = inboxWhere(principal.businessId, effectiveFilters);
-  const [services, totalJobs] = await Promise.all([
+  const [business, services, totalJobs] = await Promise.all([
+    prisma.business.findFirst({
+      where: { archivedAt: null, id: principal.businessId, isActive: true },
+      select: { acceptingNewJobs: true },
+    }),
     prisma.service.findMany({
       where: { archivedAt: null, businessId: principal.businessId },
       orderBy: [{ name: "asc" }],
@@ -193,6 +197,7 @@ export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
   });
 
   return {
+    acceptingNewJobs: business?.acceptingNewJobs === true,
     filters: { ...effectiveFilters, page },
     jobs,
     principal,

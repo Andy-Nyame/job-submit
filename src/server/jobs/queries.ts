@@ -21,17 +21,31 @@ const submissionServiceSelect = {
 
 export async function getCustomerSubmissionPageData() {
   const principal = await requireCustomer();
-  const services = await prisma.service.findMany({
-    where: {
-      archivedAt: null,
-      businessId: principal.businessId,
-      isActive: true,
-      onlineSubmissionEnabled: true,
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: submissionServiceSelect,
-  });
-  return { principal, services };
+  const [business, services] = await Promise.all([
+    prisma.business.findFirst({
+      where: {
+        archivedAt: null,
+        id: principal.businessId,
+        isActive: true,
+      },
+      select: { acceptingNewJobs: true },
+    }),
+    prisma.service.findMany({
+      where: {
+        archivedAt: null,
+        businessId: principal.businessId,
+        isActive: true,
+        onlineSubmissionEnabled: true,
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: submissionServiceSelect,
+    }),
+  ]);
+  return {
+    principal,
+    services,
+    shopOpen: business?.acceptingNewJobs === true,
+  };
 }
 
 export async function getCustomerJobs() {

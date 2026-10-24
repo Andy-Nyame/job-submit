@@ -13,25 +13,24 @@ function hrefs(role: Parameters<typeof getApplicationNavigation>[0]) {
 
 test("application navigation exposes only role-appropriate implemented routes", () => {
   assert.deepEqual(hrefs("CUSTOMER"), [
-    "/app",
-    "/app/notifications",
     "/app/jobs/new",
     "/app/jobs",
+    "/app/profile",
   ]);
   assert.deepEqual(hrefs("WORKER"), [
-    "/app",
-    "/app/notifications",
     "/app/staff/jobs",
     "/app/profile",
   ]);
   assert.deepEqual(hrefs("ADMIN"), [
-    "/app",
-    "/app/notifications",
     "/app/staff/jobs",
     "/app/services",
     "/app/team",
   ]);
   assert.deepEqual(hrefs("OWNER"), hrefs("ADMIN"));
+  for (const role of ["CUSTOMER", "WORKER", "ADMIN", "OWNER"] as const) {
+    assert.equal(hrefs(role).includes("/app/notifications"), false);
+    assert.equal(hrefs(role).includes("/app"), false);
+  }
 });
 
 test("active navigation chooses the most specific matching route", () => {
@@ -55,7 +54,7 @@ test("active navigation chooses the most specific matching route", () => {
   );
   assert.equal(
     getActiveApplicationNavigationHref("/app/profile", customerItems),
-    null,
+    "/app/profile",
   );
 });
 

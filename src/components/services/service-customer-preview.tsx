@@ -120,7 +120,7 @@ export function ServiceCustomerPreview({
       </dl>
 
       <p className="mt-6 border-t pt-4 text-xs font-medium leading-5 text-muted">
-        {onlineSubmissionEnabled ? "This service is configured for future online submission. Online job submission is not live yet." : "This service is visible in the catalogue but is not enabled for online submission."}
+        {onlineSubmissionEnabled ? "Customers can choose this service for online job requests while the shop is open." : "This service is visible in the catalogue but is not enabled for online job requests."}
       </p>
     </article>
   );
