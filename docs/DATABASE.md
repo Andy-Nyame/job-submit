@@ -92,12 +92,13 @@ SUBMITTED → UNDER_REVIEW → ACCEPTED → QUEUED → PROCESSING
 → PREPARING_FOR_PICKUP → READY_FOR_PICKUP → PICKED_UP
 ```
 
-Side states are `WAITING_FOR_CUSTOMER`, `AWAITING_CUSTOMER_APPROVAL`, `DECLINED`, and `CANCELLED`. Future server transition policy is authoritative. Each accepted transition must append `JobStatusHistory`; database triggers prevent normal update/delete of that history.
+Side states are `WAITING_FOR_CUSTOMER`, `AWAITING_CUSTOMER_APPROVAL`, `DECLINED`, and `CANCELLED`. Server transition policy is authoritative. Each accepted transition must append `JobStatusHistory`; database triggers prevent normal update/delete of that history.
 
-Brick 6B deliberately enables only `SUBMITTED → UNDER_REVIEW`. The serializable
-mutation compares `Job.version` and the current status, writes the review actor
-and timestamp, increments the version, appends status history, and creates an
-audit event in one transaction. Repeated, stale, and unsupported transitions
+Brick 6B introduced `SUBMITTED → UNDER_REVIEW`. Brick 7 adds the controlled
+operational path from `UNDER_REVIEW` through `PICKED_UP`. The serializable
+mutations compare `Job.version` and current status where applicable, verify the
+actor and operational prerequisites, append status history, and create audit
+events in the same transaction. Repeated, stale, and unsupported transitions
 fail closed. Customer details expose only status names and timestamps, never
 staff actors, reasons, or notes.
 
@@ -115,7 +116,10 @@ PostgreSQL checks enforce the 40% Express calculation once. Triggers reject
 deletion, illegal state changes, and changes to issued financial terms. Quote
 versions and append-only `AuditLog` entries preserve the commercial history.
 
-`queueEnteredAt`, not `createdAt`, is the FIFO foundation. Future selection logic will order eligible Express and Regular groups explicitly, expose old Regular work for anti-starvation handling, and exclude paused/customer-waiting work. Re-entry policy must explicitly preserve or replace queue time. `JobQueueOverride` requires a reason; a partial unique index permits one live override per job, and future service code must add an `AuditLog` entry atomically.
+`queueEnteredAt`, not `createdAt`, is the FIFO foundation. Brick 7 orders Express
+before Regular and oldest queue entry first inside each priority. `queueOrderTier`
+applies an audited promote/demote exception without destroying the original FIFO
+timestamp. `JobQueueOverride` requires a reason and one live override per job.
 
 ## Complexity and workload
 
@@ -129,7 +133,9 @@ stores the matching workload: `SIMPLE → QUICK`, `MEDIUM → STANDARD`, and
 `COMPLEX → FOCUS`. This prevents contradictory service defaults while leaving
 actual future jobs independently reviewable.
 
-Future claim logic must combine current assignments, capacity settings, focus exclusion, and active service skills inside one transaction. The schema does not pretend that complexity determines capacity.
+Brick 7 claim/assignment logic combines current assignments, capacity settings,
+FOCUS exclusion, active service skills, and active membership state inside one
+serializable transaction. The schema does not pretend complexity determines capacity.
 
 Brick 4 constrains QUICK capacity to `0..50` and STANDARD capacity to `0..20`.
 FOCUS eligibility is boolean configuration: a worker handling FOCUS work cannot
@@ -178,7 +184,13 @@ eventKey)` identity makes request retries harmless per recipient while allowing
 one event to fan out to multiple eligible managers. In-app delivery and
 read/unread state are implemented; email, push, and realtime transport are not.
 
-`PickupVerification` stores only a future code hash and optional non-sensitive hint. A partial unique index allows one active code per job. Status/timestamp checks enforce one-time consumption shape, while overrides require actor, timestamp, and reason. Future verification must display the resolved job/customer/service/handler and atomically consume the code, transition the job, award stars, and audit any override.
+`PickupVerification` stores a SHA-256 code hash, optional non-sensitive hint, and
+AES-256-GCM ciphertext for authorized customer retrieval. A partial unique index
+allows one active code per job. Status/timestamp checks enforce one-time
+consumption, while overrides require actor, timestamp, and reason. Brick 7
+resolves the immutable job snapshot, requires explicit handover checks, and
+atomically consumes the code, transitions the job, writes history/audit, and
+notifies permitted recipients. It intentionally does not award stars.
 
 `StarLedger` is append-only. Normal verified completion awards are 1–3, require a picked-up job plus consumed pickup verification, and are unique per worker/job. Owner bonuses, corrections, and reversals are separate compensating entries with reasons; no mutable total is authoritative. Jobs completed and weekly/monthly/all-time stars remain queryable from assignment/status/ledger dates. Multi-worker star splitting and redemption are intentionally undecided.
 

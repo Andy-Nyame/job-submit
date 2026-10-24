@@ -5,21 +5,53 @@ import {
   type StaffJobInboxFilters,
 } from "@/domain/staff-job-policy";
 import { canManageQuotations } from "@/domain/quotation-policy";
+import { canAcceptConfiguredWorkload } from "@/domain/team-policy";
 import { Prisma } from "@/generated/prisma/client";
+import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { prisma } from "@/server/db/prisma";
 
 import { requireStaffJobAccess } from "./authorization";
 
 function inboxWhere(
-  businessId: string,
+  principal: ApplicationPrincipal,
   filters: StaffJobInboxFilters,
 ): Prisma.JobWhereInput {
   return {
     archivedAt: null,
-    businessId,
+    businessId: principal.businessId,
     ...(filters.priority ? { priority: filters.priority } : {}),
     ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
     ...(filters.status ? { currentStatus: filters.status } : {}),
+    ...(principal.role === "WORKER" && filters.work === "AVAILABLE"
+      ? {
+          assignments: { none: { isPrimary: true, releasedAt: null } },
+          currentStatus: "ACCEPTED" as const,
+          service: {
+            workerSkills: {
+              some: {
+                deactivatedAt: null,
+                isActive: true,
+                workerProfile: {
+                  archivedAt: null,
+                  isActive: true,
+                  membershipId: principal.membershipId,
+                },
+              },
+            },
+          },
+        }
+      : {}),
+    ...(principal.role === "WORKER" && filters.work === "MINE"
+      ? {
+          assignments: {
+            some: {
+              isPrimary: true,
+              releasedAt: null,
+              workerMembershipId: principal.membershipId,
+            },
+          },
+        }
+      : {}),
     ...(filters.pricing
       ? { AND: [pricingWhere(filters.pricing)] }
       : {}),
@@ -132,6 +164,14 @@ function pricingWhere(
 }
 
 function inboxOrderBy(filters: StaffJobInboxFilters): Prisma.JobOrderByWithRelationInput[] {
+  if (filters.status === "ACCEPTED" || filters.work === "AVAILABLE") {
+    return [
+      { priority: "desc" },
+      { queueOrderTier: "asc" },
+      { queueEnteredAt: { sort: "asc", nulls: "last" } },
+      { id: "asc" },
+    ];
+  }
   if (filters.sort === "OLDEST") {
     return [{ createdAt: "asc" }, { id: "asc" }];
   }
@@ -144,9 +184,9 @@ function inboxOrderBy(filters: StaffJobInboxFilters): Prisma.JobOrderByWithRelat
 export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
   const principal = await requireStaffJobAccess();
   const effectiveFilters = canManageQuotations(principal.role)
-    ? filters
+    ? { ...filters, work: null }
     : { ...filters, pricing: null };
-  const where = inboxWhere(principal.businessId, effectiveFilters);
+  const where = inboxWhere(principal, effectiveFilters);
   const [business, services, totalJobs] = await Promise.all([
     prisma.business.findFirst({
       where: { archivedAt: null, id: principal.businessId, isActive: true },
@@ -167,6 +207,14 @@ export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
     skip: (page - 1) * STAFF_JOB_PAGE_SIZE,
     take: STAFF_JOB_PAGE_SIZE,
     select: {
+      assignments: {
+        where: { isPrimary: true, releasedAt: null },
+        select: {
+          worker: { select: { user: { select: { displayName: true, email: true } } } },
+          workerMembershipId: true,
+        },
+        take: 1,
+      },
       createdAt: true,
       currentStatus: true,
       customer: {
@@ -174,6 +222,8 @@ export async function getStaffJobInbox(filters: StaffJobInboxFilters) {
       },
       priority: true,
       publicReference: true,
+      queueEnteredAt: true,
+      queueOrderTier: true,
       quantity: true,
       service: { select: { name: true } },
       quotations: {
@@ -238,6 +288,7 @@ export async function getStaffJobDetail(publicReference: string) {
         select: { displayName: true, email: true, phone: true },
       },
       instructions: true,
+      packageCount: true,
       notes: {
         where: { archivedAt: null },
         orderBy: { createdAt: "desc" },
@@ -254,6 +305,32 @@ export async function getStaffJobDetail(publicReference: string) {
       },
       priority: true,
       publicReference: true,
+      queueEnteredAt: true,
+      queueOrderTier: true,
+      queueOverrides: {
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true, direction: true, reason: true, revokedAt: true },
+        take: 5,
+      },
+      assignments: {
+        orderBy: { assignedAt: "desc" },
+        select: {
+          assignedAt: true,
+          assignmentReason: true,
+          completedAt: true,
+          id: true,
+          kind: true,
+          releasedAt: true,
+          releaseReason: true,
+          worker: { select: { id: true, user: { select: { displayName: true, email: true } } } },
+          workerMembershipId: true,
+        },
+      },
+      pickupVerifications: {
+        orderBy: { issuedAt: "desc" },
+        select: { codeHint: true, consumedAt: true, expiresAt: true, id: true, issuedAt: true, status: true },
+        take: 5,
+      },
       quantity: true,
       quotations: {
         where: { status: { not: "DRAFT" } },
@@ -278,8 +355,90 @@ export async function getStaffJobDetail(publicReference: string) {
       title: true,
       updatedAt: true,
       version: true,
+      workloadClass: true,
     },
   });
+  const workers = job && (principal.role === "ADMIN" || principal.role === "OWNER")
+    ? await prisma.businessMembership.findMany({
+        where: {
+          businessId: principal.businessId,
+          deactivatedAt: null,
+          role: "WORKER",
+          status: "ACTIVE",
+          user: { deactivatedAt: null },
+          workerProfile: {
+            archivedAt: null,
+            isActive: true,
+            skills: { some: { deactivatedAt: null, isActive: true, serviceId: job.service.id } },
+          },
+        },
+        orderBy: { user: { displayName: "asc" } },
+        select: {
+          id: true,
+          user: { select: { displayName: true, email: true } },
+          workerProfile: { select: { canTakeFocus: true, maxQuickWorkload: true, maxStandardWorkload: true } },
+        },
+      })
+    : [];
 
-  return { job, principal };
+  const activeAssignments = workers.length > 0
+    ? await prisma.jobAssignment.findMany({
+        where: {
+          businessId: principal.businessId,
+          job: {
+            archivedAt: null,
+            currentStatus: {
+              in: ["QUEUED", "PROCESSING", "PREPARING_FOR_PICKUP"],
+            },
+          },
+          releasedAt: null,
+          workerMembershipId: { in: workers.map((worker) => worker.id) },
+        },
+        select: {
+          job: { select: { workloadClass: true } },
+          workerMembershipId: true,
+        },
+      })
+    : [];
+  const workloadByWorker = new Map<
+    string,
+    { focus: number; quick: number; standard: number }
+  >();
+  for (const assignment of activeAssignments) {
+    const current = workloadByWorker.get(assignment.workerMembershipId) ?? {
+      focus: 0,
+      quick: 0,
+      standard: 0,
+    };
+    if (assignment.job.workloadClass === "QUICK") current.quick += 1;
+    if (assignment.job.workloadClass === "STANDARD") current.standard += 1;
+    if (assignment.job.workloadClass === "FOCUS") current.focus += 1;
+    workloadByWorker.set(assignment.workerMembershipId, current);
+  }
+
+  return {
+    job,
+    principal,
+    workers: workers.map((worker) => {
+      const workload = workloadByWorker.get(worker.id) ?? {
+        focus: 0,
+        quick: 0,
+        standard: 0,
+      };
+      return {
+        ...worker,
+        eligibleForJob: Boolean(
+          job?.workloadClass && worker.workerProfile && canAcceptConfiguredWorkload({
+            activeFocusAssignments: workload.focus,
+            activeQuickAssignments: workload.quick,
+            activeStandardAssignments: workload.standard,
+            isOperational: true,
+            requested: job.workloadClass,
+            settings: worker.workerProfile,
+          }),
+        ),
+        workload,
+      };
+    }),
+  };
 }

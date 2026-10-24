@@ -29,20 +29,35 @@ snapshots; they are not recalculated. Price on Request remains “Quotation
 pending” until Brick 6C management issues a separate versioned quotation. No
 missing amount is represented as GH₵0 and no payment is implied.
 
-## Review transition and history
+## Review, queue, and production history
 
-Brick 6B enables exactly one status transition:
+Brick 6B introduced the initial review transition:
 
 ```text
 SUBMITTED → UNDER_REVIEW
 ```
 
-The server does not accept an arbitrary target status. A serializable,
+Brick 7 extends that controlled lifecycle after pricing is confirmed:
+
+```text
+UNDER_REVIEW → ACCEPTED → QUEUED → PROCESSING
+→ PREPARING_FOR_PICKUP → READY_FOR_PICKUP → PICKED_UP
+```
+
+The server does not accept an arbitrary target status. Serializable,
 version-checked compare-and-set updates the Job, records `reviewedAt` and the
 reviewing membership, appends `JobStatusHistory`, and writes
 `job.review_started` to `AuditLog`. Repeated, stale, concurrent, and unsupported
 transitions are rejected. Customers see the resulting status and timestamp but
 not staff actor details or internal reasons.
+
+Express jobs appear before Regular jobs; FIFO within each priority uses the
+immutable queue-entry time. Management may record a reasoned, audited exception
+within a priority group. Worker shortcuts show eligible unassigned jobs and the
+worker's own active assignments. Claiming and management assignment both recheck
+active membership, service skill, workload capacity, and exclusive assignment
+inside the authoritative transaction. Management worker choices display live
+Quick, Standard, and Focus workload counts beside configured limits.
 
 ## Internal notes and files
 
@@ -57,8 +72,13 @@ allows only the owning active customer or an active staff member in the same
 business, then streams the private object with no-store and nosniff headers.
 Storage paths are never returned as authorization credentials.
 
-## Deferred
+## Operations now available
 
-Payments, staff-customer messaging, external notifications, queueing,
-assignment, production statuses,
-proof approval, pickup verification, and completion remain later milestones.
+Brick 7 adds management release, worker claim/management assignment, reasoned
+reassignment, production progress, printable physical labels, encrypted
+single-use pickup credentials, and explicit staff-confirmed pickup. Pickup uses
+the saved request snapshot for verification, never silently awards stars, and
+does not record payment. See `docs/JOB_OPERATIONS.md` for the full policy.
+
+Payments, proof approval, external notification delivery, and customer/staff
+messaging remain later milestones.

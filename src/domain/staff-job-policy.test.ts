@@ -32,6 +32,7 @@ test("staff inbox filters normalize supported values", () => {
       service: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       sort: "updated",
       status: "under_review",
+      work: "mine",
     }),
     {
       page: 2,
@@ -41,6 +42,7 @@ test("staff inbox filters normalize supported values", () => {
       serviceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       sort: "UPDATED",
       status: "UNDER_REVIEW",
+      work: "MINE",
     },
   );
 });
@@ -54,6 +56,7 @@ test("empty filters use bounded defaults", () => {
     serviceId: null,
     sort: "NEWEST",
     status: null,
+    work: null,
   });
 });
 
@@ -67,6 +70,7 @@ test("malformed, duplicate, and excessive filters fail closed", () => {
     { service: "not-a-uuid" },
     { sort: "PRICE" },
     { status: "UNKNOWN" },
+    { work: "EVERYONES" },
   ]) {
     assert.throws(() => parseStaffJobInboxFilters(input), StaffJobPolicyError);
   }

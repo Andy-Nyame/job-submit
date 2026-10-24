@@ -4,12 +4,23 @@ import { notFound, redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
 import { AddInternalNoteForm } from "@/components/staff-jobs/add-internal-note-form";
+import {
+  AssignJobForm,
+  ClaimJobForm,
+  PackageCountForm,
+  ProductionStatusForm,
+  QueueOverrideForm,
+  ReassignJobForm,
+  ReissuePickupForm,
+  ReleaseJobForm,
+} from "@/components/staff-jobs/job-operation-controls";
 import { StartJobReviewForm } from "@/components/staff-jobs/start-job-review-form";
 import { QuotationDraftForm } from "@/components/quotations/quotation-draft-form";
 import { CreateRevisionForm, DeclineCounterofferForm, IssueQuotationForm, WithdrawQuotationForm } from "@/components/quotations/management-quotation-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { isJobSubmissionSnapshot, type JobSubmissionSnapshot } from "@/domain/job-submission";
+import { canManageOperations } from "@/domain/job-operations";
 import { canManageQuotations, effectiveQuotationStatus, expressSurchargeLabel, readQuotationLineItems } from "@/domain/quotation-policy";
 import { readSpecificationConfiguration } from "@/domain/service-configuration";
 import { formatGhanaCediMinor, formatMoneyInput } from "@/domain/service-pricing";
@@ -55,7 +66,7 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
     redirect("/app");
   }
   const { publicReference } = await params;
-  const { job } = await getStaffJobDetail(publicReference);
+  const { job, workers } = await getStaffJobDetail(publicReference);
   if (!job) notFound();
   const managementJob = canManageQuotations(principal.role)
     ? (await getManagementQuotationData(publicReference)).job
@@ -68,6 +79,14 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
   const acceptedQuotation = managementJob?.quotations.find((quotation) => quotation.status === "ACCEPTED") ?? null;
   const publicQuotation = job.quotations[0] ?? null;
   const publicQuotationStatus = publicQuotation ? effectiveQuotationStatus(publicQuotation.status, publicQuotation.expiresAt) : null;
+  const activeAssignment = job.assignments.find((assignment) => !assignment.releasedAt) ?? null;
+  const actorOwnsAssignment = activeAssignment?.workerMembershipId === principal.membershipId;
+  const manager = canManageOperations(principal.role);
+  const operationWorkers = workers.map((worker) => ({
+    disabled: !worker.eligibleForJob || activeAssignment?.workerMembershipId === worker.id,
+    id: worker.id,
+    label: `${worker.user.displayName ?? worker.user.email ?? "Worker"} · Quick ${worker.workload.quick}/${worker.workerProfile?.maxQuickWorkload ?? 0} · Standard ${worker.workload.standard}/${worker.workerProfile?.maxStandardWorkload ?? 0} · Focus ${worker.workload.focus}/${worker.workerProfile?.canTakeFocus ? 1 : 0}${worker.eligibleForJob ? "" : " · Capacity unavailable"}`,
+  }));
 
   return (
     <main className="py-10 sm:py-14" id="main-content">
@@ -75,7 +94,8 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
         <Link className="text-sm font-medium text-muted underline decoration-accent underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/app/staff/jobs">Back to staff inbox</Link>
         <header className="mt-6 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-muted">{job.publicReference}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Job number</p>
+            <p className="mt-1 break-all font-mono text-2xl font-black tracking-tight text-primary sm:text-3xl">{job.publicReference}</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight">{job.title}</h1>
             <p className="mt-2 text-sm text-muted">{snapshot?.service.name ?? job.service.name} · Submitted {formatDate(job.createdAt)}</p>
           </div>
@@ -85,6 +105,10 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
             {snapshot?.pricing.mode === "ON_REQUEST" ? <Badge>Quotation pending</Badge> : null}
           </div>
         </header>
+        <nav aria-label="Job tools" className="mt-5 flex flex-wrap gap-3">
+          <Link className="inline-flex min-h-11 items-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-semibold outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring" href={`/app/staff/jobs/${encodeURIComponent(job.publicReference)}/label`}>Print job label</Link>
+          <Link className="inline-flex min-h-11 items-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-semibold outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring" href="/app/staff/pickup">Scan pickup code</Link>
+        </nav>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
           <div className="space-y-6">
@@ -177,6 +201,35 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
                 <p className="mt-2 text-sm leading-6 text-muted">Current status: <span className="font-medium text-foreground">{formatStatus(job.currentStatus)}</span>{job.reviewedAt ? ` since ${formatDate(job.reviewedAt)}` : ""}.</p>
               )}
             </Card>
+
+            <Card className="p-5 sm:p-6">
+              <h2 className="text-lg font-semibold">Production</h2>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div><dt className="text-muted">Worker</dt><dd className="mt-1 font-medium">{activeAssignment?.worker.user.displayName ?? activeAssignment?.worker.user.email ?? "Not assigned"}</dd></div>
+                <div><dt className="text-muted">Physical packages</dt><dd className="mt-1 font-medium">{job.packageCount}</dd></div>
+                {job.queueEnteredAt ? <div><dt className="text-muted">Entered queue</dt><dd className="mt-1 font-medium">{formatDate(job.queueEnteredAt)}</dd></div> : null}
+              </dl>
+              <div className="mt-5 space-y-4 border-t pt-5">
+                {manager && job.currentStatus === "UNDER_REVIEW" ? <ReleaseJobForm publicReference={job.publicReference} version={job.version} /> : null}
+                {job.currentStatus === "ACCEPTED" && manager ? <AssignJobForm publicReference={job.publicReference} version={job.version} workers={operationWorkers} /> : null}
+                {job.currentStatus === "ACCEPTED" && principal.role === "WORKER" ? <ClaimJobForm publicReference={job.publicReference} version={job.version} /> : null}
+                {job.currentStatus === "ACCEPTED" && manager ? <QueueOverrideForm publicReference={job.publicReference} version={job.version} /> : null}
+                {activeAssignment && manager && ["QUEUED", "PROCESSING", "PREPARING_FOR_PICKUP"].includes(job.currentStatus) ? <ReassignJobForm publicReference={job.publicReference} version={job.version} workers={operationWorkers} /> : null}
+                {job.currentStatus === "QUEUED" && (manager || actorOwnsAssignment) ? <ProductionStatusForm label="Start work" publicReference={job.publicReference} toStatus="PROCESSING" version={job.version} /> : null}
+                {job.currentStatus === "PROCESSING" && (manager || actorOwnsAssignment) ? <ProductionStatusForm label="Work finished" publicReference={job.publicReference} toStatus="PREPARING_FOR_PICKUP" version={job.version} /> : null}
+                {job.currentStatus === "PREPARING_FOR_PICKUP" && (manager || actorOwnsAssignment) ? <ProductionStatusForm label="Ready for pickup" publicReference={job.publicReference} toStatus="READY_FOR_PICKUP" version={job.version} /> : null}
+                {job.currentStatus === "READY_FOR_PICKUP" && manager ? <ReissuePickupForm publicReference={job.publicReference} /> : null}
+                {!["PICKED_UP", "CANCELLED", "DECLINED"].includes(job.currentStatus) && (manager || actorOwnsAssignment) ? <PackageCountForm packageCount={job.packageCount} publicReference={job.publicReference} version={job.version} /> : null}
+                {job.currentStatus === "READY_FOR_PICKUP" ? <Link className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground" href="/app/staff/pickup">Check customer code</Link> : null}
+              </div>
+            </Card>
+
+            {job.assignments.length > 0 ? (
+              <Card className="p-5 sm:p-6">
+                <h2 className="text-lg font-semibold">Assignment history</h2>
+                <ol className="mt-4 space-y-3">{job.assignments.map((assignment) => <li className="rounded-lg border bg-surface-muted p-3 text-sm" key={assignment.id}><p className="font-semibold">{assignment.worker.user.displayName ?? assignment.worker.user.email ?? "Worker"}</p><p className="mt-1 text-xs text-muted">{assignment.kind === "WORKER_CLAIM" ? "Worker claimed" : "Management assigned"} · {formatDate(assignment.assignedAt)}{assignment.releasedAt ? ` · Released ${formatDate(assignment.releasedAt)}` : " · Current"}</p>{assignment.releaseReason ? <p className="mt-2 text-xs leading-5 text-muted">{assignment.releaseReason}</p> : null}</li>)}</ol>
+              </Card>
+            ) : null}
 
             <Card className="p-5 sm:p-6">
               <h2 className="text-lg font-semibold">Pricing snapshot</h2>

@@ -280,6 +280,7 @@ model BusinessMembership {
   staffAttachmentsUploaded     StaffMessageAttachment[]       @relation("StaffAttachmentUploadedBy")
   pickupsVerified              PickupVerification[]           @relation("PickupVerifiedBy")
   pickupOverrides              PickupVerification[]           @relation("PickupOverriddenBy")
+  pickupCredentialsIssued      PickupVerification[]           @relation("PickupIssuedBy")
   starsEarned                  StarLedger[]                   @relation("StarWorker")
   starEntriesRecorded          StarLedger[]                   @relation("StarActor")
   auditLogs                    AuditLog[]                     @relation("AuditMembershipActor")
@@ -415,6 +416,8 @@ model Job {
   workloadClass          WorkloadClass?
   currentStatus          JobStatus      @default(SUBMITTED)
   queueEnteredAt         DateTime?      @db.Timestamptz(3)
+  queueOrderTier         Int            @default(0)
+  packageCount           Int            @default(1)
   reviewedAt             DateTime?      @db.Timestamptz(3)
   reviewedByMembershipId String?        @db.Uuid
   acceptedAt             DateTime?      @db.Timestamptz(3)
@@ -863,9 +866,12 @@ model PickupVerification {
   businessId               String           @db.Uuid
   jobId                    String           @db.Uuid
   codeHash                 String           @unique @db.VarChar(255)
+  codeCiphertext           String           @db.VarChar(1000)
   codeHint                 String?          @db.VarChar(16)
+  credentialVersion        Int              @default(1)
   status                   PickupCodeStatus @default(ACTIVE)
   issuedAt                 DateTime         @default(now()) @db.Timestamptz(3)
+  issuedByMembershipId     String           @db.Uuid
   expiresAt                DateTime?        @db.Timestamptz(3)
   consumedAt               DateTime?        @db.Timestamptz(3)
   verifiedByMembershipId   String?          @db.Uuid
@@ -875,6 +881,7 @@ model PickupVerification {
 
   business     Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
   job          Job                 @relation(fields: [businessId, jobId], references: [businessId, id], onDelete: Restrict)
+  issuedBy     BusinessMembership  @relation("PickupIssuedBy", fields: [businessId, issuedByMembershipId], references: [businessId, id], onDelete: Restrict)
   verifiedBy   BusinessMembership? @relation("PickupVerifiedBy", fields: [businessId, verifiedByMembershipId], references: [businessId, id], onDelete: Restrict)
   overriddenBy BusinessMembership? @relation("PickupOverriddenBy", fields: [businessId, overriddenByMembershipId], references: [businessId, id], onDelete: Restrict)
 

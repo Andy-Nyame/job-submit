@@ -79,9 +79,9 @@ attachment is active. Responses are private, non-cacheable downloads with
 
 ## Deliberately deferred
 
-Brick 6B adds staff review and Brick 6C adds in-app quotation issuance and
-customer price decisions. Payments,
-queueing, assignment, customer/staff messages,
-notifications, proofs/approval, production transitions, pickup codes, stars,
-or attachment replacement. Submitted jobs use the existing operational model
-so those later bricks can build on one canonical record.
+Brick 6B adds staff review, Brick 6C adds in-app quotation issuance and customer
+price decisions, Brick 6D adds in-app notifications, and Brick 7 adds queueing,
+assignment, production tracking, labels, and secure pickup verification.
+Payments, customer/staff messaging, proof approval, star awards/redemption, and
+attachment replacement remain deferred. Submitted jobs continue through one
+canonical record; none of these workflows duplicates the customer's request.

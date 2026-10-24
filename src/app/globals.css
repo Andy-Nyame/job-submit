@@ -213,3 +213,20 @@ summary::-webkit-details-marker {
     transition-duration: 0.01ms !important;
   }
 }
+
+@media print {
+  nav,
+  aside,
+  [data-app-sidebar],
+  [data-mobile-app-header] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  @page {
+    margin: 10mm;
+  }
+}

@@ -8,6 +8,7 @@ import { NotificationSoundListener } from "@/components/notifications/notificati
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 
 import { AppNavigation } from "./app-navigation";
+import { ForegroundRefresh } from "./foreground-refresh";
 
 function AccountActions({
   mobile = false,
@@ -47,7 +48,8 @@ export function AppShell({
 }) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-      <NotificationSoundListener notifications={notifications} />
+      <NotificationSoundListener notifications={notifications} role={principal.role} />
+      <ForegroundRefresh />
       <AppNavigation
         desktopActions={
           <AccountActions

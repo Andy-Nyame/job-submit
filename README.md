@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 6D.1
+## Current scope: Brick 7
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -28,7 +28,7 @@ and team/worker foundation:
   and replacement links
 - OWNER/ADMIN worker management for active state, display name, six seeded
   service skills, QUICK/STANDARD limits, and FOCUS eligibility
-- a read-only worker profile/status page without queue or job-board behavior
+- a worker profile/status page plus skill- and capacity-checked available/my-job views
 - a polished public welcome page that explains the business, active service
   catalogue, planned JobSubmit customer journey, current account access, and
   the distinction between live and upcoming capabilities
@@ -80,18 +80,27 @@ and team/worker foundation:
 - a three-stage customer flow—Choose what you need, Tell us the details, and
   Check and Submit—with plain customer-facing job and pricing language
 - mobile notification bells that open the full center directly, plus optional
-  device-local notification sounds that default OFF and respect browser audio
+  device-local sound/voice modes that default OFF and respect browser audio
   and page-visibility limits
+- Express-first/FIFO operational release, audited queue exceptions,
+  skill/capacity-checked worker assignment and claims, reassignment history,
+  and production progress through verified collection
+- large canonical job numbers, printable QR labels for independently tracked
+  physical packages, and authenticated staff scan destinations
+- separate encrypted one-time pickup QR/manual credentials, full saved-request
+  handover checks, replay-safe explicit confirmation, and controlled management
+  fallback with a mandatory reason
+- one coordinated 20-second visible/online application refresh with immediate
+  visibility/reconnect revalidation and a clear offline state
 
 Fixed pricing uses integer pesewas and configured quantity steps and remains
 confirmed at submission. Price on Request performs no automatic calculation;
 OWNER/ADMIN issue a versioned GHS quotation that the customer must explicitly
 accept or decline. Negotiation is independently configured per manual-price
-service and defaults OFF. Brick 6D.1 keeps in-app notification delivery only; no
+service and defaults OFF. Brick 7 keeps in-app notification delivery only; no
 transactional email provider is configured. It does **not** implement payment, general
-pricing chat, queue claiming or assignment
-enforcement, live messaging, external notifications, pickup-code generation,
-payments, stars, or other later business workflows.
+pricing chat, live messaging, external notifications, payments, stars,
+leaderboards, inventory, or other later business workflows.
 
 ## Requirements
 
@@ -117,6 +126,9 @@ Set the required values in the ignored `.env.local` file. Prisma tooling loads
 - `DIRECT_DATABASE_URL`: direct Neon connection for migrations and administrative checks
 - `NEXT_PUBLIC_SUPABASE_URL`: dedicated Supabase project URL for future authentication
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: public Supabase anon/publishable key
+- `PICKUP_CREDENTIAL_SECRET`: at least 32 random characters used only to encrypt
+  retrievable private pickup credentials
+- `APP_ORIGIN`: optional canonical HTTPS origin used in printed and pickup QR links
 - `EMAIL_PASSWORD_SIGNUP_ENABLED`: keep `false` until production custom SMTP and
   the SSR confirmation template are configured
 - `BLOB_READ_WRITE_TOKEN`: server-only Vercel Blob credential

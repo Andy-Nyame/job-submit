@@ -201,7 +201,8 @@ classes have render regression coverage.
 - TypeScript is strict, and lint warnings fail CI-style checks.
 - Secrets belong only in ignored environment files or deployment configuration.
 - Private file storage requires server authorization; permanent public object URLs are not part of this design.
-- Pickup codes will be stored as secure hashes, not plaintext.
+- Pickup codes use a database hash for lookup plus AES-256-GCM ciphertext for
+  authorized customer retrieval; raw codes never enter logs, audits, or labels.
 - Implemented Brick 6D events combine the successful job/quotation state
   change, existing history/audit, and recipient notifications in one database
   transaction. Future events must preserve this boundary.
@@ -215,12 +216,11 @@ classes have render regression coverage.
 ## 9. Deferred implementation
 
 Standalone role dashboards, general pricing communication,
-queue/assignment claiming, messaging UI/transport, attachment
-replacement, transactional email/external notification delivery, secure
-pickup-code generation, payments, stars, and ecommerce remain deliberately
+messaging UI/transport, attachment replacement, transactional email/external
+notification delivery, payments, stars, and ecommerce remain deliberately
 deferred.
 
-The simplified navigation preserves integration points for the future Express-
-first/FIFO queue and assignment history, auditable worker-star ledger and
-leaderboard, production and pickup stages, and private staff text/voice/file
-messaging. Brick 6D.1 does not expose empty pages or fake controls for them.
+The simplified navigation now integrates Express-first/FIFO queueing,
+assignment history, production, and pickup inside Jobs while preserving future
+integration points for the auditable worker-star ledger/leaderboard and private
+staff text/voice/file messaging. No empty main-navigation pages were added.

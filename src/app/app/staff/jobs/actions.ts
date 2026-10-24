@@ -8,6 +8,15 @@ import {
   addInternalJobNote,
   startStaffJobReview,
 } from "@/server/staff-jobs/management";
+import {
+  assignProductionJob,
+  changeProductionStatus,
+  overrideQueueOrder,
+  reassignProductionJob,
+  reissuePickupCredential,
+  releaseJobForProduction,
+  updatePhysicalPackageCount,
+} from "@/server/job-operations/management";
 
 export interface StaffJobActionState {
   message: string;
@@ -27,14 +36,28 @@ function readText(formData: FormData, name: string) {
 function actionError(error: unknown): StaffJobActionState {
   if (error instanceof StaffJobOperationError) {
     const messages: Record<StaffJobOperationError["code"], string> = {
+      ASSIGNMENT_CONFLICT:
+        "Another worker took or changed this job first. The page will refresh with the latest assignment.",
       BUSINESS_UNAVAILABLE:
         "Staff job access is unavailable while the account or business is inactive.",
+      CAPACITY_UNAVAILABLE:
+        "This worker has reached the configured workload limit for this type of job.",
+      CREDENTIAL_INVALID:
+        "That pickup code is invalid, expired, or already used.",
+      CREDENTIAL_UNAVAILABLE:
+        "A pickup credential is not available for this job.",
       INVALID_INPUT: "Check the submitted information and try again.",
       INVALID_TRANSITION:
-        "Only a newly submitted job can be moved into staff review.",
+        "That action is not available at the job's current stage.",
+      MANAGEMENT_REQUIRED:
+        "Only an Owner or Admin can perform that management action.",
       NOT_FOUND: "The requested job was not found in this business.",
+      PRICING_NOT_CONFIRMED:
+        "Confirm the fixed price or obtain customer acceptance of a quotation before release.",
       STALE_UPDATE:
         "This job changed in another session. Refresh before trying again.",
+      WORKER_NOT_ELIGIBLE:
+        "The selected worker is inactive or is not qualified for this service.",
     };
     return { message: messages[error.code], status: "error" };
   }
@@ -42,6 +65,147 @@ function actionError(error: unknown): StaffJobActionState {
     message: "The job could not be updated safely. Please try again.",
     status: "error",
   };
+}
+
+export async function releaseJobAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    await releaseJobForProduction(actor, {
+      expectedVersion: Number(readText(formData, "version")),
+      publicReference,
+    });
+    revalidateJobPages(publicReference);
+    return { message: "Job released and ready for an eligible worker.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function assignJobAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    await assignProductionJob(actor, {
+      expectedVersion: Number(readText(formData, "version")),
+      publicReference,
+      workerMembershipId: readText(formData, "workerMembershipId") || undefined,
+    });
+    revalidateJobPages(publicReference);
+    revalidatePath("/app/notifications");
+    return { message: actor.role === "WORKER" ? "This job is now assigned to you." : "Worker assigned.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function reassignJobAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    await reassignProductionJob(actor, {
+      expectedVersion: Number(readText(formData, "version")),
+      publicReference,
+      reason: readText(formData, "reason"),
+      workerMembershipId: readText(formData, "workerMembershipId"),
+    });
+    revalidateJobPages(publicReference);
+    return { message: "Worker reassigned and the reason was recorded.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function overrideQueueAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    const direction = readText(formData, "direction");
+    if (direction !== "PROMOTE" && direction !== "DEMOTE") throw new StaffJobOperationError("INVALID_INPUT");
+    await overrideQueueOrder(actor, {
+      direction,
+      expectedVersion: Number(readText(formData, "version")),
+      publicReference,
+      reason: readText(formData, "reason"),
+    });
+    revalidateJobPages(publicReference);
+    return { message: "Queue exception recorded.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function updatePackageCountAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    await updatePhysicalPackageCount(actor, {
+      expectedVersion: Number(readText(formData, "version")),
+      packageCount: Number(readText(formData, "packageCount")),
+      publicReference,
+    });
+    revalidateJobPages(publicReference);
+    return { message: "Physical package count saved.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function changeProductionStatusAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    const toStatus = readText(formData, "toStatus");
+    if (!["PROCESSING", "PREPARING_FOR_PICKUP", "READY_FOR_PICKUP"].includes(toStatus)) {
+      throw new StaffJobOperationError("INVALID_INPUT");
+    }
+    await changeProductionStatus(actor, {
+      expectedVersion: Number(readText(formData, "version")),
+      publicReference,
+      toStatus: toStatus as "PREPARING_FOR_PICKUP" | "PROCESSING" | "READY_FOR_PICKUP",
+    });
+    revalidateJobPages(publicReference);
+    revalidatePath("/app/notifications");
+    return { message: toStatus === "READY_FOR_PICKUP" ? "Job is ready. A private pickup code was issued." : "Production progress updated.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function reissuePickupAction(
+  _state: StaffJobActionState,
+  formData: FormData,
+): Promise<StaffJobActionState> {
+  const publicReference = readText(formData, "publicReference");
+  try {
+    const actor = await requireStaffJobAccess();
+    await reissuePickupCredential(actor, {
+      publicReference,
+      reason: readText(formData, "reason"),
+    });
+    revalidateJobPages(publicReference);
+    return { message: "The old pickup code was revoked and a new code was issued.", status: "success" };
+  } catch (error) {
+    return actionError(error);
+  }
 }
 
 function revalidateJobPages(publicReference: string) {

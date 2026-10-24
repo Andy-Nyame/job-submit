@@ -37,7 +37,8 @@ test("event recipients come only from active authoritative memberships", async (
   assert.match(source, /user: \{/u);
   assert.match(source, /\[\s*"OWNER",\s*"ADMIN",?\s*\]/u);
   assert.match(source, /\["CUSTOMER"\]/u);
-  assert.doesNotMatch(source, /"WORKER"\][\s\S]*notifyManagement/u);
+  assert.match(source, /notifyWorkerOfAssignment/u);
+  assert.match(source, /\["WORKER"\]/u);
 });
 
 test("notification creation is durable and duplicate-safe inside domain transactions", async () => {
@@ -110,13 +111,13 @@ test("notification bell exposes accessible unread and panel state", async () => 
 
 test("notification sounds are opt-in, device-local, deduplicated, and visibility aware", async () => {
   const source = await readFile(files.sound, "utf8");
-  assert.match(source, /localStorage\.getItem\(STORAGE_KEY\) === "on"/u);
+  assert.match(source, /mode: "SILENT"/u);
   assert.match(source, /useSyncExternalStore/u);
-  assert.match(source, /\(\) => false/u);
   assert.match(source, /initialized\.current/u);
   assert.match(source, /seenIds\.current/u);
-  assert.match(source, /document\.visibilityState === "visible"/u);
-  assert.match(source, /hasImportantNewNotification/u);
-  assert.match(source, /Test Sound/u);
+  assert.match(source, /document\.visibilityState !== "visible"/u);
+  assert.match(source, /newlyImportant/u);
+  assert.match(source, /Test Alert/u);
+  assert.match(source, /SpeechSynthesisUtterance/u);
   assert.doesNotMatch(source, /WebSocket|setInterval|Notification\.requestPermission/u);
 });

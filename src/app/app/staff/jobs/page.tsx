@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/form-controls";
 import { isJobSubmissionSnapshot } from "@/domain/job-submission";
+import { canManageOperations } from "@/domain/job-operations";
 import { canManageQuotations, effectiveQuotationStatus } from "@/domain/quotation-policy";
 import {
   canManageStaffJobs,
@@ -77,6 +78,7 @@ function inboxHref(
   if (next.serviceId) query.set("service", next.serviceId);
   if (next.priority) query.set("priority", next.priority);
   if (next.pricing) query.set("pricing", next.pricing);
+  if (next.work) query.set("work", next.work);
   if (next.sort !== "NEWEST") query.set("sort", next.sort);
   if (next.page > 1) query.set("page", String(next.page));
   const value = query.toString();
@@ -104,6 +106,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
     filterError = true;
   }
   const data = await getStaffJobInbox(filters);
+  const manager = canManageOperations(data.principal.role);
 
   return (
     <main className="py-10 sm:py-14" id="main-content">
@@ -114,9 +117,30 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Jobs</h1>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Review customer submissions for this business. Express work and quotation requests are clearly marked; later production stages remain outside this milestone.
+            Review, assign, produce, and hand over customer work. Express jobs appear before Regular jobs in the ready queue.
           </p>
         </header>
+
+        <nav aria-label="Job work sections" className="mt-6 flex gap-2 overflow-x-auto pb-2">
+          {(manager
+            ? [
+                ["New jobs", "?status=SUBMITTED"],
+                ["Need pricing", "?pricing=AWAITING_COSTING"],
+                ["Ready to assign", "?status=ACCEPTED&sort=OLDEST"],
+                ["Assigned", "?status=QUEUED"],
+                ["In progress", "?status=PROCESSING"],
+                ["Ready for pickup", "?status=READY_FOR_PICKUP"],
+                ["Completed", "?status=PICKED_UP"],
+              ]
+            : [
+                ["Available jobs", "?work=AVAILABLE"],
+                ["My jobs", "?work=MINE"],
+                ["In progress", "?work=MINE&status=PROCESSING"],
+                ["Ready for pickup", "?work=MINE&status=READY_FOR_PICKUP"],
+              ]
+          ).map(([label, href]) => <Link className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-border-strong bg-surface px-4 text-sm font-semibold outline-none hover:bg-primary-surface focus-visible:ring-2 focus-visible:ring-ring" href={`/app/staff/jobs${href}`} key={label}>{label}</Link>)}
+          <Link className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/app/staff/pickup">Scan pickup code</Link>
+        </nav>
 
         {canManageShop(data.principal.role) ? (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/25 bg-primary-surface p-4">
@@ -152,6 +176,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
           </div>
 
           <form className="mt-5 grid gap-3 rounded-2xl border bg-surface p-4 shadow-[0_16px_44px_-38px_var(--shadow-color)] sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1.4fr)_repeat(5,minmax(8rem,1fr))_auto]">
+            {data.filters.work ? <input name="work" type="hidden" value={data.filters.work} /> : null}
             <div>
               <label className="sr-only" htmlFor="job-search">Search reference or customer</label>
               <Input defaultValue={data.filters.query} id="job-search" maxLength={100} name="q" placeholder="Reference or customer" type="search" />
@@ -213,6 +238,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
                         <Badge>{formatStatus(job.currentStatus)}</Badge>
                         <Badge className={job.priority === "EXPRESS" ? "border-destructive/45 bg-destructive-surface text-destructive" : undefined}>{job.priority === "EXPRESS" ? "Express / Urgent" : "Regular"}</Badge>
                         {isJobSubmissionSnapshot(job.submissionSnapshot) && job.submissionSnapshot.pricing.mode === "ON_REQUEST" ? <Badge>{price}</Badge> : null}
+                        {job.assignments[0] ? <Badge>Assigned</Badge> : null}
                       </div>
                     </div>
                     <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -220,6 +246,7 @@ export default async function StaffJobsPage({ searchParams }: StaffJobsPageProps
                       <div><dt className="text-muted">Quantity</dt><dd className="mt-1 font-medium">{job.quantity?.toLocaleString("en-US") ?? "Not applicable"}</dd></div>
                       <div><dt className="text-muted">Pricing</dt><dd className="mt-1 font-medium">{price}</dd></div>
                       <div><dt className="text-muted">Updated</dt><dd className="mt-1 font-medium">{formatDate(job.updatedAt)}</dd></div>
+                      {job.assignments[0] ? <div><dt className="text-muted">Worker</dt><dd className="mt-1 font-medium">{job.assignments[0].worker.user.displayName ?? job.assignments[0].worker.user.email ?? "Assigned worker"}</dd></div> : null}
                     </dl>
                     <Link className="mt-5 inline-flex min-h-11 items-center rounded-lg border border-border-strong px-4 text-sm font-semibold outline-none transition-colors hover:border-primary/45 hover:bg-primary-surface hover:text-primary-surface-foreground focus-visible:ring-2 focus-visible:ring-ring" href={`/app/staff/jobs/${encodeURIComponent(job.publicReference)}`}>
                       Review job

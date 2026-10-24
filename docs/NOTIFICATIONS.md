@@ -9,11 +9,11 @@ and recipient identity prevents ordinary retries from duplicating an event.
 
 - OWNER/ADMIN: new fixed-price job, new job requiring costing, customer quote
   acceptance or decline, and an eligible customer counteroffer.
-- CUSTOMER: job moved into staff review, quotation issued or revised,
-  quotation withdrawn or detected as expired, and counteroffer decline.
-- WORKER: the center is available, but no notification is currently emitted.
-  Brick 6D does not invent assignment or production events, and workers receive
-  no costing, quotation-decision, or negotiation data.
+- CUSTOMER: job review and production progress, ready-for-pickup and verified
+  collection, quotation issued or revised, withdrawal/expiry, and counteroffer decline.
+- WORKER: assignment/claim and permitted production events only. Workers still
+  receive no costing, quotation-decision, negotiation, or confidential data.
+- OWNER/ADMIN also receive verified-pickup completion events.
 
 For Price on Request submissions, management receives one combined **new job
 needs costing** event instead of separate noisy new-job and costing events.
@@ -53,14 +53,13 @@ a floating panel over the page. Desktop retains a bounded recent-notification
 panel with Escape and outside-click closing. Notifications are not duplicated
 as a permanent main-navigation item.
 
-Notification sounds are optional and OFF by default. The preference is stored
-only in the current browser. After the user enables audio, one gentle chime may
-play for a batch of genuinely new, role-permitted important notifications while
-the app is active and visible. The first load seeds the seen set and never
-replays old notifications. Browser autoplay policy, device mute, suspended or
-closed tabs, and operating-system restrictions may prevent sound; JobSubmit does
-not promise background audio or push delivery. A Test Sound action lets the user
-check current browser behavior and the same control can mute sounds again.
+Sound and speech are optional and OFF by default. Device-local modes are Silent,
+Sound only, Voice only, and Sound + Voice, with volume, browser voice, test,
+preview, and mute controls. One privacy-safe alert represents a batch of newly
+observed role-permitted events; initial loads and polling retries never replay
+old IDs. Browser autoplay policy, device mute, hidden/suspended/closed tabs, and
+operating-system restrictions may prevent audio. Visual notifications remain
+authoritative.
 
 ## Delivery limits
 

@@ -32,24 +32,24 @@ const workflowSteps = [
   {
     description:
       "The team reviews the request, clarifies details, and confirms pricing.",
-    status: "Upcoming",
+    status: "Available",
     title: "Job Review",
   },
   {
     description: "Follow updates as the job moves through production.",
-    status: "Upcoming",
+    status: "Available",
     title: "Track Progress",
   },
   {
     description:
       "Receive a notification and secure pickup code when completed.",
-    status: "Upcoming",
+    status: "Available",
     title: "Ready for Pickup",
   },
   {
     description:
       "Present the code for verification and collect the finished job.",
-    status: "Upcoming",
+    status: "Available",
     title: "Collect Your Work",
   },
 ] as const;
@@ -82,7 +82,7 @@ const benefits = [
   },
   {
     description:
-      "Choose regular handling or request priority review when the planned option launches.",
+      "Choose regular handling or Express/Urgent priority where the service supports it.",
     title: "Choose the right priority",
   },
 ] as const;
@@ -90,7 +90,7 @@ const benefits = [
 const frequentlyAskedQuestions = [
   {
     answer:
-      "JobSubmit is the secure online workspace for Capt. Bob Cedi's Artworks. Account access and customer job submission are available now for services enabled online; detailed production tracking, job messages, and pickup verification are planned for later releases.",
+      "JobSubmit is the secure online workspace for Capt. Bob Cedi's Artworks. Customers can submit enabled services, follow production updates, review prices, and use secure pickup verification. Customer messaging remains a later release.",
     question: "What is JobSubmit?",
   },
   {
@@ -105,7 +105,7 @@ const frequentlyAskedQuestions = [
   },
   {
     answer:
-      "The planned workflow will notify customers and provide a secure one-time pickup code after a job is completed and ready. Notifications and pickup verification have not launched yet.",
+      "JobSubmit notifies the customer when staff mark a job ready and shows a private one-time pickup QR and manual code in that customer's job details.",
     question: "How will I know when my job is ready?",
   },
   {
@@ -157,7 +157,7 @@ function CheckIcon() {
 function HeroStudioVisual() {
   return (
     <div
-      aria-label="Concept illustration of the planned JobSubmit production workflow"
+      aria-label="Concept illustration of the JobSubmit production workflow"
       className="relative mx-auto w-full max-w-xl"
       role="img"
     >
@@ -166,12 +166,12 @@ function HeroStudioVisual() {
         <div className="flex items-center justify-between border-b pb-4">
           <div>
             <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">
-              Future JobSubmit flow
+              JobSubmit workflow
             </p>
             <p className="mt-1 text-sm font-semibold">One clear path to pickup</p>
           </div>
           <span className="rounded-full border border-accent/45 bg-accent/10 px-3 py-1 font-mono text-[0.62rem] font-semibold uppercase tracking-[0.14em]">
-            Launching soon
+            Available now
           </span>
         </div>
 
@@ -188,7 +188,7 @@ function HeroStudioVisual() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Planned journey
+                  Job journey
                 </p>
                 <p className="mt-1 font-semibold tracking-tight">Brief to collection</p>
               </div>
@@ -273,8 +273,8 @@ export default async function HomePage() {
                   <span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" />
                   <p>
                     Secure account access and customer submission are available
-                    for services enabled online. Detailed tracking, messaging,
-                    notifications, and pickup tools remain upcoming.
+                    for services enabled online. Production updates,
+                    notifications, and secure pickup are available; customer messaging remains upcoming.
                   </p>
                 </div>
               </div>
@@ -310,8 +310,8 @@ export default async function HomePage() {
               </div>
               <p className="max-w-xl text-sm leading-6 text-muted sm:text-base sm:leading-7">
                 Account sign-in and customer submission work today for enabled
-                services. Review, production tracking, messaging, notifications,
-                and pickup verification remain clearly marked as upcoming.
+                services. Review, production tracking, notifications, and secure
+                pickup are available now. Customer messaging remains upcoming.
               </p>
             </div>
 
@@ -349,9 +349,9 @@ export default async function HomePage() {
                   Less guesswork. Better job context.
                 </h2>
                 <p className="mt-6 max-w-lg text-base leading-7 text-brand-panel-foreground/75">
-                  JobSubmit now organizes authenticated customer requests and
-                  private reference files. Later bricks will add the discussion,
-                  production, notification, and collection tools.
+                  JobSubmit organizes authenticated customer requests, private
+                  reference files, production updates, notifications, and secure
+                  collection. Customer messaging remains a later milestone.
                 </p>
                 <div className="mt-8 rounded-2xl border border-brand-panel-foreground/20 bg-brand-panel-foreground/6 p-5">
                   <p className="font-semibold text-brand-panel-foreground">

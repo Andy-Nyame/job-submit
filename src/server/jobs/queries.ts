@@ -60,6 +60,8 @@ export async function getCustomerJobs() {
     select: {
       createdAt: true,
       currentStatus: true,
+      id: true,
+      packageCount: true,
       submissionSnapshot: true,
       quotations: {
         where: { issuedAt: { not: null }, status: { not: "DRAFT" } },
@@ -112,6 +114,8 @@ export async function getCustomerJob(publicReference: string) {
       },
       createdAt: true,
       currentStatus: true,
+      id: true,
+      packageCount: true,
       priority: true,
       publicReference: true,
       service: { select: { name: true } },

@@ -37,6 +37,10 @@ test("management notification recipients are restricted to OWNER and ADMIN", () 
 test("current roles expose only their permitted notification categories", () => {
   assert.deepEqual(notificationTypesForRole("CUSTOMER"), [
     "JOB_STATUS_UPDATED",
+    "JOB_PROCESSING",
+    "PREPARING_FOR_PICKUP",
+    "READY_FOR_PICKUP",
+    "PICKUP_VERIFIED",
     "QUOTATION_ISSUED",
     "QUOTATION_REVISED",
     "QUOTATION_WITHDRAWN",
@@ -49,9 +53,16 @@ test("current roles expose only their permitted notification categories", () => 
     "QUOTATION_ACCEPTED",
     "QUOTATION_DECLINED",
     "COUNTEROFFER_SUBMITTED",
+    "PICKUP_VERIFIED",
   ]);
   assert.deepEqual(notificationTypesForRole("ADMIN"), notificationTypesForRole("OWNER"));
-  assert.deepEqual(notificationTypesForRole("WORKER"), []);
+  assert.deepEqual(notificationTypesForRole("WORKER"), [
+    "WORKER_ASSIGNED",
+    "WORKER_CLAIMED",
+    "JOB_PROCESSING",
+    "PREPARING_FOR_PICKUP",
+    "READY_FOR_PICKUP",
+  ]);
 });
 
 test("notification destinations remain internal and role appropriate", () => {

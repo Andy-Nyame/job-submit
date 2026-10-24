@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -11,6 +12,8 @@ import { customerJobStatusLabel } from "@/domain/customer-language";
 import { effectiveQuotationStatus, expressSurchargeLabel, readQuotationLineItems } from "@/domain/quotation-policy";
 import { formatGhanaCediMinor } from "@/domain/service-pricing";
 import { getCustomerJob } from "@/server/jobs/queries";
+import { getCustomerPickupCredential } from "@/server/job-operations/management";
+import { pickupScanUrl, qrDataUrl } from "@/server/job-operations/qr-codes";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Job details" };
@@ -35,7 +38,7 @@ interface CustomerJobPageProps {
 
 export default async function CustomerJobPage({ params, searchParams }: CustomerJobPageProps) {
   const [{ publicReference }, query] = await Promise.all([params, searchParams]);
-  const { job } = await getCustomerJob(publicReference);
+  const { job, principal } = await getCustomerJob(publicReference);
   if (!job) {
     notFound();
   }
@@ -46,6 +49,12 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
     : null;
   const quoteItems = quotation ? readQuotationLineItems(quotation.lineItems) : [];
   const pendingCounteroffer = quotation?.counteroffers.find((offer) => offer.status === "PENDING") ?? null;
+  const pickupCredential = job.currentStatus === "READY_FOR_PICKUP"
+    ? await getCustomerPickupCredential(principal, job.id)
+    : null;
+  const pickupQr = pickupCredential
+    ? await qrDataUrl(pickupScanUrl(pickupCredential.code))
+    : null;
 
   return (
     <main className="py-10 sm:py-14" id="main-content">
@@ -81,6 +90,18 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
           </Card>
 
           <aside className="space-y-6">
+            {pickupCredential && pickupQr ? (
+              <Card className="border-primary/35 p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Secure pickup</p>
+                <h2 className="mt-2 text-xl font-semibold">Your job is ready!</h2>
+                <p className="mt-2 text-sm leading-6 text-muted">Show this code when you come to collect it. Staff will check the physical work with you before confirming pickup.</p>
+                <div className="mt-5 flex flex-col items-center rounded-xl border bg-white p-4 text-black">
+                  <Image alt={`Private pickup QR code for ${job.publicReference}`} height={208} priority src={pickupQr} unoptimized width={208} />
+                  <p className="mt-3 font-mono text-lg font-black tracking-wider">{pickupCredential.displayCode}</p>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-muted">Manual fallback: read the code above to staff. It is private, one-time, and separate from your job number.{pickupCredential.expiresAt ? ` It expires ${formatDate(pickupCredential.expiresAt)}.` : ""}</p>
+              </Card>
+            ) : null}
             <Card className="p-5 sm:p-6">
               <h2 className="text-lg font-semibold">Pricing</h2>
               {snapshot?.pricing.mode === "FIXED" ? (
@@ -107,7 +128,7 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
             </Card>
             <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">Job updates</h2>{job.statusHistory.length > 0 ? <ol className="mt-4 space-y-3 border-l border-border-strong pl-4">{job.statusHistory.map((entry) => <li key={entry.id}><p className="text-sm font-medium">{customerJobStatusLabel(entry.toStatus)}</p><p className="mt-1 text-xs text-muted">{formatDate(entry.createdAt)}</p></li>)}</ol> : <p className="mt-3 text-sm text-muted">No updates yet.</p>}</Card>
             <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">Reference files</h2>{job.attachments.length > 0 ? <ul className="mt-3 space-y-3">{job.attachments.map((attachment) => <li key={attachment.id}><Link className="block rounded-md border p-3 text-sm outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring" href={`/api/jobs/${encodeURIComponent(job.publicReference)}/attachments/${attachment.id}`}><span className="block truncate font-medium">{attachment.originalFilename}</span><span className="mt-1 block text-xs text-muted">{formatBytes(attachment.byteSize)} · Private download</span></Link></li>)}</ul> : <p className="mt-3 text-sm text-muted">No files were attached.</p>}</Card>
-            <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">What happens next</h2><p className="mt-2 text-sm leading-6 text-muted">The job remains in operational staff review. A fixed price or accepted quotation records the agreed price only; production and payment do not start automatically. Messages, external notifications, payment, and pickup verification remain future milestones.</p></Card>
+            <Card className="p-5 sm:p-6"><h2 className="text-lg font-semibold">What happens next</h2><p className="mt-2 text-sm leading-6 text-muted">Price confirmation does not start production automatically. Staff will release eligible work, keep this page updated through production, and provide the private code here only when the job is ready.</p></Card>
           </aside>
         </div>
       </Container>

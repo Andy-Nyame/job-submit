@@ -20,6 +20,7 @@ export const STAFF_JOB_STATUSES = [
 
 export const STAFF_JOB_PRIORITIES = ["REGULAR", "EXPRESS"] as const;
 export const STAFF_JOB_SORTS = ["NEWEST", "OLDEST", "UPDATED"] as const;
+export const STAFF_JOB_WORK_FILTERS = ["AVAILABLE", "MINE"] as const;
 export const STAFF_JOB_PRICING_FILTERS = [
   "FIXED_CONFIRMED",
   "AWAITING_COSTING",
@@ -38,6 +39,7 @@ export type StaffJobStatus = (typeof STAFF_JOB_STATUSES)[number];
 export type StaffJobPriority = (typeof STAFF_JOB_PRIORITIES)[number];
 export type StaffJobSort = (typeof STAFF_JOB_SORTS)[number];
 export type StaffJobPricingFilter = (typeof STAFF_JOB_PRICING_FILTERS)[number];
+export type StaffJobWorkFilter = (typeof STAFF_JOB_WORK_FILTERS)[number];
 
 export interface StaffJobInboxFilters {
   page: number;
@@ -47,6 +49,7 @@ export interface StaffJobInboxFilters {
   serviceId: string | null;
   sort: StaffJobSort;
   status: StaffJobStatus | null;
+  work: StaffJobWorkFilter | null;
 }
 
 export class StaffJobPolicyError extends Error {
@@ -139,6 +142,7 @@ export function parseStaffJobInboxFilters(input: Record<string, unknown>): Staff
     serviceId: serviceValue || null,
     sort: sortValue as StaffJobSort,
     status: optionalChoice(input.status, STAFF_JOB_STATUSES),
+    work: optionalChoice(input.work, STAFF_JOB_WORK_FILTERS),
   };
 }
 

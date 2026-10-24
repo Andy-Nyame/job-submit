@@ -12,7 +12,7 @@ interface NotificationEvent {
   eventKey: string;
   href: string;
   targetId: string;
-  targetType: "Job" | "JobQuotation" | "QuotationCounteroffer";
+  targetType: "Job" | "JobQuotation" | "PickupVerification" | "QuotationCounteroffer";
   title: string;
   type: NotificationType;
 }
@@ -125,17 +125,105 @@ export async function notifyCustomerOfJobStatus(
     historyId: string;
     jobId: string;
     publicReference: string;
-    status: "UNDER_REVIEW";
+    status:
+      | "UNDER_REVIEW"
+      | "PROCESSING"
+      | "PREPARING_FOR_PICKUP"
+      | "READY_FOR_PICKUP"
+      | "PICKED_UP";
   },
 ) {
+  const messages = {
+    PICKED_UP: {
+      body: `${input.publicReference} was collected after secure staff verification.`,
+      title: "Job collected",
+      type: "PICKUP_VERIFIED" as const,
+    },
+    PREPARING_FOR_PICKUP: {
+      body: `Production work on ${input.publicReference} is finished. The team is checking and preparing it for collection.`,
+      title: "We're preparing your job",
+      type: "PREPARING_FOR_PICKUP" as const,
+    },
+    PROCESSING: {
+      body: `Production has started on ${input.publicReference}.`,
+      title: "We're working on your job",
+      type: "JOB_PROCESSING" as const,
+    },
+    READY_FOR_PICKUP: {
+      body: `${input.publicReference} is ready. Open the job to see your private pickup code.`,
+      title: "Your job is ready for pickup",
+      type: "READY_FOR_PICKUP" as const,
+    },
+    UNDER_REVIEW: {
+      body: `We're checking ${input.publicReference}. Price confirmation and production are separate next steps.`,
+      title: "We're checking your job",
+      type: "JOB_STATUS_UPDATED" as const,
+    },
+  }[input.status];
   await notifyCustomer(transaction, input.businessId, input.customerUserId, {
-    body: `We're checking ${input.publicReference}. Price confirmation and production are separate next steps.`,
+    body: messages.body,
     eventKey: notificationEventKey("job", input.historyId, "status-updated"),
     href: notificationJobHref("CUSTOMER", input.publicReference),
     targetId: input.jobId,
     targetType: "Job",
-    title: "We're checking your job",
-    type: "JOB_STATUS_UPDATED",
+    title: messages.title,
+    type: messages.type,
+  });
+}
+
+export async function notifyWorkerOfAssignment(
+  transaction: Prisma.TransactionClient,
+  input: {
+    assignmentId: string;
+    businessId: string;
+    claimed: boolean;
+    publicReference: string;
+    workerUserId: string;
+  },
+) {
+  const recipients = await activeRecipientIds(
+    transaction,
+    input.businessId,
+    ["WORKER"],
+    input.workerUserId,
+  );
+  await createForRecipients(transaction, input.businessId, recipients, {
+    body: input.claimed
+      ? `${input.publicReference} is now assigned to you.`
+      : `Management assigned ${input.publicReference} to you. Open it to review the saved requirements.`,
+    eventKey: notificationEventKey(
+      "job",
+      input.assignmentId,
+      input.claimed ? "claimed" : "assigned",
+    ),
+    href: notificationJobHref("STAFF", input.publicReference),
+    targetId: input.assignmentId,
+    targetType: "Job",
+    title: input.claimed ? "You took a job" : "You have a new job",
+    type: input.claimed ? "WORKER_CLAIMED" : "WORKER_ASSIGNED",
+  });
+}
+
+export async function notifyManagementOfPickup(
+  transaction: Prisma.TransactionClient,
+  input: {
+    businessId: string;
+    pickupVerificationId: string;
+    publicReference: string;
+  },
+) {
+  await notifyManagement(transaction, input.businessId, {
+    body: `${input.publicReference} was handed over after secure pickup verification.`,
+    eventKey: notificationEventKey(
+      "job",
+      input.pickupVerificationId,
+      "pickup-confirmed",
+    ),
+    href: notificationJobHref("STAFF", input.publicReference),
+    targetId: input.pickupVerificationId,
+    targetType: "PickupVerification",
+    title: "Job collected",
+    type: "PICKUP_VERIFIED",
   });
 }
 

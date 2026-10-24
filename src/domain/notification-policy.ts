@@ -6,6 +6,10 @@ export const NOTIFICATION_MANAGER_ROLES = ["OWNER", "ADMIN"] as const;
 
 const CUSTOMER_NOTIFICATION_TYPES = [
   "JOB_STATUS_UPDATED",
+  "JOB_PROCESSING",
+  "PREPARING_FOR_PICKUP",
+  "READY_FOR_PICKUP",
+  "PICKUP_VERIFIED",
   "QUOTATION_ISSUED",
   "QUOTATION_REVISED",
   "QUOTATION_WITHDRAWN",
@@ -19,6 +23,15 @@ const MANAGEMENT_NOTIFICATION_TYPES = [
   "QUOTATION_ACCEPTED",
   "QUOTATION_DECLINED",
   "COUNTEROFFER_SUBMITTED",
+  "PICKUP_VERIFIED",
+] as const;
+
+const WORKER_NOTIFICATION_TYPES = [
+  "WORKER_ASSIGNED",
+  "WORKER_CLAIMED",
+  "JOB_PROCESSING",
+  "PREPARING_FOR_PICKUP",
+  "READY_FOR_PICKUP",
 ] as const;
 
 export type NotificationFilter = "ALL" | "UNREAD";
@@ -66,6 +79,7 @@ export function notificationTypesForRole(role: ApplicationRole) {
   if (role === "OWNER" || role === "ADMIN") {
     return MANAGEMENT_NOTIFICATION_TYPES;
   }
+  if (role === "WORKER") return WORKER_NOTIFICATION_TYPES;
   return [] as const;
 }
 
