@@ -15,11 +15,6 @@ export interface JobSubmissionActionState {
   status: "error" | "idle";
 }
 
-export const initialJobSubmissionActionState: JobSubmissionActionState = {
-  message: "",
-  status: "idle",
-};
-
 function errorMessage(error: unknown) {
   if (error instanceof JobSubmissionValidationError) {
     return "Review the job details and try again.";

@@ -14,11 +14,6 @@ export interface CustomerQuotationActionState {
   status: "error" | "idle" | "success";
 }
 
-export const INITIAL_CUSTOMER_QUOTATION_STATE: CustomerQuotationActionState = {
-  message: "",
-  status: "idle",
-};
-
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";

@@ -38,6 +38,14 @@ test("custom sticker and banner area pricing converts feet and rounds once", () 
   assert.equal(price("STICKER_PRINTING", { jobFields: { "sticker-product": "Custom-size sticker" }, quantity: 1, size })?.basePriceMinor, 2_000n);
   assert.equal(price("BANNER_PRINTING", { jobFields: {}, quantity: 1, size })?.basePriceMinor, 2_500n);
   assert.equal(price("STICKER_PRINTING", { jobFields: { "sticker-product": "Custom-size sticker" }, quantity: 2, size })?.basePriceMinor, 4_000n);
+  assert.equal(
+    price("STICKER_PRINTING", {
+      jobFields: { "sticker-product": "Custom-size sticker" },
+      quantity: 2,
+      size: { height: "2", kind: "CUSTOM", unit: "FEET", width: "2" },
+    })?.basePriceMinor,
+    2_500n,
+  );
 });
 
 test("label layout charges printing and cutting exactly once", () => {

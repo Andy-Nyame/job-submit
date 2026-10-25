@@ -23,11 +23,6 @@ export interface ShopStatusActionState {
   status: "error" | "idle" | "success";
 }
 
-export const initialShopStatusActionState: ShopStatusActionState = {
-  message: "",
-  status: "idle",
-};
-
 function readText(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";

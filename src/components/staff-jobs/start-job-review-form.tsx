@@ -3,11 +3,11 @@
 import { useActionState } from "react";
 
 import {
-  INITIAL_STAFF_JOB_ACTION_STATE,
   startJobReviewAction,
 } from "@/app/app/staff/jobs/actions";
 import { FormMessage } from "@/components/ui/form-controls";
 
+import { INITIAL_STAFF_JOB_ACTION_STATE } from "./action-state";
 import { StaffJobSubmitButton } from "./staff-job-submit-button";
 
 export function StartJobReviewForm({

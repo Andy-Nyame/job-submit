@@ -322,3 +322,46 @@ test("linked Designing safely replaces the initial finished-artwork requirement"
   assert.doesNotThrow(() => validateJobSubmission(request, configured));
   assert.throws(() => validateJobSubmission({ ...request, linkedDesignServiceId: undefined }, configured));
 });
+
+test("2 × 2 foot Sticker Printing order with two copies and artwork snapshots GH₵25", () => {
+  const blueprint = SERVICE_BLUEPRINTS.STICKER_PRINTING;
+  const result = validateJobSubmission(
+    payload({
+      attachments: [
+        {
+          originalFilename: "finished-artwork.pdf",
+          pathname:
+            "jobsubmit/customer-staging/cccccccc-cccc-4ccc-8ccc-cccccccccccc/finished-artwork.pdf",
+          uploadId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        },
+      ],
+      quantity: "2",
+      selection: {
+        ...payload().selection,
+        jobFields: { "sticker-product": "Custom-size sticker" },
+        size: {
+          height: "2",
+          kind: "CUSTOM",
+          option: "",
+          unit: "FEET",
+          width: "2",
+        },
+      },
+    }),
+    service({
+      pricingConfiguration: blueprint.pricing,
+      quantityConfiguration: blueprint.quantity,
+      slug: "sav-sticker-printing",
+      specificationConfiguration: blueprint.specification,
+    }),
+  );
+
+  assert.equal(result.snapshot.pricing.mode, "FIXED");
+  assert.equal(
+    result.snapshot.pricing.mode === "FIXED" &&
+      result.snapshot.pricing.totalMinor,
+    "2500",
+  );
+  assert.equal(result.attachments[0]?.originalFilename, "finished-artwork.pdf");
+  assert.equal(result.snapshot.request.quantity, 2);
+});

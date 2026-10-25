@@ -4,11 +4,11 @@ import { useActionState } from "react";
 
 import {
   addInternalNoteAction,
-  INITIAL_STAFF_JOB_ACTION_STATE,
 } from "@/app/app/staff/jobs/actions";
 import { FormMessage, Textarea } from "@/components/ui/form-controls";
 import { MAX_INTERNAL_NOTE_LENGTH } from "@/domain/staff-job-policy";
 
+import { INITIAL_STAFF_JOB_ACTION_STATE } from "./action-state";
 import { StaffJobSubmitButton } from "./staff-job-submit-button";
 
 export function AddInternalNoteForm({

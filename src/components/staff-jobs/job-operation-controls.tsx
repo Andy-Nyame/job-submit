@@ -6,7 +6,6 @@ import {
   assignJobAction,
   changeProductionStatusAction,
   clearDesignDependencyAction,
-  INITIAL_STAFF_JOB_ACTION_STATE,
   overrideQueueAction,
   reassignJobAction,
   reissuePickupAction,
@@ -15,6 +14,8 @@ import {
 } from "@/app/app/staff/jobs/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/form-controls";
+
+import { INITIAL_STAFF_JOB_ACTION_STATE } from "./action-state";
 
 function Feedback({ state }: { state: typeof INITIAL_STAFF_JOB_ACTION_STATE }) {
   return state.message ? (

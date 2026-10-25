@@ -15,12 +15,6 @@ export interface PickupInspectionState {
   status: "error" | "idle" | "success";
 }
 
-export const INITIAL_PICKUP_STATE: PickupInspectionState = {
-  inspection: null,
-  message: "",
-  status: "idle",
-};
-
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";

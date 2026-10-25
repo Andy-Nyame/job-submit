@@ -4,8 +4,8 @@ import { upload } from "@vercel/blob/client";
 import { useActionState, useMemo, useState } from "react";
 
 import {
-  initialJobSubmissionActionState,
   submitCustomerJobAction,
+  type JobSubmissionActionState,
 } from "@/app/app/jobs/actions";
 import {
   ALLOWED_JOB_ATTACHMENT_TYPES,
@@ -38,6 +38,11 @@ import { Input, Select, Textarea } from "@/components/ui/form-controls";
 
 type SizeDraft = JobSubmissionPayload["selection"]["size"];
 type VariationDraft = JobSubmissionPayload["selection"]["variations"][number];
+
+const initialJobSubmissionActionState: JobSubmissionActionState = {
+  message: "",
+  status: "idle",
+};
 
 interface Draft {
   finishing: string;

@@ -17,11 +17,6 @@ export interface QuotationActionState {
   status: "error" | "idle" | "success";
 }
 
-export const INITIAL_QUOTATION_ACTION_STATE: QuotationActionState = {
-  message: "",
-  status: "idle",
-};
-
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";

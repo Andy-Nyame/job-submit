@@ -11,6 +11,19 @@ const files = {
   upload: new URL("../app/api/customer-uploads/route.ts", import.meta.url),
 };
 
+const serverActionModules = [
+  new URL("../app/(auth)/actions.ts", import.meta.url),
+  new URL("../app/invite/actions.ts", import.meta.url),
+  new URL("../app/app/jobs/actions.ts", import.meta.url),
+  new URL("../app/app/jobs/quotation-actions.ts", import.meta.url),
+  new URL("../app/app/notifications/actions.ts", import.meta.url),
+  new URL("../app/app/services/actions.ts", import.meta.url),
+  new URL("../app/app/staff/jobs/actions.ts", import.meta.url),
+  new URL("../app/app/staff/jobs/quotation-actions.ts", import.meta.url),
+  new URL("../app/app/staff/pickup/actions.ts", import.meta.url),
+  new URL("../app/app/team/actions.ts", import.meta.url),
+];
+
 test("submission UI includes conditional review, upload, pending, and accessible error states", async () => {
   const source = await readFile(files.component, "utf8");
   assert.match(source, /Step 1 of 3/u);
@@ -40,6 +53,23 @@ test("server submission reauthorizes customers and creates one atomic operationa
   assert.match(server, /submissionKey/u);
   assert.match(server, /job\.customer_submitted/u);
   assert.match(server, /status: \{ in: \["PENDING", "UPLOADED"\] \}/u);
+});
+
+test('"use server" modules export async actions only', async () => {
+  for (const moduleUrl of serverActionModules) {
+    const source = await readFile(moduleUrl, "utf8");
+    assert.match(source, /^"use server";/u, moduleUrl.pathname);
+    assert.doesNotMatch(
+      source,
+      /^export\s+(?:class|const|function|let|var)\s/mu,
+      `${moduleUrl.pathname} must not expose a synchronous runtime value`,
+    );
+    assert.doesNotMatch(
+      source,
+      /^export\s*\{/mu,
+      `${moduleUrl.pathname} must not re-export runtime values`,
+    );
+  }
 });
 
 test("private upload and download routes enforce identity, ownership, and nosniff delivery", async () => {

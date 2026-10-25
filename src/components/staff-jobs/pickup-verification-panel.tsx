@@ -4,12 +4,18 @@ import { useActionState, useEffect, useRef } from "react";
 
 import {
   confirmPickupAction,
-  INITIAL_PICKUP_STATE,
   inspectPickupAction,
+  type PickupInspectionState,
 } from "@/app/app/staff/pickup/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/form-controls";
 import { isJobSubmissionSnapshot } from "@/domain/job-submission";
+
+const INITIAL_PICKUP_STATE: PickupInspectionState = {
+  inspection: null,
+  message: "",
+  status: "idle",
+};
 
 function DetailList({ snapshot }: { snapshot: unknown }) {
   if (!isJobSubmissionSnapshot(snapshot)) {
