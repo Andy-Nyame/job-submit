@@ -4,7 +4,7 @@ import test from "node:test";
 import { SERVICE_BLUEPRINTS } from "./service-blueprints";
 import { calculateStrategyPrice, readStrategyPricingConfiguration, roundUpToFiveCedisMinor } from "./service-pricing-strategies";
 
-function price(profile: "BANNER_PRINTING" | "CONTAINER_NUMBER" | "FOR_SALE_STICKERS" | "STICKER_PRINTING", input: Parameters<typeof calculateStrategyPrice>[1]) {
+function price(profile: "BANNER_PRINTING" | "CONTAINER_NUMBER" | "FOR_SALE_STICKERS" | "LABEL_PRINTING" | "POSTER_PRINTING" | "STICKER_PRINTING", input: Parameters<typeof calculateStrategyPrice>[1]) {
   const configuration = readStrategyPricingConfiguration(SERVICE_BLUEPRINTS[profile].pricing);
   assert.ok(configuration);
   return calculateStrategyPrice(configuration, input);
@@ -35,12 +35,12 @@ test("For Sale printed contact count requires exactly the selected text values",
 
 test("custom sticker and banner area pricing converts feet and rounds once", () => {
   const size = { height: "3", kind: "CUSTOM" as const, unit: "FEET" as const, width: "2" };
-  assert.equal(price("STICKER_PRINTING", { jobFields: { "sticker-product": "Custom-size sticker" }, quantity: 1, size })?.basePriceMinor, 2_000n);
+  assert.equal(price("STICKER_PRINTING", { jobFields: {}, quantity: 1, size })?.basePriceMinor, 2_000n);
   assert.equal(price("BANNER_PRINTING", { jobFields: {}, quantity: 1, size })?.basePriceMinor, 2_500n);
-  assert.equal(price("STICKER_PRINTING", { jobFields: { "sticker-product": "Custom-size sticker" }, quantity: 2, size })?.basePriceMinor, 4_000n);
+  assert.equal(price("STICKER_PRINTING", { jobFields: {}, quantity: 2, size })?.basePriceMinor, 4_000n);
   assert.equal(
     price("STICKER_PRINTING", {
-      jobFields: { "sticker-product": "Custom-size sticker" },
+      jobFields: {},
       quantity: 2,
       size: { height: "2", kind: "CUSTOM", unit: "FEET", width: "2" },
     })?.basePriceMinor,
@@ -49,8 +49,8 @@ test("custom sticker and banner area pricing converts feet and rounds once", () 
 });
 
 test("label layout charges printing and cutting exactly once", () => {
-  const result = price("STICKER_PRINTING", {
-    jobFields: { "label-shape": "Square", "sticker-product": "Labels" },
+  const result = price("LABEL_PRINTING", {
+    jobFields: { "label-shape": "Square" },
     quantity: 60,
     size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" },
   });
@@ -63,24 +63,45 @@ test("label layout charges printing and cutting exactly once", () => {
     printingPriceMinor: "1500",
     rows: 4,
   });
-  assert.equal(price("STICKER_PRINTING", { jobFields: { "label-shape": "Square", "sticker-product": "Labels" }, quantity: 59, size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" } }), null);
-  assert.equal(price("STICKER_PRINTING", { jobFields: { "sticker-product": "Labels" }, quantity: 60, size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" } }), null);
+  assert.equal(price("LABEL_PRINTING", { jobFields: { "label-shape": "Square" }, quantity: 59, size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" } }), null);
+  assert.equal(price("LABEL_PRINTING", { jobFields: {}, quantity: 60, size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" } }), null);
 });
 
 test("irregular labels safely fall back instead of inventing geometry", () => {
-  assert.equal(price("STICKER_PRINTING", { jobFields: { "label-shape": "Custom / irregular", "sticker-product": "Labels" }, quantity: 60, size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" } }), null);
+  assert.equal(price("LABEL_PRINTING", { jobFields: { "label-shape": "Custom / irregular" }, quantity: 60, size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" } }), null);
 });
 
 test("approved poster variants enforce increments and final price rounding", () => {
   const cases = [["A4", 4, 1_500n], ["A4", 8, 2_500n], ["A3", 4, 2_000n], ["A2", 2, 2_000n], ["A1", 2, 4_000n]] as const;
   for (const [variant, quantity, expected] of cases) {
-    assert.equal(price("STICKER_PRINTING", { jobFields: { "sticker-product": "Poster printing" }, quantity, size: { kind: "PRESET", option: variant } })?.basePriceMinor, expected);
+    assert.equal(price("POSTER_PRINTING", { jobFields: {}, quantity, size: { kind: "PRESET", option: variant } })?.basePriceMinor, expected);
   }
-  assert.equal(price("STICKER_PRINTING", { jobFields: { "sticker-product": "Poster printing" }, quantity: 5, size: { kind: "PRESET", option: "A4" } }), null);
-  const a2 = price("STICKER_PRINTING", { jobFields: { "sticker-product": "Poster printing" }, quantity: 2, size: { kind: "PRESET", option: "A2" } });
+  assert.equal(price("POSTER_PRINTING", { jobFields: {}, quantity: 5, size: { kind: "PRESET", option: "A4" } }), null);
+  const a2 = price("POSTER_PRINTING", { jobFields: {}, quantity: 2, size: { kind: "PRESET", option: "A2" } });
   assert.equal(a2?.internalCalculation.approvedWidthInches, 16);
   assert.equal(a2?.internalCalculation.approvedHeightInches, 23);
   assert.equal(a2?.internalCalculation.piecesPerRow, 2);
+});
+
+test("legacy embedded Sticker poster and label pricing remains readable", () => {
+  const legacy = readStrategyPricingConfiguration({
+    fixed: null,
+    mode: "FIXED",
+    profile: "STICKER_PRINTING",
+    strategy: "STICKER_PRODUCT_MENU",
+    version: 2,
+  });
+  assert.ok(legacy);
+  assert.equal(calculateStrategyPrice(legacy, {
+    jobFields: { "sticker-product": "Poster printing" },
+    quantity: 4,
+    size: { kind: "PRESET", option: "A4" },
+  })?.basePriceMinor, 1_500n);
+  assert.equal(calculateStrategyPrice(legacy, {
+    jobFields: { "label-shape": "Square", "sticker-product": "Labels" },
+    quantity: 60,
+    size: { height: "2", kind: "CUSTOM", unit: "INCHES", width: "2" },
+  })?.basePriceMinor, 2_500n);
 });
 
 test("container numbers normalize one letter and preserve three digits", () => {

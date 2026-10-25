@@ -205,29 +205,35 @@ test("deactivation and restoration use distinct audit events", () => {
   );
 });
 
-test("the six friendly seeded services retain distinct stable slugs", () => {
-  assert.equal(SEEDED_SERVICES.length, 6);
+test("the standalone friendly seeded services retain distinct stable slugs", () => {
+  assert.equal(SEEDED_SERVICES.length, 9);
   assert.deepEqual(
     SEEDED_SERVICES.map(({ name }) => name),
     [
       "Designing",
       "Sticker Printing",
+      "Poster Printing",
+      "Label Printing",
       "Banner Printing",
       "Document Printing",
       "For Sale Stickers",
       "Container Head & Batch Number Printing",
+      "Website Design & Creation",
     ],
   );
-  assert.equal(new Set(SEEDED_SERVICES.map(({ slug }) => slug)).size, 6);
+  assert.equal(new Set(SEEDED_SERVICES.map(({ slug }) => slug)).size, 9);
   assert.deepEqual(
     SEEDED_SERVICES.map(({ slug }) => slug),
     [
       "designing",
       "sav-sticker-printing",
+      "poster-printing",
+      "label-printing",
       "flexi-banner-printing",
       "document-printing",
       "for-sale-sticker-printing",
       "container-head-sticker-batch-numbers-printing",
+      "website-design-creation",
     ],
   );
 });

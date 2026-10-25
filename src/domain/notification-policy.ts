@@ -15,6 +15,7 @@ const CUSTOMER_NOTIFICATION_TYPES = [
   "QUOTATION_WITHDRAWN",
   "QUOTATION_EXPIRED",
   "COUNTEROFFER_DECLINED",
+  "WEBSITE_ENQUIRY_REPLY",
 ] as const;
 
 const MANAGEMENT_NOTIFICATION_TYPES = [
@@ -24,6 +25,7 @@ const MANAGEMENT_NOTIFICATION_TYPES = [
   "QUOTATION_DECLINED",
   "COUNTEROFFER_SUBMITTED",
   "PICKUP_VERIFIED",
+  "WEBSITE_ENQUIRY_RECEIVED",
 ] as const;
 
 const WORKER_NOTIFICATION_TYPES = [
@@ -109,7 +111,7 @@ export function isSafeNotificationHref(value: string | null | undefined) {
 }
 
 export function notificationEventKey(
-  entity: "counteroffer" | "job" | "quotation",
+  entity: "counteroffer" | "job" | "message" | "quotation",
   id: string,
   action: string,
 ) {

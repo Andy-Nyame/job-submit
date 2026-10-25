@@ -64,6 +64,13 @@ export async function getManagedService(serviceId: string) {
       businessId: principal.businessId,
       id: serviceId,
     },
+    include: {
+      images: {
+        where: { status: "READY" },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        select: { altText: true, id: true, isCover: true },
+      },
+    },
   });
 
   return { principal, service };

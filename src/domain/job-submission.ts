@@ -41,6 +41,7 @@ export interface SubmissionService {
   defaultWorkloadClass: "FOCUS" | "QUICK" | "STANDARD" | null;
   description: string | null;
   id: string;
+  images?: { altText: string; id: string; isCover: boolean }[];
   isActive: boolean;
   name: string;
   onlineSubmissionEnabled: boolean;

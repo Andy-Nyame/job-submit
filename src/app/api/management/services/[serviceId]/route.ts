@@ -13,7 +13,7 @@ import { ServiceOperationError } from "@/server/services/errors";
 import { updateServiceFromProfile } from "@/server/services/service-management";
 
 function isProfile(value: unknown): value is ServiceConfigurationProfile {
-  return typeof value === "string" && ["BANNER_PRINTING", "CONTAINER_NUMBER", "FOR_SALE_STICKERS", "ON_REQUEST", "STICKER_PRINTING"].includes(value);
+  return typeof value === "string" && ["BANNER_PRINTING", "CONTAINER_NUMBER", "FOR_SALE_STICKERS", "LABEL_PRINTING", "ON_REQUEST", "POSTER_PRINTING", "STICKER_PRINTING"].includes(value);
 }
 
 export async function POST(request: Request, context: { params: Promise<{ serviceId: string }> }) {

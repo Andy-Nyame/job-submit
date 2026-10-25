@@ -12,22 +12,34 @@ export const SEEDED_SERVICES = [
     sortOrder: 20,
   },
   {
+    legacyNames: [] as string[],
+    name: "Poster Printing",
+    slug: "poster-printing",
+    sortOrder: 30,
+  },
+  {
+    legacyNames: [] as string[],
+    name: "Label Printing",
+    slug: "label-printing",
+    sortOrder: 40,
+  },
+  {
     legacyNames: ["Flexi / Banner Printing", "Flexi/Banner Printing"],
     name: "Banner Printing",
     slug: "flexi-banner-printing",
-    sortOrder: 30,
+    sortOrder: 50,
   },
   {
     legacyNames: [] as string[],
     name: "Document Printing",
     slug: "document-printing",
-    sortOrder: 40,
+    sortOrder: 60,
   },
   {
     legacyNames: ["For Sale Sticker Printing"],
     name: "For Sale Stickers",
     slug: "for-sale-sticker-printing",
-    sortOrder: 50,
+    sortOrder: 70,
   },
   {
     legacyNames: [
@@ -37,7 +49,13 @@ export const SEEDED_SERVICES = [
     ],
     name: "Container Head & Batch Number Printing",
     slug: "container-head-sticker-batch-numbers-printing",
-    sortOrder: 60,
+    sortOrder: 80,
+  },
+  {
+    legacyNames: [] as string[],
+    name: "Website Design & Creation",
+    slug: "website-design-creation",
+    sortOrder: 90,
   },
 ] as const;
 

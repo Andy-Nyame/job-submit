@@ -2,7 +2,7 @@
 
 JobSubmit is the remote job-submission and production workflow platform for **Capt. Bob Cedi’s Artworks**. It is an independent production project with its own source tree, Git history, environment, and dedicated future infrastructure.
 
-## Current scope: Brick 7
+## Current scope: Brick 7.2
 
 The project now contains the database, authentication, application-authorization,
 and team/worker foundation:
@@ -92,14 +92,25 @@ and team/worker foundation:
   fallback with a mandatory reason
 - one coordinated 20-second visible/online application refresh with immediate
   visibility/reconnect revalidation and a clear offline state
+- a visual service catalogue with one card per standalone service, safe neutral
+  fallbacks, and private Blob-backed multi-image galleries managed only by
+  active OWNER/ADMIN memberships
+- standalone Poster Printing and Label Printing configurations that reuse the
+  approved pricing strategies and stay offline until management explicitly
+  reviews and enables them; historical embedded Sticker snapshots remain readable
+- a standalone Website Design & Creation Price on Request service backed by a
+  canonical Job, private customer-to-management enquiry messages, read state,
+  retry-safe writes, and role-aware in-app notifications
 
 Fixed pricing uses integer pesewas and configured quantity steps and remains
 confirmed at submission. Price on Request performs no automatic calculation;
 OWNER/ADMIN issue a versioned GHS quotation that the customer must explicitly
 accept or decline. Negotiation is independently configured per manual-price
-service and defaults OFF. Brick 7 keeps in-app notification delivery only; no
-transactional email provider is configured. It does **not** implement payment, general
-pricing chat, live messaging, external notifications, payments, stars,
+service and defaults OFF. Brick 7.2 keeps in-app notification delivery only; no
+transactional email provider is configured. Its focused Website Design &
+Creation enquiry thread does not replace formal quotation and is not a general
+customer/staff messaging platform. It does **not** implement external
+notifications, payments, stars,
 leaderboards, inventory, or other later business workflows.
 
 ## Requirements
@@ -134,9 +145,10 @@ Set the required values in the ignored `.env.local` file. Prisma tooling loads
 - `BLOB_READ_WRITE_TOKEN`: server-only Vercel Blob credential
 
 Supabase owns authentication identity only; Neon remains authoritative for
-JobSubmit application data. Vercel Blob holds private customer reference files,
-and every file route rechecks authenticated customer ownership or current
-business-scoped staff authority. Never
+JobSubmit application data. Vercel Blob holds private customer reference files
+and service-gallery image bytes. Customer files always recheck ownership or
+business-scoped staff authority. Service images are exposed only through opaque
+application-owned catalogue routes; private Blob keys are never returned. Never
 point these values at another project’s infrastructure. No credentials are
 committed.
 

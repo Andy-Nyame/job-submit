@@ -5,6 +5,7 @@ import { prisma } from "@/server/db/prisma";
 export interface PublicService {
   description: string | null;
   name: string;
+  images?: { altText: string; id: string; isCover: boolean }[];
   onlineSubmissionEnabled: boolean;
   pricingConfiguration: unknown;
   quantityConfiguration: unknown;
@@ -28,6 +29,11 @@ export async function getActivePublicServices(): Promise<PublicServicesResult> {
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
           select: {
             description: true,
+            images: {
+              where: { status: "READY" },
+              orderBy: [{ isCover: "desc" }, { displayOrder: "asc" }, { createdAt: "asc" }],
+              select: { altText: true, id: true, isCover: true },
+            },
             name: true,
             onlineSubmissionEnabled: true,
             pricingConfiguration: true,

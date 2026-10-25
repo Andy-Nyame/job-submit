@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
 import { ApprovedServiceForm } from "@/components/services/approved-service-form";
+import { ServiceImageManager } from "@/components/services/service-image-manager";
 import { ServiceCustomerPreview } from "@/components/services/service-customer-preview";
 import { ServiceStatusForm } from "@/components/services/service-status-form";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,14 @@ export default async function ServicePage({ params }: ServicePageProps) {
             </Card>
           </aside>
         </div>
+
+        <Card className="mt-6">
+          <ServiceImageManager
+            images={service.images}
+            serviceId={service.id}
+            serviceName={service.name}
+          />
+        </Card>
       </Container>
     </main>
   );

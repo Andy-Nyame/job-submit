@@ -10,14 +10,18 @@ import {
   readPricingConfiguration,
 } from "@/domain/service-pricing";
 import type { PublicService } from "@/server/public/services";
+import { ServiceCatalogueImage } from "@/components/services/service-catalogue-image";
 
 const serviceDescriptions: Record<string, string> = {
   designing: "Design support for clearly briefed print materials and customer artwork.",
   "sav-sticker-printing": "Sticker and self-adhesive vinyl requests, organized from brief to pickup.",
+  "poster-printing": "A-series poster printing from ready customer artwork.",
+  "label-printing": "Custom-size printed labels prepared from customer artwork.",
   "flexi-banner-printing": "Banner printing requests reviewed against the artwork and instructions supplied.",
   "document-printing": "Document printing requests with files, quantities, and notes kept together.",
   "for-sale-sticker-printing": "Dedicated production for For Sale sticker printing requests.",
   "container-head-sticker-batch-numbers-printing": "Container identification and batch-number printing requests.",
+  "website-design-creation": "We design and build websites for businesses, online shops, organisations and personal brands.",
 };
 
 function ServiceIcon({ slug }: { slug: string }) {
@@ -50,6 +54,8 @@ function ServiceIcon({ slug }: { slug: string }) {
 }
 
 export function PublicServiceCard({ index, service }: { index: number; service: PublicService }) {
+  const images = service.images ?? [];
+  const cover = images.find((image) => image.isCover) ?? images[0];
   const description = service.description ?? serviceDescriptions[service.slug] ?? "A service request reviewed against the details and artwork supplied.";
   const quantity = readQuantityConfiguration(service.quantityConfiguration);
   const specification = readSpecificationConfiguration(service.specificationConfiguration);
@@ -65,9 +71,14 @@ export function PublicServiceCard({ index, service }: { index: number; service: 
     : [];
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border bg-surface p-6 transition-[border-color,transform] hover:-translate-y-1 hover:border-accent/70 sm:p-7">
-      <div className="flex items-start justify-between gap-4"><ServiceIcon slug={service.slug} /><span className="font-mono text-xs text-muted">{String(index + 1).padStart(2, "0")}</span></div>
-      <h3 className="mt-8 max-w-xs text-xl font-semibold tracking-[-0.025em]">{service.name}</h3>
+    <article className="group relative overflow-hidden rounded-2xl border bg-surface transition-[border-color,transform] hover:-translate-y-1 hover:border-accent/70">
+      <div className="relative overflow-hidden">
+        <ServiceCatalogueImage alt={cover?.altText ?? ""} imageId={cover?.id} name={service.name} />
+        <span className="absolute right-3 top-3 rounded-full border bg-surface/90 px-2 py-1 font-mono text-xs text-muted">{String(index + 1).padStart(2, "0")}</span>
+      </div>
+      <div className="p-6 sm:p-7">
+      <div className="flex items-start justify-between gap-4"><ServiceIcon slug={service.slug} /><span className="text-xs font-semibold text-primary">{service.onlineSubmissionEnabled ? "Online" : "Enquire"}</span></div>
+      <h3 className="mt-5 max-w-xs text-xl font-semibold tracking-[-0.025em]">{service.name}</h3>
       <p className="mt-3 max-w-sm text-sm leading-6 text-muted">{description}</p>
       {quantitySummary || specificationSummary.length > 0 ? (
         <p className="mt-4 text-xs leading-5 text-muted">
@@ -80,6 +91,7 @@ export function PublicServiceCard({ index, service }: { index: number; service: 
         </div>
       ) : <p className="mt-4 text-sm font-semibold">Price on request</p>}
       <p className="mt-4 border-t pt-3 text-xs font-medium leading-5 text-muted">{service.onlineSubmissionEnabled ? "Available for authenticated online job requests." : "Available in the public catalogue; online submission is not enabled."}</p>
+      </div>
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 bg-accent transition-transform group-hover:scale-x-100" />
     </article>
   );

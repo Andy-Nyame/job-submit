@@ -338,7 +338,7 @@ test("2 × 2 foot Sticker Printing order with two copies and artwork snapshots G
       quantity: "2",
       selection: {
         ...payload().selection,
-        jobFields: { "sticker-product": "Custom-size sticker" },
+        jobFields: {},
         size: {
           height: "2",
           kind: "CUSTOM",

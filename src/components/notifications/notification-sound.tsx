@@ -23,6 +23,8 @@ const IMPORTANT_TYPES = new Set([
   "QUOTATION_REVISED",
   "READY_FOR_PICKUP",
   "WORKER_ASSIGNED",
+  "WEBSITE_ENQUIRY_RECEIVED",
+  "WEBSITE_ENQUIRY_REPLY",
 ]);
 let sharedAudioContext: AudioContext | null = null;
 
@@ -131,12 +133,14 @@ function announcement(type: string, role: ApplicationRole) {
     QUOTATION_REVISED: "Your updated price is ready. Please check your job.",
     READY_FOR_PICKUP: "Good news! Your job is ready for pickup.",
     WORKER_ASSIGNED: "You have been assigned a new job.",
+    WEBSITE_ENQUIRY_RECEIVED: "A customer sent a website enquiry message.",
+    WEBSITE_ENQUIRY_REPLY: "You have a new reply about your website enquiry.",
   };
   const message = messages[type];
   if (!message) return null;
-  if (role === "CUSTOMER" && !["QUOTATION_ISSUED", "QUOTATION_REVISED", "READY_FOR_PICKUP"].includes(type)) return null;
+  if (role === "CUSTOMER" && !["QUOTATION_ISSUED", "QUOTATION_REVISED", "READY_FOR_PICKUP", "WEBSITE_ENQUIRY_REPLY"].includes(type)) return null;
   if (role === "WORKER" && type !== "WORKER_ASSIGNED") return null;
-  if ((role === "ADMIN" || role === "OWNER") && !["COSTING_REQUIRED", "COUNTEROFFER_SUBMITTED", "JOB_SUBMITTED", "QUOTATION_ACCEPTED"].includes(type)) return null;
+  if ((role === "ADMIN" || role === "OWNER") && !["COSTING_REQUIRED", "COUNTEROFFER_SUBMITTED", "JOB_SUBMITTED", "QUOTATION_ACCEPTED", "WEBSITE_ENQUIRY_RECEIVED"].includes(type)) return null;
   return message;
 }
 

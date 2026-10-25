@@ -12,7 +12,7 @@ interface NotificationEvent {
   eventKey: string;
   href: string;
   targetId: string;
-  targetType: "Job" | "JobQuotation" | "PickupVerification" | "QuotationCounteroffer";
+  targetType: "Job" | "JobMessage" | "JobQuotation" | "PickupVerification" | "QuotationCounteroffer";
   title: string;
   type: NotificationType;
 }
@@ -114,6 +114,36 @@ export async function notifyManagementOfNewJob(
     targetType: "Job",
     title: needsCosting ? "New job needs costing" : "New job submitted",
     type: needsCosting ? "COSTING_REQUIRED" : "JOB_SUBMITTED",
+  });
+}
+
+export async function notifyManagementOfWebsiteEnquiry(
+  transaction: Prisma.TransactionClient,
+  input: { businessId: string; messageId: string; publicReference: string },
+) {
+  await notifyManagement(transaction, input.businessId, {
+    body: `${input.publicReference} has a new private website enquiry message.`,
+    eventKey: notificationEventKey("message", input.messageId, "customer-sent"),
+    href: notificationJobHref("STAFF", input.publicReference),
+    targetId: input.messageId,
+    targetType: "JobMessage",
+    title: "Website enquiry needs a reply",
+    type: "WEBSITE_ENQUIRY_RECEIVED",
+  });
+}
+
+export async function notifyCustomerOfWebsiteEnquiryReply(
+  transaction: Prisma.TransactionClient,
+  input: { businessId: string; customerUserId: string | null; messageId: string; publicReference: string },
+) {
+  await notifyCustomer(transaction, input.businessId, input.customerUserId, {
+    body: `Capt. Bob Cedi's Artworks replied to your website enquiry ${input.publicReference}.`,
+    eventKey: notificationEventKey("message", input.messageId, "management-replied"),
+    href: notificationJobHref("CUSTOMER", input.publicReference),
+    targetId: input.messageId,
+    targetType: "JobMessage",
+    title: "New website enquiry reply",
+    type: "WEBSITE_ENQUIRY_REPLY",
   });
 }
 

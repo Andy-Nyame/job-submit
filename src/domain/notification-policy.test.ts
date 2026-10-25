@@ -46,6 +46,7 @@ test("current roles expose only their permitted notification categories", () => 
     "QUOTATION_WITHDRAWN",
     "QUOTATION_EXPIRED",
     "COUNTEROFFER_DECLINED",
+    "WEBSITE_ENQUIRY_REPLY",
   ]);
   assert.deepEqual(notificationTypesForRole("OWNER"), [
     "JOB_SUBMITTED",
@@ -54,6 +55,7 @@ test("current roles expose only their permitted notification categories", () => 
     "QUOTATION_DECLINED",
     "COUNTEROFFER_SUBMITTED",
     "PICKUP_VERIFIED",
+    "WEBSITE_ENQUIRY_RECEIVED",
   ]);
   assert.deepEqual(notificationTypesForRole("ADMIN"), notificationTypesForRole("OWNER"));
   assert.deepEqual(notificationTypesForRole("WORKER"), [

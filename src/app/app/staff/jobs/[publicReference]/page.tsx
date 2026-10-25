@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
+import { WebsiteEnquiryChat } from "@/components/jobs/website-enquiry-chat";
 import { AddInternalNoteForm } from "@/components/staff-jobs/add-internal-note-form";
 import {
   AssignJobForm,
@@ -67,7 +68,7 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
     redirect("/app");
   }
   const { publicReference } = await params;
-  const { job, workers } = await getStaffJobDetail(publicReference);
+  const { enquiryMessages, job, workers } = await getStaffJobDetail(publicReference);
   if (!job) notFound();
   const managementJob = canManageQuotations(principal.role)
     ? (await getManagementQuotationData(publicReference)).job
@@ -137,6 +138,12 @@ export default async function StaffJobDetailPage({ params }: StaffJobDetailPageP
                 <div className="mt-4 text-sm leading-6 text-muted"><p>This legacy job does not contain a Brick 6A submission snapshot.</p><p className="mt-2 whitespace-pre-wrap">{job.instructions}</p></div>
               )}
             </Card>
+
+            {job.service.slug === "website-design-creation" && canManageQuotations(principal.role) ? (
+              <Card className="p-5 sm:p-7">
+                <WebsiteEnquiryChat messages={enquiryMessages} publicReference={job.publicReference} viewer="MANAGEMENT" />
+              </Card>
+            ) : null}
 
             {snapshot?.pricing.mode === "ON_REQUEST" && managementJob ? (
               <Card className="p-5 sm:p-7">

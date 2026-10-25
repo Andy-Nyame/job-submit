@@ -111,6 +111,13 @@ enum JobMessageSenderKind {
   SYSTEM
 }
 
+enum ServiceImageStatus {
+  PENDING
+  READY
+  REMOVED
+  EXPIRED
+}
+
 enum CustomerUploadStatus {
   PENDING
   UPLOADED
@@ -161,6 +168,8 @@ enum NotificationType {
   QUOTATION_EXPIRED
   COUNTEROFFER_SUBMITTED
   COUNTEROFFER_DECLINED
+  WEBSITE_ENQUIRY_RECEIVED
+  WEBSITE_ENQUIRY_REPLY
 }
 
 enum PickupCodeStatus {
@@ -190,6 +199,7 @@ model Business {
 
   memberships            BusinessMembership[]
   services               Service[]
+  serviceImages          ServiceImage[]
   workerProfiles         WorkerProfile[]
   workerServiceSkills    WorkerServiceSkill[]
   workerInvitations      WorkerInvitation[]
@@ -288,6 +298,8 @@ model BusinessMembership {
   workerInvitationsCreated     WorkerInvitation[]             @relation("WorkerInvitationCreatedBy")
   workerInvitationsAccepted    WorkerInvitation[]             @relation("WorkerInvitationAcceptedBy")
   workerInvitationsRevoked     WorkerInvitation[]             @relation("WorkerInvitationRevokedBy")
+  serviceImagesUploaded        ServiceImage[]                 @relation("ServiceImageUploadedBy")
+  serviceImagesRemoved         ServiceImage[]                 @relation("ServiceImageRemovedBy")
 
   @@unique([businessId, userId])
   @@unique([businessId, id])
@@ -343,12 +355,47 @@ model Service {
 
   business     Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
   jobs         Job[]
+  images       ServiceImage[]
   workerSkills WorkerServiceSkill[]
 
   @@unique([businessId, slug])
   @@unique([businessId, id])
   @@index([businessId, isActive, sortOrder])
   @@index([businessId, onlineSubmissionEnabled, isActive])
+}
+
+model ServiceImage {
+  id                     String             @id @default(uuid()) @db.Uuid
+  businessId             String             @db.Uuid
+  serviceId              String             @db.Uuid
+  status                 ServiceImageStatus @default(PENDING)
+  storageKey             String?            @db.VarChar(500)
+  originalFilename       String             @db.VarChar(255)
+  mimeType               String?            @db.VarChar(100)
+  byteSize               BigInt?
+  altText                String             @db.VarChar(240)
+  displayOrder           Int                @default(0)
+  isCover                Boolean            @default(false)
+  uploadedByMembershipId String             @db.Uuid
+  replacesImageId        String?            @unique @db.Uuid
+  expiresAt              DateTime           @db.Timestamptz(3)
+  uploadedAt             DateTime?          @db.Timestamptz(3)
+  removedAt              DateTime?          @db.Timestamptz(3)
+  removedByMembershipId  String?            @db.Uuid
+  createdAt              DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime           @updatedAt @db.Timestamptz(3)
+
+  business    Business            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  service     Service             @relation(fields: [businessId, serviceId], references: [businessId, id], onDelete: Restrict)
+  uploadedBy  BusinessMembership  @relation("ServiceImageUploadedBy", fields: [businessId, uploadedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  removedBy   BusinessMembership? @relation("ServiceImageRemovedBy", fields: [businessId, removedByMembershipId], references: [businessId, id], onDelete: Restrict)
+  replaces    ServiceImage?       @relation("ServiceImageVersions", fields: [replacesImageId], references: [id], onDelete: Restrict)
+  replacement ServiceImage?       @relation("ServiceImageVersions")
+
+  @@unique([businessId, id])
+  @@unique([businessId, storageKey])
+  @@index([businessId, serviceId, status, displayOrder])
+  @@index([businessId, status, expiresAt])
 }
 
 model WorkerServiceSkill {
@@ -715,6 +762,9 @@ model JobMessage {
   senderUserId          String?              @db.Uuid
   senderMembershipId    String?              @db.Uuid
   body                  String?
+  clientMessageKey      String?              @unique @db.Uuid
+  readByCustomerAt      DateTime?            @db.Timestamptz(3)
+  readByManagementAt    DateTime?            @db.Timestamptz(3)
   createdAt             DateTime             @default(now()) @db.Timestamptz(3)
   removedAt             DateTime?            @db.Timestamptz(3)
   removedByMembershipId String?              @db.Uuid

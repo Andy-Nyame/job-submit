@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/prisma";
 
 import { requireCustomer } from "./authorization";
@@ -9,6 +10,11 @@ const submissionServiceSelect = {
   defaultWorkloadClass: true,
   description: true,
   id: true,
+  images: {
+    where: { status: "READY" as const },
+    orderBy: [{ isCover: "desc" as const }, { displayOrder: "asc" as const }, { createdAt: "asc" as const }],
+    select: { altText: true, id: true, isCover: true },
+  },
   isActive: true,
   name: true,
   onlineSubmissionEnabled: true,
@@ -17,7 +23,7 @@ const submissionServiceSelect = {
   slug: true,
   specificationConfiguration: true,
   version: true,
-} as const;
+} satisfies Prisma.ServiceSelect;
 
 export async function getCustomerSubmissionPageData() {
   const principal = await requireCustomer();
@@ -119,7 +125,12 @@ export async function getCustomerJob(publicReference: string) {
       packageCount: true,
       priority: true,
       publicReference: true,
-      service: { select: { name: true } },
+      service: { select: { name: true, slug: true } },
+      messages: {
+        where: { removedAt: null },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { body: true, createdAt: true, id: true, senderKind: true },
+      },
       submissionGroupReference: true,
       statusHistory: {
         orderBy: { createdAt: "asc" },
@@ -169,5 +180,17 @@ export async function getCustomerJob(publicReference: string) {
       title: true,
     },
   });
+  if (job?.service.slug === "website-design-creation") {
+    await prisma.jobMessage.updateMany({
+      where: {
+        businessId: principal.businessId,
+        jobId: job.id,
+        readByCustomerAt: null,
+        removedAt: null,
+        senderKind: "STAFF",
+      },
+      data: { readByCustomerAt: new Date() },
+    });
+  }
   return { job, principal };
 }

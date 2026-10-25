@@ -36,6 +36,10 @@ messaging, delivery mechanisms, or later business workflows.
   only active, non-archived services for the active Capt. Bob business and
   exposes no membership, customer, worker, job, or infrastructure data. A small
   Client Component owns only the mobile navigation interaction.
+- Public and authenticated catalogues use the same business-scoped `Service`
+  records. Ordered `ServiceImage` metadata selects at most one cover while Blob
+  keys stay private; an opaque application route streams validated raster images
+  and the UI supplies a neutral fallback when no image is available.
 
 The product roles are `CUSTOMER`, `WORKER`, `ADMIN`, and `OWNER`. Roles are
 persisted through business membership. Authentication uses Supabase Auth, while
@@ -116,6 +120,16 @@ The initial migration combines Prisma-generated DDL with explicit PostgreSQL che
   initial status history, and audit event are associated in one serializable
   database transaction. Private downloads query job ownership before streaming;
   possession of a reference, attachment ID, or Blob URL is not authorization.
+- Service-gallery upload tokens require an active OWNER/ADMIN membership in the
+  same business. Short-lived reservations, extension/MIME/size checks, actual
+  JPG/PNG/WebP signature validation, soft removal, cover uniqueness, audit
+  events, and best-effort post-commit Blob cleanup protect the gallery lifecycle.
+- Website Design & Creation enquiries reuse canonical `Job` and `JobMessage`
+  records. CUSTOMER access requires job ownership; OWNER/ADMIN access requires
+  active business authority; WORKER is excluded. Client UUIDs make message
+  retries idempotent, message bursts are bounded, and transactional notifications
+  do not include message bodies. The documented contact email never grants a
+  role, and no Gmail or external email integration is configured.
 - Production transactional email/custom SMTP remains deferred until a proper
   sending domain exists. Public email signup stays gated through
   `EMAIL_PASSWORD_SIGNUP_ENABLED=false`; password login remains available for
@@ -174,6 +188,12 @@ custom customer fields, and repeatable variation metadata while reading Brick
 customer values, and the server-calculated pricing treatment into an immutable
 job snapshot so later service edits cannot alter historical requirements.
 
+Poster Printing and Label Printing are separate services for new requests and
+reuse the approved A-series and 45-inch label pricing strategies. The legacy
+Sticker product-menu strategy remains readable for immutable historical job
+snapshots only. Poster, Label, and Website service rows begin with online
+submission disabled so migrations cannot publish new intake accidentally.
+
 Service difficulty is the only manager-editable classification default. It
 derives `SIMPLE → QUICK → 1`, `MEDIUM → STANDARD → 2`, and
 `COMPLEX → FOCUS → 3`. Actual future jobs may be reclassified during authorized
@@ -225,8 +245,8 @@ classes have render regression coverage.
 
 ## 9. Deferred implementation
 
-Standalone role dashboards, general pricing communication,
-messaging UI/transport, attachment replacement, transactional email/external
+Standalone role dashboards, general pricing communication outside the focused
+website enquiry thread, general customer/staff messaging, transactional email/external
 notification delivery, payments, stars, and ecommerce remain deliberately
 deferred.
 

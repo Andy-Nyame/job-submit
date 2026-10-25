@@ -295,6 +295,7 @@ export async function getStaffJobDetail(publicReference: string) {
         select: { displayName: true, email: true, phone: true },
       },
       instructions: true,
+      id: true,
       packageCount: true,
       notes: {
         where: { archivedAt: null },
@@ -345,7 +346,7 @@ export async function getStaffJobDetail(publicReference: string) {
         select: { expiresAt: true, status: true },
       },
       reviewedAt: true,
-      service: { select: { id: true, name: true } },
+      service: { select: { id: true, name: true, slug: true } },
       source: true,
       statusHistory: {
         orderBy: { createdAt: "asc" },
@@ -366,6 +367,20 @@ export async function getStaffJobDetail(publicReference: string) {
       workloadClass: true,
     },
   });
+  const manager = principal.role === "OWNER" || principal.role === "ADMIN";
+  const enquiryMessages = job && manager && job.service.slug === "website-design-creation"
+    ? await prisma.jobMessage.findMany({
+        where: { businessId: principal.businessId, jobId: job.id, removedAt: null },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { body: true, createdAt: true, id: true, senderKind: true },
+      })
+    : [];
+  if (job && manager && job.service.slug === "website-design-creation") {
+    await prisma.jobMessage.updateMany({
+      where: { businessId: principal.businessId, jobId: job.id, readByManagementAt: null, removedAt: null, senderKind: "CUSTOMER" },
+      data: { readByManagementAt: new Date() },
+    });
+  }
   const workers = job && (principal.role === "ADMIN" || principal.role === "OWNER")
     ? await prisma.businessMembership.findMany({
         where: {
@@ -426,6 +441,7 @@ export async function getStaffJobDetail(publicReference: string) {
 
   return {
     job,
+    enquiryMessages,
     principal,
     workers: workers.map((worker) => {
       const workload = workloadByWorker.get(worker.id) ?? {

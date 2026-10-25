@@ -158,3 +158,25 @@ Production deployments must configure a stable
 `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` so Server Action references remain valid
 across rolling instances. It must be a private base64-encoded 32-byte value and
 must never be committed.
+
+## Brick 7.2 visual catalogue and standalone services
+
+Every active service is presented as its own catalogue card. `ServiceImage`
+stores ordered gallery metadata and an optional cover while image bytes stay in
+the existing private Vercel Blob store. OWNER/ADMIN may add, replace, remove,
+reorder, and choose a cover through Shop & Services. Missing files use a neutral
+placeholder. The five Owner-approved reference-image binaries were not supplied
+in the repository and must be uploaded through this manager when available.
+
+Poster Printing and Label Printing are standalone services for new requests.
+Their approved calculations reuse existing server-authoritative strategies;
+Sticker Printing now presents custom area pricing to new customers. Historical
+Sticker jobs with embedded poster or label selections remain readable from
+their immutable snapshots. The migration leaves both new services offline until
+management reviews and enables them.
+
+Website Design & Creation is Price on Request and also starts offline. Once
+enabled, submission creates a canonical customer-owned Job plus the initial
+private enquiry message. Only that CUSTOMER and active OWNER/ADMIN memberships
+may continue the thread. Messages are discussion only; commercial agreement
+still requires the formal versioned quotation workflow.

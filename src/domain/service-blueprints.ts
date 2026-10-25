@@ -12,7 +12,9 @@ export type ServiceConfigurationProfile =
   | "BANNER_PRINTING"
   | "CONTAINER_NUMBER"
   | "FOR_SALE_STICKERS"
+  | "LABEL_PRINTING"
   | "ON_REQUEST"
+  | "POSTER_PRINTING"
   | "STICKER_PRINTING";
 
 interface ServiceBlueprint {
@@ -123,6 +125,26 @@ export const SERVICE_BLUEPRINTS: Record<ServiceConfigurationProfile, ServiceBlue
     }),
     summary: "A4 is GH₵20 per pair; A3 is GH₵40 per pair.",
   },
+  LABEL_PRINTING: {
+    example: "Example: sixty 2 × 2 inch square labels are GH₵25.",
+    label: "Label printing — material and cutting price",
+    pricing: strategy("LABEL_PRINTING", "MATERIAL_LAYOUT_PLUS_CUTTING"),
+    quantity: quantity("60", "1", "labels"),
+    specification: specification({
+      artworkRequirement: "CUSTOMER_PROVIDED",
+      customDimensionUnits: ["INCHES"],
+      customFields: [
+        field("label-shape", "What shape are the labels?", {
+          maxLength: "",
+          options: "Square\nRectangle\nRounded corners\nCustom / irregular",
+          type: "SELECTION",
+        }),
+      ],
+      customInstructions: "Enter the finished size of one label in inches. Printing-only requests need finished artwork.",
+      sizeMode: "CUSTOM",
+    }),
+    summary: "Uses the approved 45-inch material layout, printing charge, and cutting charge.",
+  },
   ON_REQUEST: {
     example: "Example: the customer submits the details and sees that management will send the price after review.",
     label: "Price after review",
@@ -131,23 +153,31 @@ export const SERVICE_BLUEPRINTS: Record<ServiceConfigurationProfile, ServiceBlue
     specification: null,
     summary: "The customer sends the details and management confirms the price after review.",
   },
+  POSTER_PRINTING: {
+    example: "Examples: four A4 posters are GH₵15; two A1 posters are GH₵40.",
+    label: "Poster printing — approved A-series prices",
+    pricing: strategy("POSTER_PRINTING", "SIZE_VARIANT_QUANTITY_GROUP"),
+    quantity: quantity("2", "2", "posters"),
+    specification: specification({
+      artworkRequirement: "CUSTOMER_PROVIDED",
+      customInstructions: "Choose an A-series size. Printing-only requests need finished artwork.",
+      sizeMode: "PRESET",
+      standardSizeOptions: "A4\nA3\nA2\nA1",
+    }),
+    summary: "Approved A4, A3, A2, and A1 complete-row prices, rounded up to the next GH₵5.",
+  },
   STICKER_PRINTING: {
-    example: "Examples: sixty 2 × 2 inch square labels are GH₵25; four A4 posters are GH₵15.",
-    label: "Sticker printing — custom, labels, or A-series posters",
-    pricing: strategy("STICKER_PRINTING", "STICKER_PRODUCT_MENU"),
+    example: "Example: one 2 × 2 foot sticker is GH₵15 after the approved selling-price rounding.",
+    label: "Sticker printing — GH₵3 per square foot",
+    pricing: strategy("STICKER_PRINTING", "AREA_BASED"),
     quantity: quantity("1", "1", "pieces"),
     specification: specification({
       artworkRequirement: "CUSTOMER_PROVIDED",
       customDimensionUnits: ["FEET", "INCHES", "CM", "MM", "METERS"],
-      customFields: [
-        field("sticker-product", "What kind of sticker printing do you need?", { maxLength: "", options: "Custom-size sticker\nLabels\nPoster printing", type: "SELECTION" }),
-        field("label-shape", "Label shape", { maxLength: "", options: "Square\nRectangle\nRounded corners\nCustom / irregular", required: false, type: "SELECTION" }),
-      ],
-      customInstructions: "Choose custom size, labels, or poster printing. Printing-only requests need finished artwork.",
-      sizeMode: "PRESET_OR_CUSTOM",
-      standardSizeOptions: "A4\nA3\nA2\nA1",
+      customInstructions: "Enter the finished sticker size. Printing-only requests need finished artwork.",
+      sizeMode: "CUSTOM",
     }),
-    summary: "Custom stickers use area pricing, labels use material-and-cutting pricing, and posters use approved A-series prices.",
+    summary: "Width × height × quantity at GH₵3 per square foot, rounded up to the next GH₵5.",
   },
 };
 
@@ -156,6 +186,8 @@ export function profilesForService(slug: string): ServiceConfigurationProfile[] 
   if (slug === "flexi-banner-printing") return ["BANNER_PRINTING", "ON_REQUEST"];
   if (slug === "for-sale-sticker-printing") return ["FOR_SALE_STICKERS", "ON_REQUEST"];
   if (slug === "container-head-sticker-batch-numbers-printing") return ["CONTAINER_NUMBER", "ON_REQUEST"];
+  if (slug === "poster-printing") return ["POSTER_PRINTING", "ON_REQUEST"];
+  if (slug === "label-printing") return ["LABEL_PRINTING", "ON_REQUEST"];
   return ["ON_REQUEST"];
 }
 

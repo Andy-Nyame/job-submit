@@ -15,6 +15,8 @@ export const APPROVED_PRICING_PROFILES = [
   "BANNER_PRINTING",
   "CONTAINER_NUMBER",
   "FOR_SALE_STICKERS",
+  "LABEL_PRINTING",
+  "POSTER_PRINTING",
   "STICKER_PRINTING",
 ] as const;
 export type ApprovedPricingProfile = (typeof APPROVED_PRICING_PROFILES)[number];
@@ -65,13 +67,16 @@ export function readStrategyPricingConfiguration(
   ) {
     return null;
   }
-  const expectedStrategies: Record<ApprovedPricingProfile, ServicePricingStrategy> = {
-    BANNER_PRINTING: "AREA_BASED",
-    CONTAINER_NUMBER: "FIXED_VARIANT",
-    FOR_SALE_STICKERS: "SIZE_VARIANT_QUANTITY_GROUP",
-    STICKER_PRINTING: "STICKER_PRODUCT_MENU",
+  const expectedStrategies: Record<ApprovedPricingProfile, readonly ServicePricingStrategy[]> = {
+    BANNER_PRINTING: ["AREA_BASED"],
+    CONTAINER_NUMBER: ["FIXED_VARIANT"],
+    FOR_SALE_STICKERS: ["SIZE_VARIANT_QUANTITY_GROUP"],
+    LABEL_PRINTING: ["MATERIAL_LAYOUT_PLUS_CUTTING"],
+    POSTER_PRINTING: ["SIZE_VARIANT_QUANTITY_GROUP"],
+    // STICKER_PRODUCT_MENU remains readable for immutable historical snapshots.
+    STICKER_PRINTING: ["AREA_BASED", "STICKER_PRODUCT_MENU"],
   };
-  if (expectedStrategies[value.profile as ApprovedPricingProfile] !== value.strategy) return null;
+  if (!expectedStrategies[value.profile as ApprovedPricingProfile].includes(value.strategy as ServicePricingStrategy)) return null;
   return value as unknown as StrategyPricingConfiguration;
 }
 
@@ -236,7 +241,9 @@ export function calculateStrategyPrice(
     case "MATERIAL_LAYOUT_PLUS_CUTTING":
       return priceLabels(input);
     case "SIZE_VARIANT_QUANTITY_GROUP":
-      return priceForSale(input);
+      return configuration.profile === "POSTER_PRINTING"
+        ? pricePoster(input)
+        : priceForSale(input);
     case "STICKER_PRODUCT_MENU": {
       const product = input.jobFields["sticker-product"];
       if (product === "Poster printing") return pricePoster(input);

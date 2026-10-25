@@ -11,7 +11,11 @@ import {
 import { Prisma } from "@/generated/prisma/client";
 import type { ApplicationPrincipal } from "@/server/auth/provisioning";
 import { prisma } from "@/server/db/prisma";
-import { notifyManagementOfNewJob } from "@/server/notifications/events";
+import {
+  notifyManagementOfNewJob,
+  notifyManagementOfWebsiteEnquiry,
+} from "@/server/notifications/events";
+import { WEBSITE_SERVICE_SLUG } from "@/domain/website-enquiries";
 
 import { JobOperationError } from "./errors";
 import {
@@ -174,7 +178,7 @@ async function createInTransaction(
         : null;
       if (
         payload.linkedDesignServiceId &&
-        (!designService || !["sav-sticker-printing", "flexi-banner-printing"].includes(service.slug))
+        (!designService || !["sav-sticker-printing", "flexi-banner-printing", "poster-printing", "label-printing"].includes(service.slug))
       ) {
         throw new JobOperationError("SERVICE_UNAVAILABLE");
       }
@@ -259,6 +263,26 @@ async function createInTransaction(
           toStatus: "SUBMITTED",
         },
       });
+
+      if (service.slug === WEBSITE_SERVICE_SLUG) {
+        const enquiry = await transaction.jobMessage.create({
+          data: {
+            body: submission.instructions || submission.title,
+            businessId: actor.businessId,
+            clientMessageKey: payload.idempotencyKey,
+            jobId: job.id,
+            readByCustomerAt: new Date(),
+            senderKind: "CUSTOMER",
+            senderUserId: actor.userId,
+          },
+          select: { id: true },
+        });
+        await notifyManagementOfWebsiteEnquiry(transaction, {
+          businessId: actor.businessId,
+          messageId: enquiry.id,
+          publicReference: job.publicReference,
+        });
+      }
 
       const now = new Date();
       for (const upload of uploads) {

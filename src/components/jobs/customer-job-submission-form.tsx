@@ -35,6 +35,7 @@ import { readStrategyPricingConfiguration } from "@/domain/service-pricing-strat
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Select, Textarea } from "@/components/ui/form-controls";
+import { ServiceCatalogueImage } from "@/components/services/service-catalogue-image";
 
 type SizeDraft = JobSubmissionPayload["selection"]["size"];
 type VariationDraft = JobSubmissionPayload["selection"]["variations"][number];
@@ -57,19 +58,33 @@ interface Draft {
 }
 
 function initialSize(service: SubmissionService | undefined): SizeDraft {
-  const mode = readSpecificationConfiguration(
-    service?.specificationConfiguration,
-  )?.sizes.mode;
+  const sizes = readSpecificationConfiguration(service?.specificationConfiguration)?.sizes;
+  const mode = sizes?.mode;
   if (mode === "FIXED") {
     return { height: "", kind: "FIXED", option: "", unit: "", width: "" };
   }
   if (mode === "CUSTOM") {
-    return { height: "", kind: "CUSTOM", option: "", unit: "", width: "" };
+    return { height: "", kind: "CUSTOM", option: "", unit: sizes?.customUnits.length === 1 ? sizes.customUnits[0] : "", width: "" };
   }
   if (mode === "PRESET" || mode === "PRESET_OR_CUSTOM") {
     return { height: "", kind: "PRESET", option: "", unit: "", width: "" };
   }
   return { height: "", kind: "NONE", option: "", unit: "", width: "" };
+}
+
+function cataloguePrice(service: SubmissionService) {
+  const pricing = readPricingConfiguration(service.pricingConfiguration);
+  const strategy = readStrategyPricingConfiguration(service.pricingConfiguration);
+  if (pricing.mode === "ON_REQUEST") return "Price on Request";
+  const labels: Partial<Record<NonNullable<typeof strategy>["profile"], string>> = {
+    BANNER_PRINTING: "Calculated from your size",
+    CONTAINER_NUMBER: "GH₵30",
+    FOR_SALE_STICKERS: "From GH₵20",
+    LABEL_PRINTING: "Calculated from your size",
+    POSTER_PRINTING: "From GH₵15",
+    STICKER_PRINTING: "Calculated from your size",
+  };
+  return strategy ? labels[strategy.profile] ?? "Price calculated from your choices" : "Price calculated from your choices";
 }
 
 function initialDraft(service: SubmissionService | undefined): Draft {
@@ -234,21 +249,26 @@ export function CustomerJobSubmissionForm({
   const jobFields = specification?.customerFields.filter((field) => field.scope === "JOB") ?? [];
   const variationFields = specification?.customerFields.filter((field) => field.scope === "VARIATION") ?? [];
   const stickerProduct = draft.jobFields["sticker-product"] ?? "";
+  const legacyStickerMenu = strategy?.strategy === "STICKER_PRODUCT_MENU";
   const displayedJobFields = jobFields.filter((field) => {
-    if (field.id === "sticker-product") return false;
-    if (field.id === "label-shape") return stickerProduct === "Labels";
+    if (field.id === "sticker-product") return !legacyStickerMenu;
+    if (field.id === "label-shape" && legacyStickerMenu) return stickerProduct === "Labels";
     if (field.id === "printed-contact-2") return draft.jobFields["printed-contact-count"] === "2";
     return true;
   });
   const posterVariant = draft.size.kind === "PRESET" ? draft.size.option : "";
-  const customDimensionUnits = stickerProduct === "Labels"
+  const customDimensionUnits = legacyStickerMenu && stickerProduct === "Labels"
     ? (["INCHES"] as const)
     : specification?.sizes.customUnits ?? [];
   const quantityRule = (() => {
     if (strategy?.profile === "CONTAINER_NUMBER") return { minimum: 1, step: 1 };
     if (strategy?.profile === "FOR_SALE_STICKERS") return { minimum: 2, step: 2 };
-    if (strategy?.profile === "STICKER_PRINTING" && stickerProduct === "Labels") return { minimum: 60, step: 1 };
-    if (strategy?.profile === "STICKER_PRINTING" && stickerProduct === "Poster printing") {
+    if (strategy?.profile === "LABEL_PRINTING") return { minimum: 60, step: 1 };
+    if (strategy?.profile === "POSTER_PRINTING") {
+      return posterVariant === "A4" || posterVariant === "A3" ? { minimum: 4, step: 4 } : { minimum: 2, step: 2 };
+    }
+    if (legacyStickerMenu && stickerProduct === "Labels") return { minimum: 60, step: 1 };
+    if (legacyStickerMenu && stickerProduct === "Poster printing") {
       return posterVariant === "A4" || posterVariant === "A3" ? { minimum: 4, step: 4 } : { minimum: 2, step: 2 };
     }
     return { minimum: quantity?.minimum ?? 1, step: quantity?.increment ?? 1 };
@@ -434,7 +454,7 @@ export function CustomerJobSubmissionForm({
           {(localError || state.status === "error") ? <p className="mt-5 rounded-md border border-destructive/45 bg-destructive/10 p-3 text-sm" role="alert">{localError || state.message}</p> : null}
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button disabled={pending} onClick={() => { setReview(null); setStep(2); setLocalError(""); }} type="button" variant="outline">Back</Button>
-            <Button disabled={pending} type="submit">{pending ? "Submitting safely…" : "Submit My Job"}</Button>
+            <Button disabled={pending} type="submit">{pending ? "Submitting safely…" : selectedService?.slug === "website-design-creation" ? "Send website enquiry" : "Submit My Job"}</Button>
           </div>
         </Card>
       ) : step === 1 ? (
@@ -442,13 +462,43 @@ export function CustomerJobSubmissionForm({
             <p className="text-sm font-semibold text-primary">Step 1 of 3</p>
             <h2 className="mt-2 text-2xl font-semibold">Choose what you need</h2>
             <p className="mt-2 text-sm leading-6 text-muted">Pick the service that best matches the work you want us to do.</p>
-            <label className="mt-5 block text-sm font-medium" htmlFor="job-service">Service</label>
-            <Select className="mt-2" id="job-service" onChange={(event) => selectService(event.target.value)} required value={selectedServiceId}>
-              {services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}
-            </Select>
+            <fieldset className="mt-5">
+              <legend className="sr-only">Choose a service</legend>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {services.map((service) => {
+                  const selected = service.id === selectedServiceId;
+                  const images = service.images ?? [];
+                  const cover = images.find((image) => image.isCover) ?? images[0];
+                  return (
+                    <button
+                      aria-pressed={selected}
+                      className={selected ? "overflow-hidden rounded-2xl border-2 border-primary bg-primary-surface text-left shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" : "overflow-hidden rounded-2xl border bg-surface text-left outline-none transition-colors hover:border-primary/45 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"}
+                      key={service.id}
+                      onClick={() => selectService(service.id)}
+                      type="button"
+                    >
+                      <ServiceCatalogueImage alt={cover?.altText ?? ""} imageId={cover?.id} name={service.name} />
+                      <span className="block p-4">
+                        <span className="block font-semibold">{service.name}</span>
+                        <span className="mt-1 line-clamp-2 block text-sm leading-5 text-muted">{service.description ?? "Tell us what you need and our team will review it."}</span>
+                        <span className="mt-3 flex items-center justify-between gap-2 text-xs font-semibold">
+                          <span className="text-primary">{cataloguePrice(service)}</span>
+                          <span>{selected ? "Selected" : "Choose"}</span>
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
             {selectedService ? <div className="mt-4 rounded-lg border bg-surface-muted p-4 text-sm leading-6"><p>{selectedService.description ?? "Tell us what you need and our team will review it."}</p><p className="mt-2 font-medium">{pricing.mode === "FIXED" ? "Your price will be calculated from the details you choose." : "We'll check your request and send you a price."}</p>{specification?.customInstructions ? <p className="mt-2 text-muted">{specification.customInstructions}</p> : null}</div> : null}
+            {selectedService && (selectedService.images?.length ?? 0) > 1 ? (
+              <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5" aria-label={`${selectedService.name} gallery`}>
+                {selectedService.images?.map((image) => <ServiceCatalogueImage alt={image.altText} imageId={image.id} key={image.id} name={selectedService.name} />)}
+              </div>
+            ) : null}
             <div className="mt-6 flex justify-end">
-              <Button onClick={() => setStep(2)} type="button">Continue</Button>
+              <Button onClick={() => setStep(2)} type="button">{selectedService?.slug === "website-design-creation" ? "Chat about your website" : "Continue"}</Button>
             </div>
           </Card>
       ) : (
@@ -461,7 +511,7 @@ export function CustomerJobSubmissionForm({
               <div><label className="text-sm font-medium" htmlFor="job-instructions">Anything else we should know?</label><Textarea className="mt-2 min-h-32" id="job-instructions" maxLength={4000} onChange={(event) => updateDraft("instructions", event.target.value)} placeholder="Tell us about the wording, colours, or other details." value={draft.instructions} /><p className="mt-1.5 text-xs text-muted">You can leave this blank if the other answers explain everything.</p></div>
               <div><label className="text-sm font-medium" htmlFor="job-priority">How quickly should we handle it?</label><Select className="mt-2" id="job-priority" onChange={(event) => updateDraft("priority", event.target.value as Draft["priority"])} value={draft.priority}><option value="REGULAR">Regular</option><option value="EXPRESS">Express / Urgent (+40%)</option></Select><p className="mt-1.5 text-xs leading-5 text-muted">Express receives priority and adds 40% to the confirmed base price. It does not guarantee instant completion.</p></div>
             </div>
-            {designService && selectedService && ["sav-sticker-printing", "flexi-banner-printing"].includes(selectedService.slug) ? (
+            {designService && selectedService && ["sav-sticker-printing", "flexi-banner-printing", "poster-printing", "label-printing"].includes(selectedService.slug) ? (
               <label className="mt-5 flex items-start gap-3 rounded-lg border bg-surface-muted p-4 text-sm">
                 <input checked={includeDesign} className="mt-1 size-4 accent-[var(--accent)]" onChange={(event) => { setIncludeDesign(event.target.checked); setReview(null); }} type="checkbox" />
                 <span><span className="font-medium">I also need Capt. Bob to design it</span><span className="mt-1 block text-xs leading-5 text-muted">We will create a separate Designing job linked to this printing job. The printing job stays blocked from production until an authorized person confirms the design dependency is cleared.</span></span>
@@ -475,12 +525,12 @@ export function CustomerJobSubmissionForm({
               {specification?.variations.enabled ? (
                 <div className="rounded-lg border bg-surface-muted p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-medium">Variations</p><p className="mt-1 text-xs leading-5 text-muted">Use variations when quantities or configured details differ. The service quantity rule applies to the combined total.</p></div><Button onClick={addVariation} type="button" variant="outline">Add variation</Button></div>{draft.variations.length > 0 ? <div className="mt-4 space-y-4">{draft.variations.map((variation, index) => <fieldset className="rounded-lg border bg-surface p-4" key={variation.id}><legend className="px-1 text-sm font-semibold">Variation {index + 1}</legend><div><label className="text-sm font-medium" htmlFor={`variation-${variation.id}-quantity`}>Quantity *</label><Input className="mt-2" id={`variation-${variation.id}-quantity`} inputMode="numeric" min={1} onChange={(event) => updateDraft("variations", draft.variations.map((item) => item.id === variation.id ? { ...item, quantity: Number(event.target.value) } : item))} required type="number" value={variation.quantity} /></div>{variationFields.length > 0 ? <div className="mt-4 grid gap-4 sm:grid-cols-2">{variationFields.map((field) => <CustomFieldControl field={field} id={`variation-${variation.id}-${field.id}`} key={field.id} onChange={(value) => updateDraft("variations", draft.variations.map((item) => item.id === variation.id ? { ...item, fieldValues: { ...item.fieldValues, [field.id]: value } } : item))} value={variation.fieldValues[field.id] ?? ""} />)}</div> : null}<button className="mt-4 text-sm font-medium text-destructive underline underline-offset-4" onClick={() => updateDraft("variations", draft.variations.filter((item) => item.id !== variation.id))} type="button">Remove variation</button></fieldset>)}</div> : <p className="mt-3 text-xs text-muted">No variations added. Enter one total quantity below.</p>}</div>
               ) : null}
-              {strategy?.profile === "STICKER_PRINTING" ? <div><label className="text-sm font-medium" htmlFor="sticker-product">What kind of sticker printing do you need? *</label><Select className="mt-2" id="sticker-product" onChange={(event) => { const product = event.target.value; updateDraft("jobFields", { ...draft.jobFields, "sticker-product": product, "label-shape": "" }); updateDraft("size", product === "Poster printing" ? { height: "", kind: "PRESET", option: "", unit: "", width: "" } : { height: "", kind: "CUSTOM", option: "", unit: product === "Labels" ? "INCHES" : "", width: "" }); updateDraft("quantity", ""); }} required value={stickerProduct}><option value="">Choose one</option><option>Custom-size sticker</option><option>Labels</option><option>Poster printing</option></Select></div> : null}
+              {legacyStickerMenu ? <div><label className="text-sm font-medium" htmlFor="sticker-product">What kind of sticker printing do you need? *</label><Select className="mt-2" id="sticker-product" onChange={(event) => { const product = event.target.value; updateDraft("jobFields", { ...draft.jobFields, "sticker-product": product, "label-shape": "" }); updateDraft("size", product === "Poster printing" ? { height: "", kind: "PRESET", option: "", unit: "", width: "" } : { height: "", kind: "CUSTOM", option: "", unit: product === "Labels" ? "INCHES" : "", width: "" }); updateDraft("quantity", ""); }} required value={stickerProduct}><option value="">Choose one</option><option>Custom-size sticker</option><option>Labels</option><option>Poster printing</option></Select></div> : null}
               {draft.variations.length === 0 ? <div><label className="text-sm font-medium" htmlFor="job-quantity">How many do you need?{quantity || pricing.mode === "FIXED" ? " *" : ""}</label><Input className="mt-2" disabled={strategy?.profile === "CONTAINER_NUMBER"} id="job-quantity" inputMode="numeric" min={quantityRule.minimum} onChange={(event) => updateDraft("quantity", event.target.value)} required={Boolean(quantity || pricing.mode === "FIXED")} step={quantityRule.step} type="number" value={draft.quantity} />{strategy?.profile === "CONTAINER_NUMBER" ? <p className="mt-1.5 text-xs text-muted">This approved price is for one A3 sticker.</p> : <p className="mt-1.5 text-xs text-muted">Minimum {quantityRule.minimum.toLocaleString("en-US")} · increase by {quantityRule.step.toLocaleString("en-US")}</p>}</div> : <p className="text-sm text-muted">Total across all versions: {draft.variations.reduce((sum, item) => sum + (Number.isFinite(item.quantity) ? item.quantity : 0), 0).toLocaleString("en-US")}{quantity?.unit ? ` ${quantity.unit}` : ""}</p>}
 
               {specification?.sizes.mode === "FIXED" && specification.sizes.fixed ? <div><p className="text-sm font-medium">Configured size</p><p className="mt-2 text-sm text-muted">{specification.sizes.fixed.width} × {specification.sizes.fixed.height} {specification.sizes.fixed.unit.toLowerCase()}</p></div> : null}
               {(specification?.sizes.mode === "PRESET" || (specification?.sizes.mode === "PRESET_OR_CUSTOM" && stickerProduct === "Poster printing")) ? <div><label className="text-sm font-medium" htmlFor="job-size">Which size? *</label><Select className="mt-2" id="job-size" onChange={(event) => { updateDraft("size", { height: "", kind: "PRESET", option: event.target.value, unit: "", width: "" }); updateDraft("quantity", ""); }} required value={draft.size.kind === "PRESET" ? draft.size.option : ""}><option value="">Choose a size</option>{specification.sizes.options.map((option) => <option key={option} value={option}>{option}</option>)}</Select></div> : null}
-              {draft.size.kind === "CUSTOM" ? <div className="grid gap-4 sm:grid-cols-3"><div><label className="text-sm font-medium" htmlFor="custom-width">Width *</label><Input className="mt-2" id="custom-width" inputMode="decimal" onChange={(event) => updateDraft("size", { ...draft.size, width: event.target.value })} required value={draft.size.width} /></div><div><label className="text-sm font-medium" htmlFor="custom-height">Height *</label><Input className="mt-2" id="custom-height" inputMode="decimal" onChange={(event) => updateDraft("size", { ...draft.size, height: event.target.value })} required value={draft.size.height} /></div><div><label className="text-sm font-medium" htmlFor="custom-unit">Unit *</label><Select className="mt-2" disabled={stickerProduct === "Labels"} id="custom-unit" onChange={(event) => updateDraft("size", { ...draft.size, unit: event.target.value })} required value={draft.size.unit}><option value="">Choose unit</option>{customDimensionUnits.map((unit) => <option key={unit} value={unit}>{unit === "INCHES" ? "inches" : unit === "FEET" ? "feet" : unit.toLowerCase()}</option>)}</Select></div></div> : null}
+              {draft.size.kind === "CUSTOM" ? <div className="grid gap-4 sm:grid-cols-3"><div><label className="text-sm font-medium" htmlFor="custom-width">Width *</label><Input className="mt-2" id="custom-width" inputMode="decimal" onChange={(event) => updateDraft("size", { ...draft.size, width: event.target.value })} required value={draft.size.width} /></div><div><label className="text-sm font-medium" htmlFor="custom-height">Height *</label><Input className="mt-2" id="custom-height" inputMode="decimal" onChange={(event) => updateDraft("size", { ...draft.size, height: event.target.value })} required value={draft.size.height} /></div><div><label className="text-sm font-medium" htmlFor="custom-unit">Unit *</label><Select className="mt-2" disabled={customDimensionUnits.length === 1} id="custom-unit" onChange={(event) => updateDraft("size", { ...draft.size, unit: event.target.value })} required value={draft.size.unit}><option value="">Choose unit</option>{customDimensionUnits.map((unit) => <option key={unit} value={unit}>{unit === "INCHES" ? "inches" : unit === "FEET" ? "feet" : unit.toLowerCase()}</option>)}</Select></div></div> : null}
               {specification && specification.materials.options.length > 0 ? <div><label className="text-sm font-medium" htmlFor="job-material">Material{specification.materials.required ? " *" : ""}</label><Select className="mt-2" id="job-material" onChange={(event) => updateDraft("material", event.target.value)} required={specification.materials.required} value={draft.material}><option value="">{specification.materials.required ? "Choose a material" : "No preference"}</option>{specification.materials.options.map((option) => <option key={option} value={option}>{option}</option>)}</Select></div> : null}
               {specification && specification.finishing.options.length > 0 ? <div><label className="text-sm font-medium" htmlFor="job-finishing">Finishing{specification.finishing.required ? " *" : ""}</label><Select className="mt-2" id="job-finishing" onChange={(event) => updateDraft("finishing", event.target.value)} required={specification.finishing.required} value={draft.finishing}><option value="">{specification.finishing.required ? "Choose a finish" : "No preference"}</option>{specification.finishing.options.map((option) => <option key={option} value={option}>{option}</option>)}</Select></div> : null}
               {displayedJobFields.length > 0 ? <div className="grid gap-5 sm:grid-cols-2">{displayedJobFields.map((field) => <CustomFieldControl field={field} id={`job-field-${field.id}`} key={field.id} onChange={(value) => updateDraft("jobFields", { ...draft.jobFields, [field.id]: value, ...(field.id === "printed-contact-count" && value === "1" ? { "printed-contact-2": "" } : {}) })} value={draft.jobFields[field.id] ?? ""} />)}</div> : null}

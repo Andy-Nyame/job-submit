@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
+import { WebsiteEnquiryChat } from "@/components/jobs/website-enquiry-chat";
 import { CustomerCounterofferForm, CustomerQuotationDecisionForm } from "@/components/quotations/customer-quotation-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -74,7 +75,8 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
         </header>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(18rem,0.75fr)]">
-          <Card className="p-5 sm:p-7">
+          <div className="space-y-6">
+            <Card className="p-5 sm:p-7">
             <h2 className="text-xl font-semibold">Submitted details</h2>
             {snapshot ? (
               <div className="mt-5 space-y-6 text-sm">
@@ -89,7 +91,14 @@ export default async function CustomerJobPage({ params, searchParams }: Customer
                 {snapshot.request.variations.length > 0 ? <div><h3 className="font-medium text-muted">Variations</h3><ol className="mt-2 space-y-3">{snapshot.request.variations.map((variation, index) => <li className="rounded-lg border bg-surface-muted p-4" key={variation.id}><p className="font-medium">Variation {index + 1}: {variation.quantity.toLocaleString("en-US")}</p>{Object.entries(variation.fieldValues).map(([key, value]) => <p className="mt-1 text-muted" key={key}>{key}: <span className="text-foreground">{value}</span></p>)}</li>)}</ol></div> : null}
               </div>
             ) : <p className="mt-4 text-sm text-muted">This legacy job does not contain a Brick 6A submission snapshot.</p>}
-          </Card>
+            </Card>
+
+            {job.service.slug === "website-design-creation" ? (
+              <Card className="p-5 sm:p-7">
+                <WebsiteEnquiryChat messages={job.messages} publicReference={job.publicReference} viewer="CUSTOMER" />
+              </Card>
+            ) : null}
+          </div>
 
           <aside className="space-y-6">
             {pickupCredential && pickupQr ? (
