@@ -16,8 +16,8 @@ export function PublicServicesSection({ result }: { result: PublicServicesResult
         </div>
 
         {result.status === "ready" && result.services.length > 0 ? (
-          <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {result.services.map((service, index) => <PublicServiceCard index={index} key={service.slug} service={service} />)}
+          <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {result.services.map((service) => <PublicServiceCard key={service.slug} service={service} />)}
           </div>
         ) : (
           <div className="mt-12 rounded-2xl border bg-surface p-7 sm:p-9" role="status">

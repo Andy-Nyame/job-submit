@@ -85,9 +85,8 @@ test("customer preview presents exact fixed-price coverage without a checkout ac
   assert.doesNotMatch(markup, /checkout|place order|estimated price/i);
 });
 
-test("homepage service card renders accurate quantity and pricing fallbacks", () => {
+test("homepage service card renders accurate compact pricing and availability", () => {
   const markup = renderToStaticMarkup(createElement(PublicServiceCard, {
-    index: 0,
     service: {
       description: null,
       name: "Container Head & Batch Number Printing",
@@ -98,9 +97,9 @@ test("homepage service card renders accurate quantity and pricing fallbacks", ()
       specificationConfiguration: null,
     },
   }));
-  assert.match(markup, /Minimum order: 5 pieces/);
-  assert.match(markup, /Price on request/);
-  assert.match(markup, /online submission is not enabled/);
+  assert.match(markup, /Price on Request/);
+  assert.match(markup, /Not available online/);
+  assert.match(markup, /aspect-\[4\/5\]/);
   assert.doesNotMatch(markup, /undefined|Estimated price range/i);
 });
 

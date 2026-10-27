@@ -35,7 +35,7 @@ import { readStrategyPricingConfiguration } from "@/domain/service-pricing-strat
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Select, Textarea } from "@/components/ui/form-controls";
-import { ServiceCatalogueImage } from "@/components/services/service-catalogue-image";
+import { CustomerServiceCatalogue } from "@/components/jobs/customer-service-catalogue";
 
 type SizeDraft = JobSubmissionPayload["selection"]["size"];
 type VariationDraft = JobSubmissionPayload["selection"]["variations"][number];
@@ -70,21 +70,6 @@ function initialSize(service: SubmissionService | undefined): SizeDraft {
     return { height: "", kind: "PRESET", option: "", unit: "", width: "" };
   }
   return { height: "", kind: "NONE", option: "", unit: "", width: "" };
-}
-
-function cataloguePrice(service: SubmissionService) {
-  const pricing = readPricingConfiguration(service.pricingConfiguration);
-  const strategy = readStrategyPricingConfiguration(service.pricingConfiguration);
-  if (pricing.mode === "ON_REQUEST") return "Price on Request";
-  const labels: Partial<Record<NonNullable<typeof strategy>["profile"], string>> = {
-    BANNER_PRINTING: "Calculated from your size",
-    CONTAINER_NUMBER: "GH₵30",
-    FOR_SALE_STICKERS: "From GH₵20",
-    LABEL_PRINTING: "Calculated from your size",
-    POSTER_PRINTING: "From GH₵15",
-    STICKER_PRINTING: "Calculated from your size",
-  };
-  return strategy ? labels[strategy.profile] ?? "Price calculated from your choices" : "Price calculated from your choices";
 }
 
 function initialDraft(service: SubmissionService | undefined): Draft {
@@ -211,7 +196,7 @@ export function CustomerJobSubmissionForm({
   initialServiceSlug?: string;
   services: SubmissionService[];
 }) {
-  const initialService = services.find((service) => service.slug === initialServiceSlug) ?? services[0];
+  const initialService = services.find((service) => service.slug === initialServiceSlug);
   const [selectedServiceId, setSelectedServiceId] = useState(initialService?.id ?? "");
   const selectedService = services.find((service) => service.id === selectedServiceId);
   const designService = services.find((service) => service.slug === "designing");
@@ -280,9 +265,20 @@ export function CustomerJobSubmissionForm({
   }
 
   function selectService(serviceId: string) {
+    if (serviceId === selectedServiceId) return;
     const service = services.find((candidate) => candidate.id === serviceId);
     setSelectedServiceId(serviceId);
     setDraft(initialDraft(service));
+    setFiles([]);
+    setUploaded([]);
+    setReview(null);
+    setLocalError("");
+    setIncludeDesign(false);
+  }
+
+  function clearServiceSelection() {
+    setSelectedServiceId("");
+    setDraft(initialDraft(undefined));
     setFiles([]);
     setUploaded([]);
     setReview(null);
@@ -462,43 +458,14 @@ export function CustomerJobSubmissionForm({
             <p className="text-sm font-semibold text-primary">Step 1 of 3</p>
             <h2 className="mt-2 text-2xl font-semibold">Choose what you need</h2>
             <p className="mt-2 text-sm leading-6 text-muted">Pick the service that best matches the work you want us to do.</p>
-            <fieldset className="mt-5">
-              <legend className="sr-only">Choose a service</legend>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {services.map((service) => {
-                  const selected = service.id === selectedServiceId;
-                  const images = service.images ?? [];
-                  const cover = images.find((image) => image.isCover) ?? images[0];
-                  return (
-                    <button
-                      aria-pressed={selected}
-                      className={selected ? "overflow-hidden rounded-2xl border-2 border-primary bg-primary-surface text-left shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" : "overflow-hidden rounded-2xl border bg-surface text-left outline-none transition-colors hover:border-primary/45 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"}
-                      key={service.id}
-                      onClick={() => selectService(service.id)}
-                      type="button"
-                    >
-                      <ServiceCatalogueImage alt={cover?.altText ?? ""} imageId={cover?.id} name={service.name} />
-                      <span className="block p-4">
-                        <span className="block font-semibold">{service.name}</span>
-                        <span className="mt-1 line-clamp-2 block text-sm leading-5 text-muted">{service.description ?? "Tell us what you need and our team will review it."}</span>
-                        <span className="mt-3 flex items-center justify-between gap-2 text-xs font-semibold">
-                          <span className="text-primary">{cataloguePrice(service)}</span>
-                          <span>{selected ? "Selected" : "Choose"}</span>
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-            {selectedService ? <div className="mt-4 rounded-lg border bg-surface-muted p-4 text-sm leading-6"><p>{selectedService.description ?? "Tell us what you need and our team will review it."}</p><p className="mt-2 font-medium">{pricing.mode === "FIXED" ? "Your price will be calculated from the details you choose." : "We'll check your request and send you a price."}</p>{specification?.customInstructions ? <p className="mt-2 text-muted">{specification.customInstructions}</p> : null}</div> : null}
-            {selectedService && (selectedService.images?.length ?? 0) > 1 ? (
-              <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5" aria-label={`${selectedService.name} gallery`}>
-                {selectedService.images?.map((image) => <ServiceCatalogueImage alt={image.altText} imageId={image.id} key={image.id} name={selectedService.name} />)}
-              </div>
-            ) : null}
+            <CustomerServiceCatalogue
+              onClearSelection={clearServiceSelection}
+              onSelect={selectService}
+              selectedServiceId={selectedServiceId}
+              services={services}
+            />
             <div className="mt-6 flex justify-end">
-              <Button onClick={() => setStep(2)} type="button">{selectedService?.slug === "website-design-creation" ? "Chat about your website" : "Continue"}</Button>
+              <Button disabled={!selectedService} onClick={() => setStep(2)} type="button">{selectedService?.slug === "website-design-creation" ? "Chat about your website" : "Continue"}</Button>
             </div>
           </Card>
       ) : (
